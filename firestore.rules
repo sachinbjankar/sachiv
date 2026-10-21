@@ -1,0 +1,78 @@
+rules_version = '2';
+// Sachiv security rules. Each society is visible only to its own approved members.
+// Committee (admin) members manage everything; residents see only their own flat.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function memberPath(sid) { return /databases/$(database)/documents/societies/$(sid)/members/$(request.auth.uid); }
+    function isActive(sid) { return signedIn() && exists(memberPath(sid)) && get(memberPath(sid)).data.status == 'active'; }
+    function isAdmin(sid) { return isActive(sid) && get(memberPath(sid)).data.role == 'admin'; }
+    function myFlat(sid) { return get(memberPath(sid)).data.flatId; }
+    function societyPath(sid) { return /databases/$(database)/documents/societies/$(sid); }
+
+    // Each person's own list of societies.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Join codes: anyone signed in can look up one code (not list them all).
+    match /joinCodes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && getAfter(societyPath(request.resource.data.sid)).data.createdBy == request.auth.uid
+        && getAfter(societyPath(request.resource.data.sid)).data.code == code;
+      allow update: if isAdmin(resource.data.sid) && request.resource.data.sid == resource.data.sid;
+    }
+
+    match /societies/{sid} {
+      allow read: if isActive(sid);
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAdmin(sid)
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.code == resource.data.code;
+
+      match /members/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || isAdmin(sid));
+        allow create: if signedIn() && request.auth.uid == uid && (
+          // a resident asking to join waits for approval
+          (request.resource.data.role == 'resident' && request.resource.data.status == 'pending')
+          // the person creating a new society becomes its first committee member
+          || (request.resource.data.role == 'admin' && request.resource.data.status == 'active'
+              && !exists(societyPath(sid))
+              && getAfter(societyPath(sid)).data.createdBy == request.auth.uid)
+        );
+        allow update: if isAdmin(sid);
+        allow delete: if isAdmin(sid) || (signedIn() && request.auth.uid == uid);
+      }
+
+      match /accounts/{flatId} {
+        allow read: if isAdmin(sid) || (isActive(sid) && myFlat(sid) == flatId);
+        allow write: if isAdmin(sid);
+      }
+
+      match /claims/{id} {
+        allow read: if isAdmin(sid) || (isActive(sid) && resource.data.flatId == myFlat(sid));
+        allow create: if isActive(sid)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.flatId == myFlat(sid)
+          && request.resource.data.status == 'pending';
+        allow update, delete: if isAdmin(sid);
+      }
+
+      match /notices/{id} {
+        allow read: if isActive(sid);
+        allow write: if isAdmin(sid);
+      }
+
+      match /complaints/{id} {
+        allow read: if isAdmin(sid) || (isActive(sid) && resource.data.uid == request.auth.uid);
+        allow create: if isActive(sid)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.status == 'open'
+          && (isAdmin(sid) || request.resource.data.flatId == myFlat(sid));
+        allow update, delete: if isAdmin(sid);
+      }
+    }
+  }
+}
