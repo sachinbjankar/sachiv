@@ -1,4 +1,4 @@
-name: Build Sachiv
+name: Build Sachiv APK
 
 on:
   push:
@@ -7,40 +7,43 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   android:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npx cap sync android
+
+      - name: Install and build web app
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+
       - name: Build APK
         working-directory: android
         run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk ../Sachiv.apk
-      - uses: actions/upload-artifact@v4
+
+      - name: Keep APK as build download
+        uses: actions/upload-artifact@v4
         with:
           name: Sachiv-apk
           path: Sachiv.apk
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
@@ -49,19 +52,3 @@ jobs:
           body: Download Sachiv.apk below and open it on your Android phone to install.
           files: Sachiv.apk
           make_latest: true
-      - name: Prepare web version
-        run: cp dist/index.html dist/404.html
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  web:
-    needs: android
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - id: deploy
-        uses: actions/deploy-pages@v4
