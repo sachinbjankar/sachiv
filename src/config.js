@@ -10,3 +10,10 @@ export const firebaseConfig = {
   appId: '1:464250681017:web:94ddfc540fc6307f3ccd68',
   measurementId: 'G-L72ZRD95PG'
 };
+
+// The app owner (you). This verified email can open the owner panel and extend any society's plan.
+// The same email is written in firestore.rules; change both together.
+export const OWNER_EMAIL = 'sachin.bjankar@gmail.com';
+// Shown to committees when their free trial or plan ends.
+export const SUPPORT_EMAIL = 'sachin.bjankar@gmail.com';
+export const TRIAL_DAYS = 30;

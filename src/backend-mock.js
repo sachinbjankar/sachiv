@@ -14,11 +14,12 @@ const ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 let current = store.__current ? users[store.__current] : null;
 const authL = new Set();
-const authNotify = () => { store.__current = current ? current.email : null; save(); authL.forEach(cb => cb(current ? { uid: current.uid, email: current.email, name: current.name } : null)); };
+const pub = () => current ? { uid: current.uid, email: current.email, name: current.name, emailVerified: !!current.verified } : null;
+const authNotify = () => { store.__current = current ? current.email : null; save(); authL.forEach(cb => cb(pub())); };
 
 export const backend = {
   kind: 'mock',
-  onAuth(cb) { authL.add(cb); setTimeout(() => cb(current ? { uid: current.uid, email: current.email, name: current.name } : null), 0); return () => authL.delete(cb); },
+  onAuth(cb) { authL.add(cb); setTimeout(() => cb(pub()), 0); return () => authL.delete(cb); },
   async signUp(email, password, name) {
     email = email.toLowerCase(); if (users[email]) throw { code: 'auth/email-already-in-use' };
     if (password.length < 6) throw { code: 'auth/weak-password' };
@@ -31,13 +32,23 @@ export const backend = {
   },
   async signOut() { current = null; authNotify(); },
   async resetPassword() {},
+  async sendVerification() { if (current) current.verified = true; save(); },
+  async refreshUser() { authNotify(); return !!(current && current.verified); },
+  async deleteAccount(password, sids) {
+    if (!current || current.password !== password) throw { code: 'auth/invalid-credential' };
+    for (const sid of sids) delete store[`societies/${sid}/members/${current.uid}`];
+    delete store['users/' + current.uid]; delete users[current.email]; current = null; notify(); authNotify();
+  },
+  watchAllSocieties(cb) { return watch(() => cb(docsIn('societies').sort((a, b) => b.createdAt - a.createdAt))); },
+  async setPlan(sid, data) { store['societies/' + sid] = { ...store['societies/' + sid], ...data }; notify(); },
 
   watchUser(uid, cb) { return watch(() => cb(store['users/' + uid] || { societies: {} })); },
-  async createSociety(user, data) {
+  async createSociety(user, input) {
+    const { myFlat, ...data } = input;
     let code = ''; do { code = Array.from({ length: 6 }, () => ALPH[Math.floor(Math.random() * ALPH.length)]).join(''); } while (store['joinCodes/' + code]);
     const sid = 's' + newId();
-    store['societies/' + sid] = { ...data, createdBy: user.uid, code, createdAt: Date.now() };
-    store[`societies/${sid}/members/${user.uid}`] = { name: user.name, email: user.email, role: 'admin', status: 'active', flatId: data.myFlat || '', createdAt: Date.now() };
+    store['societies/' + sid] = { ...data, createdBy: user.uid, code, createdAt: Date.now(), trialEnds: Date.now() + 30 * 86400000, paidUntil: 0 };
+    store[`societies/${sid}/members/${user.uid}`] = { name: user.name, email: user.email, role: 'admin', status: 'active', flatId: myFlat || '', createdAt: Date.now() };
     store['joinCodes/' + code] = { sid, name: data.name };
     store['users/' + user.uid] = deepMerge(store['users/' + user.uid], { societies: { [sid]: { name: data.name, role: 'admin' } } });
     notify(); return sid;

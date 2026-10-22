@@ -11,6 +11,7 @@ import { backend as B } from './backend.js';
 import { NOTICE_TEMPLATES, MINUTES_TYPES, RESOLUTION_PHRASES } from './templates.js';
 import { drawLetterhead } from './letterhead.js';
 import { openExternal, upiLink, waLink, shareImage, copyText, isNative } from './platform.js';
+import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS } from './config.js';
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -34,7 +35,7 @@ const errMsg = e => {
   return ({
     'auth/invalid-credential': 'ईमेल किंवा पासवर्ड चुकीचा आहे.', 'auth/wrong-password': 'ईमेल किंवा पासवर्ड चुकीचा आहे.', 'auth/user-not-found': 'या ईमेलचे खाते नाही. आधी नोंदणी करा.',
     'auth/email-already-in-use': 'या ईमेलचे खाते आधीच आहे. लॉगिन करा.', 'auth/weak-password': 'पासवर्ड किमान ६ अक्षरांचा हवा.', 'auth/invalid-email': 'ईमेल पत्ता नीट तपासा.',
-    'auth/network-request-failed': 'इंटरनेट कनेक्शन तपासा.', 'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'ॲप अजून Firebase शी जोडलेले नाही (src/config.js भरा).', 'auth/operation-not-allowed': 'Firebase मध्ये Email/Password लॉगिन चालू करा.', 'auth/too-many-requests': 'खूप प्रयत्न झाले. थोड्या वेळाने पुन्हा करा.', 'permission-denied': 'हे करण्याची परवानगी नाही.', 'unavailable': 'इंटरनेट कनेक्शन तपासा.'
+    'auth/network-request-failed': 'इंटरनेट कनेक्शन तपासा.', 'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'ॲप अजून Firebase शी जोडलेले नाही (src/config.js भरा).', 'auth/operation-not-allowed': 'Firebase मध्ये Email/Password लॉगिन चालू करा.', 'auth/too-many-requests': 'खूप प्रयत्न झाले. थोड्या वेळाने पुन्हा करा.', 'auth/requires-recent-login': 'पुन्हा लॉगिन करून प्रयत्न करा.', 'auth/missing-password': 'पासवर्ड टाका.', 'permission-denied': 'हे करण्याची परवानगी नाही.', 'unavailable': 'इंटरनेट कनेक्शन तपासा.'
   })[c] || 'काहीतरी चुकले. पुन्हा प्रयत्न करा.';
 };
 const fail = e => { console.error(e); toast(errMsg(e)); };
@@ -59,6 +60,30 @@ const isAdmin = () => S.member && S.member.status === 'active' && S.member.role 
 const isActive = () => S.member && S.member.status === 'active';
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
 let ledgerMonth = thisMonth, ledgerFilter = 'due', complaintFilter = 'open';
+
+/* ---------- plan (free trial / paid) ---------- */
+const DAY = 864e5;
+const fmtTs = ts => { const d = new Date(ts); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+const isoDay = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const addMonthsTs = (ts, n) => { const d = new Date(ts); d.setMonth(d.getMonth() + n); return d.getTime(); };
+const trialEndOf = s => Number(s.trialEnds) || ((Number(s.createdAt) || Date.now()) + TRIAL_DAYS * DAY);
+const planEnd = s => Math.max(Number(s.paidUntil) || 0, trialEndOf(s));
+function planState(s) {
+  const end = planEnd(s), t = Date.now();
+  return { end, left: Math.max(0, Math.ceil((end - t) / DAY)), expired: end <= t, trial: !((Number(s.paidUntil) || 0) > t) && end > t };
+}
+const locked = () => isAdmin() && S.society && planState(S.society).expired;
+const isOwnerUser = () => !!(S.user && S.user.email && S.user.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
+const LOCK_MSG = 'सदस्यत्व संपले आहे. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.';
+function planBanner(always) {
+  const p = planState(S.society);
+  if (p.expired) return `<div class="card lock stack"><b>सदस्यत्व संपले (${fmtTs(p.end)})</b>
+    <span class="small">भरणा नोंदी, सूचना आणि आठवणी सध्या बंद आहेत. सभासदांना त्यांची थकबाकी आणि जुन्या सूचना दिसत राहतील. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.</span>
+    <button class="btn" type="button" data-act="support">संपर्क: ${esc(SUPPORT_EMAIL)}</button></div>`;
+  if (p.trial) return `<div class="card tint small row between wrap"><span>मोफत कालावधी: <b class="num">${p.left} दिवस</b> बाकी</span><span class="tiny muted">${fmtTs(p.end)} पर्यंत</span></div>`;
+  if (p.left <= 7) return `<div class="card tint small row between wrap"><span>सदस्यत्व ${fmtTs(p.end)} ला संपेल</span><b class="bad num">${p.left} दिवस बाकी</b></div>`;
+  return always ? `<div class="card small row between wrap"><span>सदस्यत्व</span><span class="muted">${fmtTs(p.end)} पर्यंत</span></div>` : '';
+}
 
 /* ---------- money ---------- */
 const flats = () => (S.society && S.society.flats) || [];
@@ -178,7 +203,9 @@ function viewOnboard() {
     <div class="card stack"><b>सभासद आहात?</b><p class="small muted m0">समितीकडून मिळालेला ६ अक्षरी जॉइन कोड टाका.</p>
       <form id="joinForm" class="stack"><div class="field"><label for="jCode">जॉइन कोड</label><input id="jCode" type="text" required maxlength="6" autocapitalize="characters" placeholder="उदा. K7MP2Q" style="text-transform:uppercase;letter-spacing:.15em"></div>
       <button class="btn block" type="submit">पुढे</button></form></div>
-    <button class="btn block" type="button" data-act="signout">लॉगआउट</button>`;
+    ${ownerCard()}
+    <button class="btn block" type="button" data-act="signout">लॉगआउट</button>
+    <button class="link danger" type="button" data-act="delacct">खाते हटवा</button>`;
 }
 function viewPending(name) {
   return `<div class="card stack"><b>विनंती पाठवली आहे</b><p class="small muted m0">${esc(name)} च्या समितीने मंजुरी दिल्यावर तुम्हाला तुमची थकबाकी, सूचना आणि तक्रारी इथे दिसतील. समितीला कळवा की तुम्ही नोंदणी केली आहे.</p></div>
@@ -195,6 +222,7 @@ function aHome() {
   const pc = S.claims.filter(c => c.status === 'pending'), pm = S.members.filter(m => m.status === 'pending');
   const agmYear = now.getMonth() + 1 > 9 ? now.getFullYear() + 1 : now.getFullYear(), days = Math.ceil((new Date(agmYear, 8, 30) - now) / 864e5);
   return `
+    ${planBanner(false)}
     ${!n ? `<div class="card tint stack"><b>पहिली पायरी: सदनिकांची यादी भरा</b><span class="small">खाते आणि आठवणी सुरू करण्यासाठी सदस्य टॅबमधून सदनिका जोडा.</span><button class="btn primary" type="button" data-act="setup">सदनिका जोडा</button></div>` : ''}
     ${pc.length ? `<h2>मंजुरीसाठी भरणा · ${pc.length}</h2><ul class="list">${pc.map(c => `<li><span class="flat">${esc(c.flatId)}</span><span class="grow"><b class="num">${rs(c.amount)}</b><span class="tiny muted">${esc(c.name || '')} · ${monthName(c.month)} · ${esc(fmtDate(c.date))}${c.ref ? ' · Ref ' + esc(c.ref) : ''}</span></span><span class="row g6"><button class="btn small good" type="button" data-claim-ok="${c.id}">मंजूर</button><button class="btn small" type="button" data-claim-no="${c.id}" aria-label="नाकारा">✕</button></span></li>`).join('')}</ul>` : ''}
     ${pm.length ? `<button class="card tint row between btnlike" type="button" data-tab-go="members"><b>${pm.length} नवीन सभासद विनंत्या</b><span>पाहा ›</span></button>` : ''}
@@ -248,6 +276,7 @@ function aMembers() {
       ${m.id === S.user.uid ? '' : `<button class="btn small" type="button" data-medit="${m.id}">बदला</button>`}</li>`).join('')}</ul>
     <div class="card stack"><b>सोसायटी आणि सदनिका</b><span class="small muted">${flats().length} सदनिका · ${rs(monthly())} प्रति महिना${S.society.upi ? ' · UPI ' + esc(S.society.upi) : ' · UPI आयडी भरलेला नाही'}</span>
       <button class="btn primary" type="button" data-act="setup">माहिती आणि सदनिका बदला</button></div>
+    ${planBanner(true)}
     ${accountCard()}`;
 }
 
@@ -278,8 +307,13 @@ function rMe() {
     ${S.society.upi ? `<div class="card small">संस्थेचा UPI आयडी: <b>${esc(S.society.upi)}</b></div>` : ''}
     ${accountCard()}`;
 }
-const accountCard = () => `<div class="card stack"><b>खाते</b><span class="small muted">${esc(S.user.email)}</span>
-  <div class="grid2"><button class="btn" type="button" data-act="switch">दुसरी सोसायटी</button><button class="btn" type="button" data-act="signout">लॉगआउट</button></div></div>`;
+const ownerCard = () => !isOwnerUser() ? '' : S.user.emailVerified
+  ? `<button class="btn primary block" type="button" data-act="owner">मालक पॅनेल</button>`
+  : `<div class="card tint stack small"><b>मालक पॅनेलसाठी ईमेल पडताळा</b><span>तुमच्या ईमेलवर पडताळणी लिंक पाठवू. ती उघडल्यावर "पडताळले" दाबा.</span>
+     <div class="grid2"><button class="btn" type="button" data-act="verify">लिंक पाठवा</button><button class="btn" type="button" data-act="verified">पडताळले</button></div></div>`;
+const accountCard = () => `${ownerCard()}<div class="card stack"><b>खाते</b><span class="small muted">${esc(S.user.email)}</span>
+  <div class="grid2"><button class="btn" type="button" data-act="switch">दुसरी सोसायटी</button><button class="btn" type="button" data-act="signout">लॉगआउट</button></div>
+  <button class="link danger" type="button" data-act="delacct">खाते हटवा</button></div>`;
 
 /* ---------- shared views ---------- */
 function vNotices() {
@@ -297,15 +331,17 @@ function vComplaints() {
 }
 
 /* ---------- sheets ---------- */
+let sheetCleanup = null;
 function openSheet(html, mount) {
+  if (sheetCleanup) { try { sheetCleanup(); } catch (e) {} sheetCleanup = null; }
   const root = $('#sheetRoot');
   root.innerHTML = `<div class="sheet-wrap"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
   const wrap = root.firstElementChild;
   wrap.addEventListener('click', e => { if (e.target === wrap) closeSheet(); });
   wrap.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheet));
-  if (mount) mount(wrap.firstElementChild);
+  if (mount) { const r = mount(wrap.firstElementChild); if (typeof r === 'function') sheetCleanup = r; }
 }
-const closeSheet = () => { $('#sheetRoot').innerHTML = ''; };
+const closeSheet = () => { if (sheetCleanup) { try { sheetCleanup(); } catch (e) {} sheetCleanup = null; } $('#sheetRoot').innerHTML = ''; };
 const sheetHead = t => `<div class="row between"><h3>${t}</h3><button class="btn small" type="button" data-close>बंद</button></div>`;
 
 function sheetSetup(isNew) {
@@ -530,6 +566,68 @@ async function startJoin(code) {
   } catch (e) { fail(e); }
 }
 
+/* owner panel: every society, its plan, and a way to extend it after the society pays */
+function sheetOwner() {
+  let list = [], q = '';
+  openSheet(`${sheetHead('मालक पॅनेल')}
+    <div class="grid2" id="oStats"></div>
+    <input type="search" id="oQ" placeholder="सोसायटी किंवा कोड शोधा" aria-label="सोसायटी शोधा">
+    <ul class="list" id="oList"><li class="muted small">आणत आहे…</li></ul>`, el => {
+    const draw = () => {
+      const st = list.map(x => ({ x, p: planState(x) }));
+      const paid = st.filter(o => !o.p.expired && !o.p.trial).length, trial = st.filter(o => o.p.trial).length, exp = st.filter(o => o.p.expired).length;
+      el.querySelector('#oStats').innerHTML = `<div class="card"><div class="tiny muted">सशुल्क</div><b class="big good num">${paid}</b></div><div class="card"><div class="tiny muted">मोफत / संपलेले</div><b class="big num">${trial} / <span class="bad">${exp}</span></b></div>`;
+      const rows = st.filter(({ x }) => !q || (x.name || '').toLowerCase().includes(q) || (x.code || '').toLowerCase().includes(q));
+      el.querySelector('#oList').innerHTML = rows.length ? rows.map(({ x, p }) => `<li><span class="grow"><b>${esc(x.name)}</b><span class="tiny muted">${(x.flats || []).length} सदनिका · ${esc(x.code || '')} · नोंद ${fmtTs(x.createdAt || Date.now())}</span></span>
+        <span class="pill ${p.expired ? 'due' : p.trial ? 'wait' : 'ok'}">${p.expired ? 'संपले' : p.trial ? `मोफत ${p.left}दि` : fmtTs(p.end)}</span>
+        <button class="btn small" type="button" data-plan="${x.id}">बदला</button></li>`).join('') : `<li class="muted small">काही नाही.</li>`;
+    };
+    el.querySelector('#oQ').addEventListener('input', e => { q = e.target.value.trim().toLowerCase(); draw(); });
+    el.addEventListener('click', e => { const b = e.target.closest('[data-plan]'); if (b) { const x = list.find(y => y.id === b.dataset.plan); if (x) sheetPlan(x); } });
+    return B.watchAllSocieties(l => { list = l; draw(); }, e => { el.querySelector('#oList').innerHTML = `<li class="bad small">${esc(errMsg(e))}</li>`; });
+  });
+}
+
+function sheetPlan(x) {
+  const p = planState(x), base = Math.max(Date.now(), p.end);
+  openSheet(`${sheetHead(esc(x.name))}
+    <div class="small">सध्या: <b>${p.expired ? 'संपले' : p.trial ? 'मोफत कालावधी' : 'सशुल्क'}</b> · ${fmtTs(p.end)} पर्यंत</div>
+    <div class="chips">${[[1, '+1 महिना'], [3, '+3 महिने'], [6, '+6 महिने'], [12, '+1 वर्ष']].map(([n, l]) => `<button class="chip" type="button" data-add="${n}">${l}</button>`).join('')}</div>
+    <div class="field"><label for="plDate">सदस्यत्व या दिवसापर्यंत</label><input type="date" id="plDate" value="${isoDay(base)}"></div>
+    <button class="btn primary block" type="button" id="plSave">जतन करा</button>
+    <button class="btn block danger" type="button" id="plStop">आताच बंद करा</button>
+    <button class="btn block" type="button" id="plBack">‹ सर्व सोसायट्या</button>`, el => {
+    const inp = el.querySelector('#plDate');
+    el.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => { inp.value = isoDay(addMonthsTs(base, +b.dataset.add)); el.querySelectorAll('[data-add]').forEach(c => c.setAttribute('aria-pressed', String(c === b))); }));
+    el.querySelector('#plSave').addEventListener('click', async () => {
+      if (!inp.value) return;
+      const until = new Date(inp.value + 'T23:59:59').getTime();
+      try { await B.setPlan(x.id, { paidUntil: until, lastPaidAt: Date.now() }); toast(`${x.name}: ${fmtTs(until)} पर्यंत सुरू.`); sheetOwner(); } catch (e) { fail(e); }
+    });
+    el.querySelector('#plStop').addEventListener('click', async () => {
+      try { await B.setPlan(x.id, { paidUntil: 0, trialEnds: Date.now() }); toast('सदस्यत्व बंद केले.'); sheetOwner(); } catch (e) { fail(e); }
+    });
+    el.querySelector('#plBack').addEventListener('click', sheetOwner);
+  });
+}
+
+function sheetDeleteAccount() {
+  openSheet(`${sheetHead('खाते हटवा')}
+    <p class="small m0">तुमचे Sachiv लॉगिन कायमचे हटवले जाईल आणि तुम्ही सर्व सोसायट्यांमधून बाहेर पडाल. सोसायटीच्या हिशोबातील नोंदी (भरणा, सूचना) सोसायटीच्या रेकॉर्डसाठी राहतील.</p>
+    <p class="small m0 muted">तुम्ही समितीत असाल, तर आधी दुसऱ्या सदस्याला समिती भूमिका द्या.</p>
+    <form id="delForm" class="stack"><div class="field"><label for="dPass">खात्री करण्यासाठी पासवर्ड टाका</label><input id="dPass" type="password" required autocomplete="current-password"></div>
+    <button class="btn block danger-fill" type="submit">खाते कायमचे हटवा</button></form>`, el => {
+    el.querySelector('#delForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = el.querySelector('[type=submit]'); btn.disabled = true;
+      try {
+        await B.deleteAccount(el.querySelector('#dPass').value, Object.keys((S.userDoc && S.userDoc.societies) || {}));
+        closeSheet(); S.sid = null; LS.set('sachiv-sid', null); authMode = 'login'; toast('तुमचे खाते हटवले.');
+      } catch (er) { toast(errMsg(er)); btn.disabled = false; }
+    });
+  });
+}
+
 /* ---------- events ---------- */
 document.addEventListener('submit', async e => {
   const f = e.target; if (f.closest('.sheet')) return;
@@ -546,12 +644,18 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('button, a'); if (!t || t.closest('.sheet')) return;
   const d = t.dataset;
   try {
+    if (locked() && (['newnotice', 'newminutes', 'reminders'].includes(d.act) || d.pay || d.claimOk || d.claimNo || d.mok || d.ctoggle || d.medit)) { toast(LOCK_MSG); return; }
     if (d.tab) { S.tab = d.tab; render(); window.scrollTo(0, 0); }
     else if (d.tabGo) { S.tab = d.tabGo; if (S.tab === 'ledger') ledgerFilter = 'due'; render(); window.scrollTo(0, 0); }
     else if (d.auth) { authMode = d.auth; render(); }
     else if (d.act === 'forgot') { const em = ($('#aEmail') || {}).value; if (!em) { toast('आधी ईमेल लिहा.'); return; } await B.resetPassword(em.trim()); toast('पासवर्ड बदलण्याची लिंक ईमेलवर पाठवली.'); }
     else if (d.act === 'signout') { LS.set('sachiv-sid', null); authMode = 'login'; S.sid = null; await B.signOut(); }
     else if (d.act === 'create') sheetSetup(true);
+    else if (d.act === 'owner') sheetOwner();
+    else if (d.act === 'verify') { await B.sendVerification(); toast('लिंक पाठवली. ईमेल उघडा (Spam सुद्धा तपासा).'); }
+    else if (d.act === 'verified') { const ok = await B.refreshUser(); toast(ok ? 'ईमेल पडताळले. मालक पॅनेल सुरू.' : 'अजून पडताळले नाही. ईमेलमधील लिंक उघडा.'); }
+    else if (d.act === 'delacct') sheetDeleteAccount();
+    else if (d.act === 'support') openExternal(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Sachiv सदस्यत्व: ' + S.society.name + ' (' + S.society.code + ')')}`);
     else if (d.act === 'setup') sheetSetup(false);
     else if (d.act === 'switch') sheetSwitch();
     else if (d.act === 'leave') { const sid = S.sid; if (S.member) await B.removeMember(sid, S.user.uid); await B.leaveIndex(S.user.uid, sid); S.sid = null; LS.set('sachiv-sid', null); }

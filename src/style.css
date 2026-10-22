@@ -112,3 +112,9 @@ nav .dot { position: absolute; top: 6px; left: calc(50% + 8px); width: 9px; heig
 @media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 .docprev { width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #fff; min-height: 200px; }
 @media (max-width: 360px) { .grid2 { grid-template-columns: 1fr; } }
+
+.card.lock { background: var(--bad-bg); border-color: transparent; color: var(--ink); }
+.card.lock b { color: var(--bad); }
+.btn.danger-fill { background: var(--bad); color: #fff; border-color: transparent; }
+.link.danger { color: var(--bad); align-self: center; }
+input[type="search"] { -webkit-appearance: none; appearance: none; }

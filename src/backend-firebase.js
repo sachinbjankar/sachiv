@@ -11,7 +11,8 @@
 import { initializeApp } from 'firebase/app';
 import {
   getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut as fbSignOut, sendPasswordResetEmail, updateProfile
+  signOut as fbSignOut, sendPasswordResetEmail, updateProfile, sendEmailVerification,
+  EmailAuthProvider, reauthenticateWithCredential, deleteUser
 } from 'firebase/auth';
 import {
   getFirestore, doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, writeBatch, deleteField
@@ -22,15 +23,27 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+let authCb = null;
+const toUser = u => u ? { uid: u.uid, email: u.email, name: u.displayName || '', emailVerified: !!u.emailVerified } : null;
 const list = s => s.docs.map(d => ({ id: d.id, ...d.data() }));
 const byNewest = a => a.sort((x, y) => (y.createdAt || 0) - (x.createdAt || 0));
+export const TRIAL_MS = 30 * 86400000;
 const ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const newCode = () => Array.from({ length: 6 }, () => ALPH[Math.floor(Math.random() * ALPH.length)]).join('');
 const newId = () => doc(collection(db, '_ids')).id;
 
 export const backend = {
   kind: 'firebase',
-  onAuth(cb) { return onAuthStateChanged(auth, u => cb(u ? { uid: u.uid, email: u.email, name: u.displayName || '' } : null)); },
+  onAuth(cb) { authCb = cb; return onAuthStateChanged(auth, u => cb(toUser(u))); },
+  sendVerification: () => sendEmailVerification(auth.currentUser),
+  async refreshUser() { await auth.currentUser.reload(); await auth.currentUser.getIdToken(true); if (authCb) authCb(toUser(auth.currentUser)); return auth.currentUser.emailVerified; },
+  async deleteAccount(password, sids) {
+    const u = auth.currentUser;
+    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, password));
+    for (const sid of sids) { try { await deleteDoc(doc(db, 'societies', sid, 'members', u.uid)); } catch (e) {} }
+    try { await deleteDoc(doc(db, 'users', u.uid)); } catch (e) {}
+    await deleteUser(u);
+  },
   async signUp(email, password, name) {
     const c = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(c.user, { displayName: name });
@@ -48,7 +61,7 @@ export const backend = {
     for (let i = 0; i < 5 && (await getDoc(doc(db, 'joinCodes', code))).exists(); i++) code = newCode();
     const sid = newId();
     const b = writeBatch(db);
-    b.set(doc(db, 'societies', sid), { ...data, createdBy: user.uid, code, createdAt: Date.now() });
+    b.set(doc(db, 'societies', sid), { ...data, createdBy: user.uid, code, createdAt: Date.now(), trialEnds: Date.now() + TRIAL_MS, paidUntil: 0 });
     b.set(doc(db, 'societies', sid, 'members', user.uid), { name: user.name, email: user.email, role: 'admin', status: 'active', flatId: myFlat || '', createdAt: Date.now() });
     b.set(doc(db, 'joinCodes', code), { sid, name: data.name });
     b.set(doc(db, 'users', user.uid), { societies: { [sid]: { name: data.name, role: 'admin' } } }, { merge: true });
@@ -79,6 +92,10 @@ export const backend = {
     const q = uid ? query(base, where('uid', '==', uid), limit(100)) : query(base, orderBy('createdAt', 'desc'), limit(300));
     return onSnapshot(q, s => cb(byNewest(list(s))), err);
   },
+
+  // Owner only (rules check the owner's verified email).
+  watchAllSocieties(cb, err) { return onSnapshot(query(collection(db, 'societies'), orderBy('createdAt', 'desc'), limit(500)), s => cb(list(s)), err); },
+  setPlan: (sid, data) => updateDoc(doc(db, 'societies', sid), data),
 
   async updateSociety(sid, data) {
     const b = writeBatch(db);

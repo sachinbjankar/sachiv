@@ -11,6 +11,20 @@ service cloud.firestore {
     function myFlat(sid) { return get(memberPath(sid)).data.flatId; }
     function societyPath(sid) { return /databases/$(database)/documents/societies/$(sid); }
 
+    // The app owner: can see every society and extend its plan. Email must be verified.
+    function isOwner() {
+      return signedIn() && request.auth.token.email == 'sachin.bjankar@gmail.com' && request.auth.token.email_verified == true;
+    }
+    // Free trial (30 days from registration) or paid plan still running.
+    function planOk(sid) {
+      let s = get(societyPath(sid)).data;
+      let now = request.time.toMillis();
+      return s.get('paidUntil', 0) > now || s.get('trialEnds', s.get('createdAt', 0) + 2592000000) > now;
+    }
+    // Committee work (ledger, notices, approvals) needs an active plan.
+    function canManage(sid) { return isAdmin(sid) && planOk(sid); }
+    function planKeys() { return ['paidUntil', 'trialEnds', 'lastPaidAt']; }
+
     // Each person's own list of societies.
     match /users/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
@@ -26,11 +40,13 @@ service cloud.firestore {
     }
 
     match /societies/{sid} {
-      allow read: if isActive(sid);
-      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isAdmin(sid)
-        && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.code == resource.data.code;
+      allow read: if isActive(sid) || isOwner();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.get('paidUntil', 0) == 0
+        && request.resource.data.trialEnds <= request.time.toMillis() + 2678400000;
+      allow update: if (isAdmin(sid)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'code', 'createdAt'].concat(planKeys())))
+        || (isOwner() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(planKeys()));
 
       match /members/{uid} {
         allow read: if signedIn() && (request.auth.uid == uid || isAdmin(sid));
@@ -42,13 +58,13 @@ service cloud.firestore {
               && !exists(societyPath(sid))
               && getAfter(societyPath(sid)).data.createdBy == request.auth.uid)
         );
-        allow update: if isAdmin(sid);
+        allow update: if canManage(sid);
         allow delete: if isAdmin(sid) || (signedIn() && request.auth.uid == uid);
       }
 
       match /accounts/{flatId} {
         allow read: if isAdmin(sid) || (isActive(sid) && myFlat(sid) == flatId);
-        allow write: if isAdmin(sid);
+        allow write: if canManage(sid);
       }
 
       match /claims/{id} {
@@ -57,12 +73,12 @@ service cloud.firestore {
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.flatId == myFlat(sid)
           && request.resource.data.status == 'pending';
-        allow update, delete: if isAdmin(sid);
+        allow update, delete: if canManage(sid);
       }
 
       match /notices/{id} {
         allow read: if isActive(sid);
-        allow write: if isAdmin(sid);
+        allow write: if canManage(sid);
       }
 
       match /complaints/{id} {
@@ -71,7 +87,7 @@ service cloud.firestore {
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.status == 'open'
           && (isAdmin(sid) || request.resource.data.flatId == myFlat(sid));
-        allow update, delete: if isAdmin(sid);
+        allow update, delete: if canManage(sid);
       }
     }
   }
