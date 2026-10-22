@@ -16,7 +16,7 @@ export async function drawLetterhead(soc, d) {
       document.fonts.load('700 32px "Hind"', 'सूचना Aa')
     ]), new Promise(r => setTimeout(r, 2500))]);
   } catch (e) {}
-  const W = 1240, M = 110, inner = W - 2 * M, isMin = d.kind === 'minutes', en = d.lang === 'en';
+  const W = 1240, M = 110, inner = W - 2 * M, isMin = d.kind === 'minutes', en = d.lang === 'en', hi = d.lang === 'hi';
   const c = document.createElement('canvas'), ctx = c.getContext('2d');
   const F = (s, w = 400) => `${w} ${s}px "Tiro Devanagari Marathi", "Hind", serif`;
   const items = String(d.body || '').split('\n').map(x => x.trim()).filter(Boolean);
@@ -36,7 +36,7 @@ export async function drawLetterhead(soc, d) {
   let y = 120;
   ctx.font = F(52, 700); for (const l of wrapLines(ctx, soc.name, inner)) { ctx.fillText(l, W / 2, y); y += 64; }
   ctx.font = F(26); ctx.fillStyle = '#4A5A62';
-  const sub = [soc.address, soc.regNo ? (en ? 'Reg. No. ' : 'नोंदणी क्र. ') + soc.regNo : ''].filter(Boolean).join(' · ');
+  const sub = [soc.address, soc.regNo ? (en ? 'Reg. No. ' : hi ? 'पंजीकरण क्र. ' : 'नोंदणी क्र. ') + soc.regNo : ''].filter(Boolean).join(' · ');
   if (sub) { for (const l of wrapLines(ctx, sub, inner)) { ctx.fillText(l, W / 2, y - 8); y += 34; } }
   ctx.strokeStyle = '#0E4D64'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(M, y); ctx.lineTo(W - M, y); ctx.stroke();
   y += 80;
@@ -57,6 +57,6 @@ export async function drawLetterhead(soc, d) {
   y = Math.max(y + 90, h - 200);
   ctx.font = F(32); ctx.fillStyle = '#14232B';
   if (isMin) { ctx.textAlign = 'left'; ctx.fillText(en ? 'Secretary' : 'सचिव', M, y); ctx.textAlign = 'right'; ctx.fillText(en ? 'Chairman' : 'अध्यक्ष', W - M, y); }
-  else { ctx.textAlign = 'right'; ctx.fillText(en ? 'Secretary,' : 'सचिव,', W - M, y); ctx.fillText(en ? 'Managing Committee' : 'व्यवस्थापकीय समिती', W - M, y + 46); }
+  else { ctx.textAlign = 'right'; ctx.fillText(en ? 'Secretary,' : 'सचिव,', W - M, y); ctx.fillText(en ? 'Managing Committee' : hi ? 'प्रबंध समिति' : 'व्यवस्थापकीय समिती', W - M, y + 46); }
   return await new Promise(r => c.toBlob(r, 'image/png'));
 }

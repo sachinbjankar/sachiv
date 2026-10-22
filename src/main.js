@@ -12,13 +12,18 @@ import { NOTICE_TEMPLATES, MINUTES_TYPES, RESOLUTION_PHRASES } from './templates
 import { drawLetterhead } from './letterhead.js';
 import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative } from './platform.js';
 import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS } from './config.js';
+import { T, canon, LANG, LANGS, setLang } from './i18n.js';
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rs = n => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
-const MONTHS = ['जानेवारी', 'फेब्रुवारी', 'मार्च', 'एप्रिल', 'मे', 'जून', 'जुलै', 'ऑगस्ट', 'सप्टेंबर', 'ऑक्टोबर', 'नोव्हेंबर', 'डिसेंबर'];
-const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS_ALL = {
+  mr: ['जानेवारी', 'फेब्रुवारी', 'मार्च', 'एप्रिल', 'मे', 'जून', 'जुलै', 'ऑगस्ट', 'सप्टेंबर', 'ऑक्टोबर', 'नोव्हेंबर', 'डिसेंबर'],
+  hi: ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+};
+const MONTHS = MONTHS_ALL[LANG];
 const pad = n => String(n).padStart(2, '0');
 const now = new Date();
 const thisMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
@@ -26,17 +31,17 @@ const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate
 const monthName = k => { const [y, m] = k.split('-').map(Number); return `${MONTHS[m - 1]} ${y}`; };
 const addMonth = (k, d) => { let [y, m] = k.split('-').map(Number); m += d; while (m > 12) { m -= 12; y++; } while (m < 1) { m += 12; y--; } return `${y}-${pad(m)}`; };
 const monthsBetween = (a, b) => { const out = []; if (!a || a > b) return out; let k = a; while (k <= b) { out.push(k); k = addMonth(k, 1); } return out; };
-const fmtDate = (iso, lang = 'mr') => { if (!iso) return '…'; const [y, m, d] = iso.split('-').map(Number); return lang === 'en' ? `${d} ${MONTHS_EN[m - 1]} ${y}` : `${d} ${MONTHS[m - 1]} ${y}`; };
-const plural = n => n === 1 ? 'महिना' : 'महिने';
+const fmtDate = (iso, lang = LANG) => { if (!iso) return '…'; const [y, m, d] = iso.split('-').map(Number); return `${d} ${(MONTHS_ALL[lang] || MONTHS)[m - 1]} ${y}`; };
+const plural = n => n === 1 ? T('महिना') : T('महिने');
 let toastT;
 const toast = msg => { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3400); };
 const errMsg = e => {
   const c = e && e.code;
   return ({
-    'auth/invalid-credential': 'ईमेल किंवा पासवर्ड चुकीचा आहे.', 'auth/wrong-password': 'ईमेल किंवा पासवर्ड चुकीचा आहे.', 'auth/user-not-found': 'या ईमेलचे खाते नाही. आधी नोंदणी करा.',
-    'auth/email-already-in-use': 'या ईमेलचे खाते आधीच आहे. लॉगिन करा.', 'auth/weak-password': 'पासवर्ड किमान ६ अक्षरांचा हवा.', 'auth/invalid-email': 'ईमेल पत्ता नीट तपासा.',
-    'auth/network-request-failed': 'इंटरनेट कनेक्शन तपासा.', 'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'ॲप अजून Firebase शी जोडलेले नाही (src/config.js भरा).', 'auth/operation-not-allowed': 'Firebase मध्ये Email/Password लॉगिन चालू करा.', 'auth/too-many-requests': 'खूप प्रयत्न झाले. थोड्या वेळाने पुन्हा करा.', 'auth/requires-recent-login': 'पुन्हा लॉगिन करून प्रयत्न करा.', 'auth/missing-password': 'पासवर्ड टाका.', 'permission-denied': 'हे करण्याची परवानगी नाही.', 'unavailable': 'इंटरनेट कनेक्शन तपासा.'
-  })[c] || 'काहीतरी चुकले. पुन्हा प्रयत्न करा.';
+    'auth/invalid-credential': T('ईमेल किंवा पासवर्ड चुकीचा आहे.'), 'auth/wrong-password': T('ईमेल किंवा पासवर्ड चुकीचा आहे.'), 'auth/user-not-found': T('या ईमेलचे खाते नाही. आधी नोंदणी करा.'),
+    'auth/email-already-in-use': T('या ईमेलचे खाते आधीच आहे. लॉगिन करा.'), 'auth/weak-password': T('पासवर्ड किमान ६ अक्षरांचा हवा.'), 'auth/invalid-email': T('ईमेल पत्ता नीट तपासा.'),
+    'auth/network-request-failed': T('इंटरनेट कनेक्शन तपासा.'), 'auth/api-key-not-valid.-please-pass-a-valid-api-key.': T('ॲप अजून Firebase शी जोडलेले नाही (src/config.js भरा).'), 'auth/operation-not-allowed': T('Firebase मध्ये Email/Password लॉगिन चालू करा.'), 'auth/too-many-requests': T('खूप प्रयत्न झाले. थोड्या वेळाने पुन्हा करा.'), 'auth/requires-recent-login': T('पुन्हा लॉगिन करून प्रयत्न करा.'), 'auth/missing-password': T('पासवर्ड टाका.'), 'permission-denied': T('हे करण्याची परवानगी नाही.'), 'unavailable': T('इंटरनेट कनेक्शन तपासा.')
+  })[c] || T('काहीतरी चुकले. पुन्हा प्रयत्न करा.');
 };
 const fail = e => { console.error(e); toast(errMsg(e)); };
 const IC = {
@@ -88,15 +93,15 @@ function planState(s) {
 }
 const locked = () => isAdmin() && S.society && planState(S.society).expired;
 const isOwnerUser = () => !!(S.user && S.user.email && S.user.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
-const LOCK_MSG = 'सदस्यत्व संपले आहे. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.';
+const LOCK_MSG = T('सदस्यत्व संपले आहे. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.');
 function planBanner(always) {
   const p = planState(S.society);
-  if (p.expired) return `<div class="card lock stack"><b>सदस्यत्व संपले (${fmtTs(p.end)})</b>
-    <span class="small">भरणा नोंदी, सूचना आणि आठवणी सध्या बंद आहेत. सभासदांना त्यांची थकबाकी आणि जुन्या सूचना दिसत राहतील. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.</span>
-    <button class="btn" type="button" data-act="support">संपर्क: ${esc(SUPPORT_EMAIL)}</button></div>`;
-  if (p.trial) return `<div class="card tint small row between wrap"><span>मोफत कालावधी: <b class="num">${p.left} दिवस</b> बाकी</span><span class="tiny muted">${fmtTs(p.end)} पर्यंत</span></div>`;
-  if (p.left <= 7) return `<div class="card tint small row between wrap"><span>सदस्यत्व ${fmtTs(p.end)} ला संपेल</span><b class="bad num">${p.left} दिवस बाकी</b></div>`;
-  return always ? `<div class="card small row between wrap"><span>सदस्यत्व</span><span class="muted">${fmtTs(p.end)} पर्यंत</span></div>` : '';
+  if (p.expired) return `<div class="card lock stack"><b>${T('सदस्यत्व संपले')} (${fmtTs(p.end)})</b>
+    <span class="small">${T('भरणा नोंदी, सूचना आणि आठवणी सध्या बंद आहेत. सभासदांना त्यांची थकबाकी आणि जुन्या सूचना दिसत राहतील. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.')}</span>
+    <button class="btn" type="button" data-act="support">${T('संपर्क')}: ${esc(SUPPORT_EMAIL)}</button></div>`;
+  if (p.trial) return `<div class="card tint small row between wrap"><span>${T('मोफत कालावधी')}: <b class="num">${p.left} ${T('दिवस')}</b> ${T('बाकी')}</span><span class="tiny muted">${T('{0} पर्यंत', fmtTs(p.end))}</span></div>`;
+  if (p.left <= 7) return `<div class="card tint small row between wrap"><span>${T('सदस्यत्व {0} ला संपेल', fmtTs(p.end))}</span><b class="bad num">${p.left} ${T('दिवस बाकी')}</b></div>`;
+  return always ? `<div class="card small row between wrap"><span>${T('सदस्यत्व')}</span><span class="muted">${T('{0} पर्यंत', fmtTs(p.end))}</span></div>` : '';
 }
 
 /* ---------- money ---------- */
@@ -121,7 +126,8 @@ function monthSummary(m) {
 const monthsDue = due => monthly() ? Math.ceil(due / monthly()) : 0;
 function reminderText(f, due) {
   const n = monthsDue(due);
-  return `नमस्कार ${f.owner || ''},\n${S.society.name}\nसदनिका ${f.id} ची देखभाल थकबाकी ${rs(due)}${n > 1 ? ` (${n} महिने)` : ''} आहे.\nकृपया Sachiv ॲपमधून UPI द्वारे भरा${S.society.upi ? ` किंवा थेट UPI: ${S.society.upi} वर भरा` : ''}.\nधन्यवाद,\nसचिव`;
+  return [T('नमस्कार {0},', f.owner || ''), S.society.name, T('सदनिका {0} ची देखभाल थकबाकी {1} आहे.', f.id, rs(due) + (n > 1 ? ` (${n} ${T('महिने')})` : '')),
+    S.society.upi ? T('कृपया Sachiv ॲपमधून किंवा थेट UPI {0} वर भरा.', S.society.upi) : T('कृपया Sachiv ॲपमधून UPI द्वारे भरा.'), T('धन्यवाद,'), T('सचिव')].join('\n');
 }
 
 /* ---------- auth + society wiring ---------- */
@@ -173,7 +179,7 @@ function wire(sid, m) {
 }
 
 /* ---------- render ---------- */
-const SUBPAGES = { committee: 'समिती', contacts: 'महत्त्वाचे संपर्क', funds: 'वर्गणी', complaints: 'तक्रारी', members: 'सभासद व मंजुरी', me: 'माझे खाते' };
+const SUBPAGES = { committee: T('समिती'), contacts: T('महत्त्वाचे संपर्क'), funds: T('वर्गणी'), complaints: T('तक्रारी'), members: T('सभासद व मंजुरी'), me: T('माझे खाते') };
 const seenKey = () => 'sachiv-seen-' + S.sid;
 const unreadCount = () => { const t = Number(LS.get(seenKey()) || 0); return S.messages.filter(m => m.createdAt > t && m.uid !== (S.user && S.user.uid)).length; };
 function render() {
@@ -182,87 +188,90 @@ function render() {
   if (!S.user) { head.innerHTML = ''; tabs.innerHTML = ''; v.innerHTML = viewAuth(); return; }
   if (!S.userDoc) { head.innerHTML = topBar(''); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
   const socs = (S.userDoc && S.userDoc.societies) || {};
-  if (!S.sid) { head.innerHTML = topBar(''); tabs.innerHTML = ''; v.innerHTML = `${pageTitle('तुमची सोसायटी जोडा', 'नमस्कार, ' + esc(S.user.name))}` + viewOnboard(); return; }
+  if (!S.sid) { head.innerHTML = topBar(''); tabs.innerHTML = ''; v.innerHTML = `${pageTitle(T('तुमची सोसायटी जोडा'), `${T('नमस्कार')}, ` + esc(S.user.name))}` + viewOnboard(); return; }
   const sname = (socs[S.sid] || {}).name || '';
   if (S.member === undefined || (S.member && S.member.status === 'active' && !S.society)) { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
   if (!S.member) { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = viewGone(sname); return; }
   if (S.member.status !== 'active') { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = viewPending(sname); return; }
   head.innerHTML = topBar(S.society.name);
-  const T = isAdmin()
-    ? [['home', 'डॅशबोर्ड', IC.home], ['ledger', 'खाते', IC.ledger], ['messages', 'संदेश', IC.mega], ['files', 'फाइल्स', IC.folder], ['more', 'अधिक', IC.grid]]
-    : [['home', 'मुख्य', IC.home], ['messages', 'संदेश', IC.mega], ['files', 'फाइल्स', IC.folder], ['more', 'अधिक', IC.grid]];
-  if (!T.some(t => t[0] === S.tab) && !SUBPAGES[S.tab]) S.tab = 'home';
+  const TABS = isAdmin()
+    ? [['home', T('डॅशबोर्ड'), IC.home], ['ledger', T('खाते'), IC.ledger], ['messages', T('संदेश'), IC.mega], ['files', T('फाइल्स'), IC.folder], ['more', T('अधिक'), IC.grid]]
+    : [['home', T('मुख्य'), IC.home], ['messages', T('संदेश'), IC.mega], ['files', T('फाइल्स'), IC.folder], ['more', T('अधिक'), IC.grid]];
+  if (!TABS.some(t => t[0] === S.tab) && !SUBPAGES[S.tab]) S.tab = 'home';
   if (S.tab === 'members' && !isAdmin()) S.tab = 'more';
   if (S.tab === 'messages') LS.set(seenKey(), String(Date.now()));
   const navOn = SUBPAGES[S.tab] ? 'more' : S.tab;
-  const badge = k => (k === 'home' && isAdmin() && pendingCount()) || (k === 'messages' && unreadCount()) ? '<i class="dot" aria-label="नवीन"></i>' : '';
-  tabs.innerHTML = `<nav aria-label="मुख्य मेनू" style="grid-template-columns:repeat(${T.length},minmax(0,1fr))">${T.map(([k, l, ic]) => `<button type="button" data-tab="${k}" ${k === navOn ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${badge(k)}</button>`).join('')}</nav>`;
+  const badge = k => (k === 'home' && isAdmin() && pendingCount()) || (k === 'messages' && unreadCount()) ? `<i class="dot" aria-label="${T('नवीन')}"></i>` : '';
+  tabs.innerHTML = `<nav aria-label="${T('मुख्य मेनू')}" style="grid-template-columns:repeat(${TABS.length},minmax(0,1fr))">${TABS.map(([k, l, ic]) => `<button type="button" data-tab="${k}" ${k === navOn ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${badge(k)}</button>`).join('')}</nav>`;
   const views = isAdmin()
     ? { home: aHome, ledger: aLedger, messages: vMessages, files: vFiles, more: vMore, committee: vCommittee, contacts: vContacts, funds: vFunds, complaints: vComplaints, members: aMembers, me: vMe }
     : { home: rHome, messages: vMessages, files: vFiles, more: vMore, committee: vCommittee, contacts: vContacts, funds: vFunds, complaints: vComplaints, me: vMe };
   const body = views[S.tab]();
-  v.innerHTML = SUBPAGES[S.tab] ? `<button class="backbtn" type="button" data-tab="more">${IC.back}<span>अधिक</span></button>${pageTitle(SUBPAGES[S.tab])}${body}` : body;
+  v.innerHTML = SUBPAGES[S.tab] ? `<button class="backbtn" type="button" data-tab="more">${IC.back}<span>${T('अधिक')}</span></button>${pageTitle(SUBPAGES[S.tab])}${body}` : body;
 }
 const pendingCount = () => S.claims.filter(c => c.status === 'pending').length + S.members.filter(m => m.status === 'pending').length;
-const topBar = name => `<div class="topbar"><span class="mark" aria-hidden="true">स</span>${name ? `<button class="socbtn" type="button" data-act="switch"><span>${esc(name)}</span>${IC.down}</button>` : '<b class="brandname">Sachiv</b>'}${S.member && S.member.status === 'active' ? `<span class="rolechip">${isAdmin() ? 'समिती' : esc(S.member.flatId || 'सभासद')}</span>` : ''}</div>`;
+const topBar = name => `<div class="topbar"><span class="mark" aria-hidden="true">स</span>${name ? `<button class="socbtn" type="button" data-act="switch"><span>${esc(name)}</span>${IC.down}</button>` : '<b class="brandname">Sachiv</b>'}${S.member && S.member.status === 'active' ? `<span class="rolechip">${isAdmin() ? T('समिती') : esc(S.member.flatId || T('सभासद'))}</span>` : ''}</div>`;
 const pageTitle = (t, kicker) => `<div class="ptitle">${kicker ? `<div class="kicker">${kicker}</div>` : ''}<h1>${t}</h1></div>`;
-const loading = () => `<div class="card empty muted">माहिती आणत आहे…</div>`;
+const loading = () => `<div class="card empty muted">${T('माहिती आणत आहे…')}</div>`;
 const initials = n => String(n || '?').replace(/^(श्री|सौ|कु|डॉ|Mr|Mrs|Ms|Dr)\.?\s*/i, '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
-const telBtn = (phone, label) => phone ? `<a class="iconbtn" href="tel:${esc(String(phone).replace(/[^\d+]/g, ''))}" data-tel="${esc(String(phone).replace(/[^\d+]/g, ''))}" aria-label="${esc(label || 'कॉल')} ${esc(phone)}">${IC.phone}</a>` : '';
-const ago = ts => { const m = Math.round((Date.now() - ts) / 60000); if (m < 1) return 'आत्ताच'; if (m < 60) return m + ' मिनिटांपूर्वी'; const h = Math.round(m / 60); if (h < 24) return h + ' तासांपूर्वी'; const d = Math.round(h / 24); return d < 7 ? d + ' दिवसांपूर्वी' : fmtTs(ts); };
+const telBtn = (phone, label) => phone ? `<a class="iconbtn" href="tel:${esc(String(phone).replace(/[^\d+]/g, ''))}" data-tel="${esc(String(phone).replace(/[^\d+]/g, ''))}" aria-label="${esc(label || T('कॉल'))} ${esc(phone)}">${IC.phone}</a>` : '';
+const ago = ts => { const m = Math.round((Date.now() - ts) / 60000); if (m < 1) return T('आत्ताच'); if (m < 60) return m + ` ${T('मिनिटांपूर्वी')}`; const h = Math.round(m / 60); if (h < 24) return h + ` ${T('तासांपूर्वी')}`; const d = Math.round(h / 24); return d < 7 ? d + ` ${T('दिवसांपूर्वी')}` : fmtTs(ts); };
+
+/* ---------- language ---------- */
+const langChips = () => `<div class="seg langseg" role="group" aria-label="भाषा / Language">${LANGS.map(([k, l]) => `<button class="chip" type="button" data-setlang="${k}" aria-pressed="${k === LANG}">${l}</button>`).join('')}</div>`;
 
 /* ---------- auth + onboarding views ---------- */
 let authMode = 'login';
 function viewAuth() {
   const su = authMode === 'signup';
   return `<section class="hero">
-    <span class="mark big" aria-hidden="true">स</span>
-    <h1>तुमच्या सोसायटीचा<br><em>डिजिटल सचिव.</em></h1>
-    <p>देखभाल शुल्क, वर्गणी, सूचना, फाइल्स आणि समिती. सगळे एका ठिकाणी.</p>
+    <div class="row between wrap"><span class="mark big" aria-hidden="true">स</span>${langChips()}</div>
+    <h1>${T('तुमच्या सोसायटीचा')}<br><em>${T('डिजिटल सचिव.')}</em></h1>
+    <p>${T('देखभाल शुल्क, वर्गणी, सूचना, फाइल्स आणि समिती. सगळे एका ठिकाणी.')}</p>
   </section>
   <form class="card stack" id="authForm">
-    <div class="seg" role="group" aria-label="लॉगिन किंवा नोंदणी"><button type="button" class="chip" data-auth="login" aria-pressed="${!su}">लॉगिन</button><button type="button" class="chip" data-auth="signup" aria-pressed="${su}">नवीन खाते</button></div>
-    ${su ? `<div class="field"><label for="aName">तुमचे नाव</label><input id="aName" type="text" required autocomplete="name"></div>` : ''}
-    <div class="field"><label for="aEmail">ईमेल</label><input id="aEmail" type="email" required autocomplete="email" inputmode="email"></div>
-    <div class="field"><label for="aPass">पासवर्ड ${su ? '<span class="hint">(किमान ६ अक्षरे)</span>' : ''}</label><input id="aPass" type="password" required minlength="6" autocomplete="${su ? 'new-password' : 'current-password'}"></div>
-    <button class="btn primary block" type="submit">${su ? 'खाते तयार करा' : 'लॉगिन करा'}</button>
-    ${su ? '' : `<button class="link" type="button" data-act="forgot">पासवर्ड विसरलात?</button>`}
+    <div class="seg" role="group" aria-label="${T('लॉगिन किंवा नोंदणी')}"><button type="button" class="chip" data-auth="login" aria-pressed="${!su}">${T('लॉगिन')}</button><button type="button" class="chip" data-auth="signup" aria-pressed="${su}">${T('नवीन खाते')}</button></div>
+    ${su ? `<div class="field"><label for="aName">${T('तुमचे नाव')}</label><input id="aName" type="text" required autocomplete="name"></div>` : ''}
+    <div class="field"><label for="aEmail">${T('ईमेल')}</label><input id="aEmail" type="email" required autocomplete="email" inputmode="email"></div>
+    <div class="field"><label for="aPass">${T('पासवर्ड')} ${su ? `<span class="hint">(${T('किमान ६ अक्षरे')})</span>` : ''}</label><input id="aPass" type="password" required minlength="6" autocomplete="${su ? 'new-password' : 'current-password'}"></div>
+    <button class="btn primary block" type="submit">${su ? T('खाते तयार करा') : T('लॉगिन करा')}</button>
+    ${su ? '' : `<button class="link" type="button" data-act="forgot">${T('पासवर्ड विसरलात?')}</button>`}
   </form>
-  <p class="tiny muted center">समिती सदस्य आणि सर्व सभासद, दोघेही इथूनच लॉगिन करतात.</p>`;
+  <p class="tiny muted center">${T('समिती सदस्य आणि सर्व सभासद, दोघेही इथूनच लॉगिन करतात.')}</p>`;
 }
 function viewOnboard() {
-  return `<div class="card stack"><b>समिती सदस्य आहात?</b><p class="small muted m0">तुमच्या सोसायटीची नोंद करा. तुम्हाला एक जॉइन कोड मिळेल, तो सभासदांना पाठवा.</p>
-      <button class="btn primary block" type="button" data-act="create">नवीन सोसायटी नोंदवा</button></div>
-    <div class="card stack"><b>सभासद आहात?</b><p class="small muted m0">समितीकडून मिळालेला ६ अक्षरी जॉइन कोड टाका.</p>
-      <form id="joinForm" class="stack"><div class="field"><label for="jCode">जॉइन कोड</label><input id="jCode" type="text" required maxlength="6" autocapitalize="characters" placeholder="उदा. K7MP2Q" style="text-transform:uppercase;letter-spacing:.15em"></div>
-      <button class="btn block" type="submit">पुढे</button></form></div>
+  return `<div class="card stack"><b>${T('समिती सदस्य आहात?')}</b><p class="small muted m0">${T('तुमच्या सोसायटीची नोंद करा. तुम्हाला एक जॉइन कोड मिळेल, तो सभासदांना पाठवा.')}</p>
+      <button class="btn primary block" type="button" data-act="create">${T('नवीन सोसायटी नोंदवा')}</button></div>
+    <div class="card stack"><b>${T('सभासद आहात?')}</b><p class="small muted m0">${T('समितीकडून मिळालेला ६ अक्षरी जॉइन कोड टाका.')}</p>
+      <form id="joinForm" class="stack"><div class="field"><label for="jCode">${T('जॉइन कोड')}</label><input id="jCode" type="text" required maxlength="6" autocapitalize="characters" placeholder="${T('उदा. K7MP2Q')}" style="text-transform:uppercase;letter-spacing:.15em"></div>
+      <button class="btn block" type="submit">${T('पुढे')}</button></form></div>
     ${ownerCard()}
-    <button class="btn block" type="button" data-act="signout">लॉगआउट</button>
-    <button class="link danger" type="button" data-act="delacct">खाते हटवा</button>`;
+    <button class="btn block" type="button" data-act="signout">${T('लॉगआउट')}</button>
+    <button class="link danger" type="button" data-act="delacct">${T('खाते हटवा')}</button>`;
 }
 function viewPending(name) {
-  return `<div class="card stack"><b>विनंती पाठवली आहे</b><p class="small muted m0">${esc(name)} च्या समितीने मंजुरी दिल्यावर तुम्हाला तुमची थकबाकी, सूचना आणि तक्रारी इथे दिसतील. समितीला कळवा की तुम्ही नोंदणी केली आहे.</p></div>
-    <button class="btn block" type="button" data-act="leave">विनंती रद्द करा</button><button class="btn block" type="button" data-act="signout">लॉगआउट</button>`;
+  return `<div class="card stack"><b>${T('विनंती पाठवली आहे')}</b><p class="small muted m0">${T('{0} च्या समितीने मंजुरी दिल्यावर तुम्हाला तुमची थकबाकी, सूचना आणि तक्रारी इथे दिसतील. समितीला कळवा की तुम्ही नोंदणी केली आहे.', esc(name))}</p></div>
+    <button class="btn block" type="button" data-act="leave">${T('विनंती रद्द करा')}</button><button class="btn block" type="button" data-act="signout">${T('लॉगआउट')}</button>`;
 }
 function viewGone(name) {
-  return `<div class="card stack"><b>प्रवेश नाही</b><p class="small muted m0">तुम्ही आता ${esc(name)} चे सदस्य नाही, किंवा समितीने विनंती नाकारली आहे.</p></div>
-    <button class="btn primary block" type="button" data-act="leave">यादीतून काढा</button><button class="btn block" type="button" data-act="signout">लॉगआउट</button>`;
+  return `<div class="card stack"><b>${T('प्रवेश नाही')}</b><p class="small muted m0">${T('तुम्ही आता {0} चे सदस्य नाही, किंवा समितीने विनंती नाकारली आहे.', esc(name))}</p></div>
+    <button class="btn primary block" type="button" data-act="leave">${T('यादीतून काढा')}</button><button class="btn block" type="button" data-act="signout">${T('लॉगआउट')}</button>`;
 }
 
 /* ---------- admin views ---------- */
 /* dashboard tiles: committee can show/hide and reorder them (saved on the society) */
 const TILE_DEFS = {
-  collection: { label: 'या महिन्याची वसुली', wide: true },
-  actions: { label: 'झटपट कामे', wide: true },
-  dues: { label: 'एकूण थकबाकी' },
-  balance: { label: 'बँक शिल्लक' },
-  funds: { label: 'वर्गणी', wide: true },
-  complaints: { label: 'तक्रारी' },
-  members: { label: 'ॲपवरील सभासद' },
-  announce: { label: 'ताजी घोषणा', wide: true },
-  committee: { label: 'समिती', wide: true },
-  agm: { label: 'वार्षिक सभा' },
-  files: { label: 'फाइल्स' }
+  collection: { label: T('या महिन्याची वसुली'), wide: true },
+  actions: { label: T('झटपट कामे'), wide: true },
+  dues: { label: T('एकूण थकबाकी') },
+  balance: { label: T('बँक शिल्लक') },
+  funds: { label: T('वर्गणी'), wide: true },
+  complaints: { label: T('तक्रारी') },
+  members: { label: T('ॲपवरील सभासद') },
+  announce: { label: T('ताजी घोषणा'), wide: true },
+  committee: { label: T('समिती'), wide: true },
+  agm: { label: T('वार्षिक सभा') },
+  files: { label: T('फाइल्स') }
 };
 const DEFAULT_TILES = ['collection', 'actions', 'dues', 'balance', 'funds', 'complaints', 'members', 'announce', 'agm', 'files'];
 const dashCfg = () => (S.society && S.society.dashboard) || {};
@@ -276,41 +285,41 @@ function tile(k) {
       const pct = n ? Math.round(s.clear / n * 100) : 0;
       return `<button class="card tile-card wide btnlike" type="button" data-tab-go="ledger"><div class="row g16">
         <div class="ringwrap">${ring(pct)}<b class="ringnum num">${pct}<small>%</small></b></div>
-        <div class="grow"><span class="kicker">${MONTHS[now.getMonth()]} · वसुली</span><b class="num xl good">${rs(s.collected)}</b><span class="small muted">${s.clear} / ${n} सदनिका थकबाकीमुक्त</span></div></div></button>`;
+        <div class="grow"><span class="kicker">${MONTHS[now.getMonth()]} · ${T('वसुली')}</span><b class="num xl good">${rs(s.collected)}</b><span class="small muted">${s.clear} / ${n} ${T('सदनिका थकबाकीमुक्त')}</span></div></div></button>`;
     }
-    case 'actions': return `<div class="card wide"><span class="kicker">झटपट कामे</span><div class="actions">
-        <button type="button" data-act="newmsg">${IC.mega}<span>घोषणा</span></button>
-        <button type="button" data-act="newnotice">${IC.doc}<span>सूचना</span></button>
-        <button type="button" data-act="newminutes">${IC.doc}<span>इतिवृत्त</span></button>
-        <button type="button" data-act="reminders">${IC.wa}<span>आठवण</span></button>
-        <button type="button" data-act="newfund">${IC.coins}<span>वर्गणी</span></button>
-        <button type="button" data-act="upload">${IC.folder}<span>फाइल</span></button></div></div>`;
-    case 'dues': return `<button class="card tile-card btnlike" type="button" data-tab-go="ledger"><span class="kicker">एकूण थकबाकी</span><b class="num lg bad">${rs(s.dueTotal)}</b><span class="small muted">${s.dueFlats} सदनिका</span></button>`;
-    case 'balance': { const d = dashCfg(); return `<button class="card tile-card btnlike" type="button" data-act="dashcfg"><span class="kicker">बँक शिल्लक</span>${d.bank != null && d.bank !== '' ? `<b class="num lg">${rs(d.bank)}</b><span class="small muted">${d.fd ? 'मुदत ठेव ' + rs(d.fd) + ' · ' : ''}${d.asOf ? fmtDate(d.asOf) : ''}</span>` : `<b class="lg dim">—</b><span class="small gold">शिल्लक भरा ›</span>`}</button>`; }
+    case 'actions': return `<div class="card wide"><span class="kicker">${T('झटपट कामे')}</span><div class="actions">
+        <button type="button" data-act="newmsg">${IC.mega}<span>${T('घोषणा')}</span></button>
+        <button type="button" data-act="newnotice">${IC.doc}<span>${T('सूचना')}</span></button>
+        <button type="button" data-act="newminutes">${IC.doc}<span>${T('इतिवृत्त')}</span></button>
+        <button type="button" data-act="reminders">${IC.wa}<span>${T('आठवण')}</span></button>
+        <button type="button" data-act="newfund">${IC.coins}<span>${T('वर्गणी')}</span></button>
+        <button type="button" data-act="upload">${IC.folder}<span>${T('फाइल')}</span></button></div></div>`;
+    case 'dues': return `<button class="card tile-card btnlike" type="button" data-tab-go="ledger"><span class="kicker">${T('एकूण थकबाकी')}</span><b class="num lg bad">${rs(s.dueTotal)}</b><span class="small muted">${T('{0} सदनिका', s.dueFlats)}</span></button>`;
+    case 'balance': { const d = dashCfg(); return `<button class="card tile-card btnlike" type="button" data-act="dashcfg"><span class="kicker">${T('बँक शिल्लक')}</span>${d.bank != null && d.bank !== '' ? `<b class="num lg">${rs(d.bank)}</b><span class="small muted">${d.fd ? `${T('मुदत ठेव')} ` + rs(d.fd) + ' · ' : ''}${d.asOf ? fmtDate(d.asOf) : ''}</span>` : `<b class="lg dim">—</b><span class="small gold">${T('शिल्लक भरा')} ›</span>`}</button>`; }
     case 'funds': {
       const open = S.funds.filter(f => f.status !== 'closed');
-      if (!open.length) return `<button class="card tile-card wide btnlike row between" type="button" data-act="newfund"><span><span class="kicker">वर्गणी</span><b>सध्या कोणतीही वर्गणी सुरू नाही</b></span><span class="gold small">+ नवीन</span></button>`;
-      return `<div class="card wide stack"><span class="kicker">वर्गणी सुरू · ${open.length}</span>${open.slice(0, 3).map(fundRow).join('')}</div>`;
+      if (!open.length) return `<button class="card tile-card wide btnlike row between" type="button" data-act="newfund"><span><span class="kicker">${T('वर्गणी')}</span><b>${T('सध्या कोणतीही वर्गणी सुरू नाही')}</b></span><span class="gold small">+ ${T('नवीन')}</span></button>`;
+      return `<div class="card wide stack"><span class="kicker">${T('वर्गणी सुरू')} · ${open.length}</span>${open.slice(0, 3).map(fundRow).join('')}</div>`;
     }
-    case 'complaints': { const o = S.complaints.filter(c => c.status !== 'closed').length; return `<button class="card tile-card btnlike" type="button" data-tab-go="complaints"><span class="kicker">उघड्या तक्रारी</span><b class="num lg ${o ? 'warn' : ''}">${o}</b><span class="small muted">एकूण ${S.complaints.length}</span></button>`; }
-    case 'members': { const a = S.members.filter(m => m.status === 'active').length; return `<button class="card tile-card btnlike" type="button" data-tab-go="members"><span class="kicker">ॲपवरील सभासद</span><b class="num lg">${a}<small class="muted"> / ${n}</small></b><span class="small muted">जॉइन कोड ${esc(S.society.code)}</span></button>`; }
-    case 'announce': { const m = S.messages[0]; return m ? `<button class="card tile-card wide btnlike" type="button" data-tab-go="messages"><span class="kicker">ताजी घोषणा · ${ago(m.createdAt)}</span><span class="clamp">${esc(m.text)}</span></button>` : `<button class="card tile-card wide btnlike row between" type="button" data-act="newmsg"><span><span class="kicker">घोषणा</span><b>सर्व सभासदांना संदेश पाठवा</b></span><span class="gold small">+ नवीन</span></button>`; }
-    case 'committee': { const c = committeeList(); return `<button class="card tile-card wide btnlike" type="button" data-tab-go="committee"><span class="kicker">समिती · ${c.length}</span><div class="avatars">${c.slice(0, 7).map(x => `<span class="av sm">${esc(initials(x.name))}</span>`).join('')}</div></button>`; }
-    case 'agm': { const y = now.getMonth() + 1 > 9 ? now.getFullYear() + 1 : now.getFullYear(), d = Math.ceil((new Date(y, 8, 30) - now) / DAY); return `<div class="card tile-card"><span class="kicker">वार्षिक सभा</span><b class="num lg">${d}<small class="muted"> दिवस</small></b><span class="small muted">३० सप्टेंबर ${y} पूर्वी</span></div>`; }
-    case 'files': return `<button class="card tile-card btnlike" type="button" data-tab-go="files"><span class="kicker">फाइल्स</span><b class="num lg">${S.files.length}</b><span class="small muted">नोंदी आणि कागदपत्रे</span></button>`;
+    case 'complaints': { const o = S.complaints.filter(c => c.status !== 'closed').length; return `<button class="card tile-card btnlike" type="button" data-tab-go="complaints"><span class="kicker">${T('उघड्या तक्रारी')}</span><b class="num lg ${o ? 'warn' : ''}">${o}</b><span class="small muted">${T('एकूण')} ${S.complaints.length}</span></button>`; }
+    case 'members': { const a = S.members.filter(m => m.status === 'active').length; return `<button class="card tile-card btnlike" type="button" data-tab-go="members"><span class="kicker">${T('ॲपवरील सभासद')}</span><b class="num lg">${a}<small class="muted"> / ${n}</small></b><span class="small muted">${T('जॉइन कोड')} ${esc(S.society.code)}</span></button>`; }
+    case 'announce': { const m = S.messages[0]; return m ? `<button class="card tile-card wide btnlike" type="button" data-tab-go="messages"><span class="kicker">${T('ताजी घोषणा')} · ${ago(m.createdAt)}</span><span class="clamp">${esc(m.text)}</span></button>` : `<button class="card tile-card wide btnlike row between" type="button" data-act="newmsg"><span><span class="kicker">${T('घोषणा')}</span><b>${T('सर्व सभासदांना संदेश पाठवा')}</b></span><span class="gold small">+ ${T('नवीन')}</span></button>`; }
+    case 'committee': { const c = committeeList(); return `<button class="card tile-card wide btnlike" type="button" data-tab-go="committee"><span class="kicker">${T('समिती')} · ${c.length}</span><div class="avatars">${c.slice(0, 7).map(x => `<span class="av sm">${esc(initials(x.name))}</span>`).join('')}</div></button>`; }
+    case 'agm': { const y = now.getMonth() + 1 > 9 ? now.getFullYear() + 1 : now.getFullYear(), d = Math.ceil((new Date(y, 8, 30) - now) / DAY); return `<div class="card tile-card"><span class="kicker">${T('वार्षिक सभा')}</span><b class="num lg">${d}<small class="muted"> ${T('दिवस')}</small></b><span class="small muted">${T('३० सप्टेंबर {0} पूर्वी', y)}</span></div>`; }
+    case 'files': return `<button class="card tile-card btnlike" type="button" data-tab-go="files"><span class="kicker">${T('फाइल्स')}</span><b class="num lg">${S.files.length}</b><span class="small muted">${T('नोंदी आणि कागदपत्रे')}</span></button>`;
   }
   return '';
 }
 function aHome() {
   const pc = S.claims.filter(c => c.status === 'pending'), pm = S.members.filter(m => m.status === 'pending');
   return `
-    ${pageTitle('डॅशबोर्ड', 'नमस्कार, ' + esc((S.user.name || '').split(' ')[0]))}
+    ${pageTitle(T('डॅशबोर्ड'), `${T('नमस्कार')}, ` + esc((S.user.name || '').split(' ')[0]))}
     ${planBanner(false)}
-    ${!flats().length ? `<div class="card accent stack"><b>पहिली पायरी: सदनिकांची यादी भरा</b><span class="small">खाते आणि आठवणी सुरू करण्यासाठी सदनिका जोडा.</span><button class="btn primary" type="button" data-act="setup">सदनिका जोडा</button></div>` : ''}
-    ${pc.length ? `<h2>मंजुरीसाठी भरणा · ${pc.length}</h2><ul class="list">${pc.map(c => `<li><span class="flat">${esc(c.flatId)}</span><span class="grow"><b class="num">${rs(c.amount)}</b><span class="tiny muted">${esc(c.name || '')} · ${c.fundId ? 'वर्गणी: ' + esc(c.fundTitle || '') : monthName(c.month)}${c.ref ? ' · UTR ' + esc(c.ref) : ''}</span></span><span class="row g6"><button class="btn small good" type="button" data-claim-ok="${c.id}">मंजूर</button><button class="btn small ghost" type="button" data-claim-no="${c.id}" aria-label="नाकारा">✕</button></span></li>`).join('')}</ul>` : ''}
-    ${pm.length ? `<button class="card accent row between btnlike" type="button" data-tab-go="members"><b>${pm.length} नवीन सभासद विनंत्या</b><span class="gold">पाहा ›</span></button>` : ''}
+    ${!flats().length ? `<div class="card accent stack"><b>${T('पहिली पायरी: सदनिकांची यादी भरा')}</b><span class="small">${T('खाते आणि आठवणी सुरू करण्यासाठी सदनिका जोडा.')}</span><button class="btn primary" type="button" data-act="setup">${T('सदनिका जोडा')}</button></div>` : ''}
+    ${pc.length ? `<h2>${T('मंजुरीसाठी भरणा')} · ${pc.length}</h2><ul class="list">${pc.map(c => `<li><span class="flat">${esc(c.flatId)}</span><span class="grow"><b class="num">${rs(c.amount)}</b><span class="tiny muted">${esc(c.name || '')} · ${c.fundId ? `${T('वर्गणी')}: ` + esc(c.fundTitle || '') : monthName(c.month)}${c.ref ? ' · UTR ' + esc(c.ref) : ''}</span></span><span class="row g6"><button class="btn small good" type="button" data-claim-ok="${c.id}">${T('मंजूर')}</button><button class="btn small ghost" type="button" data-claim-no="${c.id}" aria-label="${T('नाकारा')}">✕</button></span></li>`).join('')}</ul>` : ''}
+    ${pm.length ? `<button class="card accent row between btnlike" type="button" data-tab-go="members"><b>${pm.length} ${T('नवीन सभासद विनंत्या')}</b><span class="gold">${T('पाहा')} ›</span></button>` : ''}
     <div class="dash">${dashTiles().map(tile).join('')}</div>
-    <button class="btn ghost block" type="button" data-act="dashcfg">${IC.edit} डॅशबोर्ड बदला</button>`;
+    <button class="btn ghost block" type="button" data-act="dashcfg">${IC.edit} ${T('डॅशबोर्ड बदला')}</button>`;
 }
 
 function aLedger() {
@@ -318,36 +327,36 @@ function aLedger() {
   let rows = flats().map(f => ({ f, due: dueFor(f.id, m), pay: ((S.accounts[f.id] || {}).payments || {})[m] }));
   if (ledgerFilter === 'due') rows = rows.filter(r => r.due > 0);
   if (ledgerFilter === 'paid') rows = rows.filter(r => r.pay);
-  return `${pageTitle('खाते')}
-    <div class="row between"><button class="btn small" type="button" data-month="-1" aria-label="मागील महिना">‹</button><b>${monthName(m)}</b><button class="btn small" type="button" data-month="1" aria-label="पुढील महिना" ${m >= thisMonth ? 'disabled' : ''}>›</button></div>
+  return `${pageTitle(T('खाते'))}
+    <div class="row between"><button class="btn small" type="button" data-month="-1" aria-label="${T('मागील महिना')}">‹</button><b>${monthName(m)}</b><button class="btn small" type="button" data-month="1" aria-label="${T('पुढील महिना')}" ${m >= thisMonth ? 'disabled' : ''}>›</button></div>
     <div class="grid2">
-      <div class="card"><div class="tiny muted">या महिन्यात जमा</div><b class="good num big">${rs(s.collected)}</b><div class="tiny muted">${s.paidCount} सदनिका</div></div>
-      <div class="card"><div class="tiny muted">एकूण थकबाकी</div><b class="bad num big">${rs(s.dueTotal)}</b><div class="tiny muted">${s.dueFlats} सदनिका</div></div>
+      <div class="card"><div class="tiny muted">${T('या महिन्यात जमा')}</div><b class="good num big">${rs(s.collected)}</b><div class="tiny muted">${T('{0} सदनिका', s.paidCount)}</div></div>
+      <div class="card"><div class="tiny muted">${T('एकूण थकबाकी')}</div><b class="bad num big">${rs(s.dueTotal)}</b><div class="tiny muted">${T('{0} सदनिका', s.dueFlats)}</div></div>
     </div>
-    <div class="chips" role="group" aria-label="फिल्टर">${[['due', `थकबाकी ${s.dueFlats}`], ['paid', `या महिन्यात भरले ${s.paidCount}`], ['all', `सर्व ${flats().length}`]].map(([k, l]) => `<button class="chip" type="button" data-lf="${k}" aria-pressed="${ledgerFilter === k}">${l}</button>`).join('')}</div>
+    <div class="chips" role="group" aria-label="${T('फिल्टर')}">${[['due', `${T('थकबाकी')} ${s.dueFlats}`], ['paid', `${T('या महिन्यात भरले')} ${s.paidCount}`], ['all', `${T('सर्व')} ${flats().length}`]].map(([k, l]) => `<button class="chip" type="button" data-lf="${k}" aria-pressed="${ledgerFilter === k}">${l}</button>`).join('')}</div>
     ${rows.length ? `<ul class="list">${rows.map(({ f, due, pay }) => `<li>
       <span class="flat">${esc(f.id)}</span>
-      <span class="grow"><span>${esc(f.owner || '')}</span><span class="tiny muted">${pay ? `भरले ${rs(pay.amount)} · ${esc(fmtDate(pay.date))} · ${esc(pay.mode)}` : due > 0 ? `${monthsDue(due)} ${plural(monthsDue(due))} बाकी` : 'थकबाकी नाही'}</span></span>
+      <span class="grow"><span>${esc(f.owner || '')}</span><span class="tiny muted">${pay ? `${T('भरले')} ${rs(pay.amount)} · ${esc(fmtDate(pay.date))} · ${esc(T(pay.mode))}` : due > 0 ? `${monthsDue(due)} ${plural(monthsDue(due))} ${T('बाकी')}` : T('थकबाकी नाही')}</span></span>
       ${due > 0 ? `<span class="pill due num">${rs(due)}</span>` : `<span class="pill ok">✓</span>`}
-      <button class="btn small" type="button" data-pay="${esc(f.id)}">${pay ? 'बदला' : 'जमा'}</button></li>`).join('')}</ul>`
-      : `<div class="card empty muted">${flats().length ? (ledgerFilter === 'due' ? 'कोणाचीही थकबाकी नाही.' : 'काही नोंदी नाहीत.') : 'आधी सदस्य टॅबमधून सदनिका जोडा.'}</div>`}
-    ${s.dueFlats ? `<button class="btn primary block" type="button" data-act="reminders">${IC.wa} ${s.dueFlats} जणांना आठवण पाठवा</button>` : ''}`;
+      <button class="btn small" type="button" data-pay="${esc(f.id)}">${pay ? T('बदला') : T('जमा')}</button></li>`).join('')}</ul>`
+      : `<div class="card empty muted">${flats().length ? (ledgerFilter === 'due' ? T('कोणाचीही थकबाकी नाही.') : T('काही नोंदी नाहीत.')) : T('आधी सदस्य टॅबमधून सदनिका जोडा.')}</div>`}
+    ${s.dueFlats ? `<button class="btn primary block" type="button" data-act="reminders">${IC.wa} ${T('{0} जणांना आठवण पाठवा', s.dueFlats)}</button>` : ''}`;
 }
 
 function aMembers() {
   const pend = S.members.filter(m => m.status === 'pending'), act = S.members.filter(m => m.status === 'active').sort((a, b) => (a.role === 'admin' ? -1 : 1) - (b.role === 'admin' ? -1 : 1));
-  const flatOpts = sel => `<option value="">सदनिका निवडा</option>` + flats().map(f => `<option ${f.id === sel ? 'selected' : ''}>${esc(f.id)}</option>`).join('');
+  const flatOpts = sel => `<option value="">${T('सदनिका निवडा')}</option>` + flats().map(f => `<option ${f.id === sel ? 'selected' : ''}>${esc(f.id)}</option>`).join('');
   return `
-    <div class="card stack"><div class="row between wrap"><span>जॉइन कोड</span><b class="code big">${esc(S.society.code)}</b></div>
-      <span class="small muted">सभासदांनी Sachiv ॲपमध्ये नवीन खाते तयार करून हा कोड टाकावा. नंतर तुम्ही खाली मंजुरी द्या.</span>
-      <button class="btn block" type="button" data-act="invite">${IC.share} WhatsApp वर आमंत्रण पाठवा</button></div>
-    ${pend.length ? `<h2>नवीन विनंत्या · ${pend.length}</h2><ul class="list">${pend.map(m => `<li class="wrap"><span class="grow"><b>${esc(m.name)}</b><span class="tiny muted">${esc(m.email)} · सांगितलेली सदनिका: ${esc(m.flatId || '—')}</span></span>
-        <span class="row g6 wrap"><select class="sm" data-mflat="${m.id}" aria-label="सदनिका">${flatOpts(flats().some(f => f.id === m.flatId) ? m.flatId : '')}</select><button class="btn small good" type="button" data-mok="${m.id}">मंजूर</button><button class="btn small" type="button" data-mno="${m.id}" aria-label="नाकारा">✕</button></span></li>`).join('')}</ul>` : ''}
-    <h2>सदस्य · ${act.length}</h2>
-    <ul class="list">${act.map(m => `<li><span class="grow"><b>${esc(m.name)}${m.id === S.user.uid ? ' (तुम्ही)' : ''}</b><span class="tiny muted">${m.role === 'admin' ? 'समिती' : 'सभासद'} · सदनिका ${esc(m.flatId || '—')}</span></span>
-      ${m.id === S.user.uid ? '' : `<button class="btn small" type="button" data-medit="${m.id}">बदला</button>`}</li>`).join('')}</ul>
-    <div class="card stack"><b>सोसायटी आणि सदनिका</b><span class="small muted">${flats().length} सदनिका · ${rs(monthly())} प्रति महिना${S.society.upi ? ' · UPI ' + esc(S.society.upi) : ' · UPI आयडी भरलेला नाही'}</span>
-      <button class="btn primary" type="button" data-act="setup">माहिती आणि सदनिका बदला</button></div>
+    <div class="card stack"><div class="row between wrap"><span>${T('जॉइन कोड')}</span><b class="code big">${esc(S.society.code)}</b></div>
+      <span class="small muted">${T('सभासदांनी Sachiv ॲपमध्ये नवीन खाते तयार करून हा कोड टाकावा. नंतर तुम्ही खाली मंजुरी द्या.')}</span>
+      <button class="btn block" type="button" data-act="invite">${IC.share} ${T('WhatsApp वर आमंत्रण पाठवा')}</button></div>
+    ${pend.length ? `<h2>${T('नवीन विनंत्या')} · ${pend.length}</h2><ul class="list">${pend.map(m => `<li class="wrap"><span class="grow"><b>${esc(m.name)}</b><span class="tiny muted">${esc(m.email)} · ${T('सांगितलेली सदनिका')}: ${esc(m.flatId || '—')}</span></span>
+        <span class="row g6 wrap"><select class="sm" data-mflat="${m.id}" aria-label="${T('सदनिका')}">${flatOpts(flats().some(f => f.id === m.flatId) ? m.flatId : '')}</select><button class="btn small good" type="button" data-mok="${m.id}">${T('मंजूर')}</button><button class="btn small" type="button" data-mno="${m.id}" aria-label="${T('नाकारा')}">✕</button></span></li>`).join('')}</ul>` : ''}
+    <h2>${T('सदस्य')} · ${act.length}</h2>
+    <ul class="list">${act.map(m => `<li><span class="grow"><b>${esc(m.name)}${m.id === S.user.uid ? ` (${T('तुम्ही')})` : ''}</b><span class="tiny muted">${m.role === 'admin' ? T('समिती') : T('सभासद')} · ${T('सदनिका')} ${esc(m.flatId || '—')}</span></span>
+      ${m.id === S.user.uid ? '' : `<button class="btn small" type="button" data-medit="${m.id}">${T('बदला')}</button>`}</li>`).join('')}</ul>
+    <div class="card stack"><b>${T('सोसायटी आणि सदनिका')}</b><span class="small muted">${T('{0} सदनिका', flats().length)} · ${rs(monthly())} ${T('प्रति महिना')}${S.society.upi ? ' · UPI ' + esc(S.society.upi) : ` · ${T('UPI आयडी भरलेला नाही')}`}</span>
+      <button class="btn primary" type="button" data-act="setup">${T('माहिती आणि सदनिका बदला')}</button></div>
 `;
 }
 
@@ -358,67 +367,67 @@ const fundRow = f => {
   const mine = S.member && S.member.flatId && (f.paid || {})[S.member.flatId];
   return `<button class="fundrow btnlike" type="button" data-fund="${f.id}"><span class="row between"><b>${esc(f.title)}</b><span class="num small">${rs(got)}${tgt ? ` <span class="muted">/ ${rs(tgt)}</span>` : ''}</span></span>
     <span class="bar"><i style="width:${pct}%"></i></span>
-    <span class="row between tiny muted"><span>${cnt} सदनिकांनी भरली${f.perFlat ? ` · ${rs(f.perFlat)} प्रति सदनिका` : ''}</span>${!isAdmin() && S.member.flatId ? (mine ? '<span class="good">✓ तुम्ही भरली</span>' : '<span class="gold">भरा ›</span>') : (f.due ? `<span>${fmtDate(f.due)} पर्यंत</span>` : '')}</span></button>`;
+    <span class="row between tiny muted"><span>${T('{0} सदनिकांनी भरली', cnt)}${f.perFlat ? ` · ${T('{0} प्रति सदनिका', rs(f.perFlat))}` : ''}</span>${!isAdmin() && S.member.flatId ? (mine ? `<span class="good">✓ ${T('तुम्ही भरली')}</span>` : `<span class="gold">${T('भरा')} ›</span>`) : (f.due ? `<span>${T('{0} पर्यंत', fmtDate(f.due))}</span>` : '')}</span></button>`;
 };
 function rHome() {
   const f = flats().find(x => x.id === S.member.flatId);
   const openFunds = S.funds.filter(x => x.status !== 'closed');
   const imp = S.messages.find(m => m.pinned) || S.messages.find(m => m.important);
   const extra = `
-    ${imp ? `<button class="card msg ${imp.important ? 'important' : ''} btnlike" type="button" data-tab-go="messages"><span class="kicker">${imp.pinned ? IC.pin + ' ' : ''}${imp.important ? 'महत्त्वाची घोषणा' : 'घोषणा'} · ${ago(imp.createdAt)}</span><span class="clamp">${esc(imp.text)}</span></button>` : ''}
-    ${openFunds.length ? `<div class="card stack"><span class="kicker">वर्गणी</span>${openFunds.map(fundRow).join('')}</div>` : ''}
+    ${imp ? `<button class="card msg ${imp.important ? 'important' : ''} btnlike" type="button" data-tab-go="messages"><span class="kicker">${imp.pinned ? IC.pin + ' ' : ''}${imp.important ? T('महत्त्वाची घोषणा') : T('घोषणा')} · ${ago(imp.createdAt)}</span><span class="clamp">${esc(imp.text)}</span></button>` : ''}
+    ${openFunds.length ? `<div class="card stack"><span class="kicker">${T('वर्गणी')}</span>${openFunds.map(fundRow).join('')}</div>` : ''}
     <div class="grid2">
-      <button class="card tile-card btnlike" type="button" data-tab-go="committee">${IC.badge}<b>समिती</b><span class="small muted">${committeeList().length} सदस्य</span></button>
-      <button class="card tile-card btnlike" type="button" data-tab-go="contacts">${IC.phone}<b>संपर्क</b><span class="small muted">महत्त्वाचे क्रमांक</span></button>
+      <button class="card tile-card btnlike" type="button" data-tab-go="committee">${IC.badge}<b>${T('समिती')}</b><span class="small muted">${T('{0} सदस्य', committeeList().length)}</span></button>
+      <button class="card tile-card btnlike" type="button" data-tab-go="contacts">${IC.phone}<b>${T('संपर्क')}</b><span class="small muted">${T('महत्त्वाचे क्रमांक')}</span></button>
     </div>`;
-  if (!f) return `${pageTitle('नमस्कार, ' + esc((S.user.name || '').split(' ')[0]))}<div class="card stack"><b>सदनिका जोडलेली नाही</b><span class="small muted">समितीने तुमची सदनिका यादीत जोडल्यावर तुमची थकबाकी इथे दिसेल.</span></div>${extra}`;
+  if (!f) return `${pageTitle(`${T('नमस्कार')}, ` + esc((S.user.name || '').split(' ')[0]))}<div class="card stack"><b>${T('सदनिका जोडलेली नाही')}</b><span class="small muted">${T('समितीने तुमची सदनिका यादीत जोडल्यावर तुमची थकबाकी इथे दिसेल.')}</span></div>${extra}`;
   const P = (S.myAccount && S.myAccount.payments) || {}, due = dueFor(f.id, thisMonth, P), n = monthsDue(due);
   const pending = S.claims.filter(c => c.status === 'pending' && !c.fundId);
   const pendSum = pending.reduce((a, c) => a + Number(c.amount || 0), 0);
   const payable = Math.max(0, due - pendSum);
   const hist = Object.entries(P).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
   return `
-    ${pageTitle('नमस्कार, ' + esc((S.user.name || '').split(' ')[0]), 'सदनिका ' + esc(f.id))}
+    ${pageTitle(`${T('नमस्कार')}, ` + esc((S.user.name || '').split(' ')[0]), `${T('सदनिका')} ` + esc(f.id))}
     <div class="card hero-card stack">
-      <span class="kicker">देखभाल शुल्क</span>
-      ${due > 0 ? `<b class="num huge">${rs(due)}</b><span class="small muted">थकबाकी${n > 1 ? ` · ${n} महिने` : ''} · ${rs(monthly())} दरमहा</span>` : `<b class="huge good">सर्व भरलेले ✓</b><span class="small muted">${MONTHS[now.getMonth()]} पर्यंत कोणतीही थकबाकी नाही</span>`}
-      ${pendSum ? `<span class="pill wait">${rs(pendSum)} समितीच्या मंजुरीसाठी</span>` : ''}
-      ${S.society.upi ? `<button class="btn primary block" type="button" data-act="pay" data-amt="${payable || monthly()}">${payable > 0 ? `${rs(payable)} भरा` : `पुढील महिन्याचे ${rs(monthly())} आगाऊ भरा`}</button>
-        <button class="link" type="button" data-act="ipaid">आधीच भरले? नोंद करा</button>` : `<span class="small muted">समितीने अजून UPI आयडी जोडलेला नाही. समितीकडे थेट भरा.</span>`}
+      <span class="kicker">${T('देखभाल शुल्क')}</span>
+      ${due > 0 ? `<b class="num huge">${rs(due)}</b><span class="small muted">${T('थकबाकी')}${n > 1 ? ` · ${n} ${T('महिने')}` : ''} · ${rs(monthly())} ${T('दरमहा')}</span>` : `<b class="huge good">${T('सर्व भरलेले')} ✓</b><span class="small muted">${T('{0} पर्यंत कोणतीही थकबाकी नाही', MONTHS[now.getMonth()])}</span>`}
+      ${pendSum ? `<span class="pill wait">${T('{0} समितीच्या मंजुरीसाठी', rs(pendSum))}</span>` : ''}
+      ${S.society.upi ? `<button class="btn primary block" type="button" data-act="pay" data-amt="${payable || monthly()}">${payable > 0 ? T('{0} भरा', rs(payable)) : T('पुढील महिन्याचे {0} आगाऊ भरा', rs(monthly()))}</button>
+        <button class="link" type="button" data-act="ipaid">${T('आधीच भरले? नोंद करा')}</button>` : `<span class="small muted">${T('समितीने अजून UPI आयडी जोडलेला नाही. समितीकडे थेट भरा.')}</span>`}
     </div>
-    ${S.claims.filter(c => c.status !== 'pending').slice(0, 2).map(c => `<div class="card small row between"><span>${c.fundId ? esc(c.fundTitle || 'वर्गणी') : monthName(c.month)} · ${rs(c.amount)}</span><span class="pill ${c.status === 'approved' ? 'ok' : 'due'}">${c.status === 'approved' ? 'मंजूर' : 'नाकारले'}</span></div>`).join('')}
+    ${S.claims.filter(c => c.status !== 'pending').slice(0, 2).map(c => `<div class="card small row between"><span>${c.fundId ? esc(c.fundTitle || T('वर्गणी')) : monthName(c.month)} · ${rs(c.amount)}</span><span class="pill ${c.status === 'approved' ? 'ok' : 'due'}">${c.status === 'approved' ? T('मंजूर') : T('नाकारले')}</span></div>`).join('')}
     ${extra}
-    <h2>भरणा इतिहास</h2>
-    ${hist.length ? `<ul class="list">${hist.map(([m, p]) => `<li><span class="grow"><b>${monthName(m)}</b><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(p.mode)}</span></span><span class="num b6">${rs(p.amount)}</span></li>`).join('')}</ul>` : `<div class="card empty muted small">अजून नोंद नाही.</div>`}`;
+    <h2>${T('भरणा इतिहास')}</h2>
+    ${hist.length ? `<ul class="list">${hist.map(([m, p]) => `<li><span class="grow"><b>${monthName(m)}</b><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(T(p.mode))}</span></span><span class="num b6">${rs(p.amount)}</span></li>`).join('')}</ul>` : `<div class="card empty muted small">${T('अजून नोंद नाही.')}</div>`}`;
 }
-const latestNotice = () => { const n = S.notices[0]; return n ? `<button class="card btnlike stack" type="button" data-opennotice="${n.id}"><span class="tiny muted">नवीन ${n.kind === 'minutes' ? 'इतिवृत्त' : 'सूचना'}</span><b>${esc(n.heading)}</b><span class="small clamp">${esc(n.body)}</span></button>` : ''; };
+const latestNotice = () => { const n = S.notices[0]; return n ? `<button class="card btnlike stack" type="button" data-opennotice="${n.id}"><span class="tiny muted">${T('नवीन')} ${n.kind === 'minutes' ? T('इतिवृत्त') : T('सूचना')}</span><b>${esc(n.heading)}</b><span class="small clamp">${esc(n.body)}</span></button>` : ''; };
 function vMe() {
-  return `<div class="card row g16"><span class="av lg">${esc(initials(S.user.name))}</span><span class="grow"><b class="lg2">${esc(S.user.name)}</b><span class="small muted">${esc(S.user.email)}</span><span class="small">${isAdmin() ? 'समिती' : 'सभासद'} · सदनिका ${esc(S.member.flatId || '—')}</span></span></div>
+  return `<div class="card row g16"><span class="av lg">${esc(initials(S.user.name))}</span><span class="grow"><b class="lg2">${esc(S.user.name)}</b><span class="small muted">${esc(S.user.email)}</span><span class="small">${isAdmin() ? T('समिती') : T('सभासद')} · ${T('सदनिका')} ${esc(S.member.flatId || '—')}</span></span></div>
     ${isAdmin() ? planBanner(true) : ''}
-    ${S.society.upi ? `<div class="card small row between"><span class="muted">संस्थेचा UPI आयडी</span><b>${esc(S.society.upi)}</b></div>` : ''}
+    ${S.society.upi ? `<div class="card small row between"><span class="muted">${T('संस्थेचा UPI आयडी')}</span><b>${esc(S.society.upi)}</b></div>` : ''}
     ${accountCard()}`;
 }
 const ownerCard = () => !isOwnerUser() ? '' : S.user.emailVerified
-  ? `<button class="btn primary block" type="button" data-act="owner">मालक पॅनेल</button>`
-  : `<div class="card tint stack small"><b>मालक पॅनेलसाठी ईमेल पडताळा</b><span>तुमच्या ईमेलवर पडताळणी लिंक पाठवू. ती उघडल्यावर "पडताळले" दाबा.</span>
-     <div class="grid2"><button class="btn" type="button" data-act="verify">लिंक पाठवा</button><button class="btn" type="button" data-act="verified">पडताळले</button></div></div>`;
-const accountCard = () => `${ownerCard()}<div class="card stack"><b>खाते</b><span class="small muted">${esc(S.user.email)}</span>
-  <div class="grid2"><button class="btn" type="button" data-act="switch">दुसरी सोसायटी</button><button class="btn" type="button" data-act="signout">लॉगआउट</button></div>
-  <button class="link danger" type="button" data-act="delacct">खाते हटवा</button></div>`;
+  ? `<button class="btn primary block" type="button" data-act="owner">${T('मालक पॅनेल')}</button>`
+  : `<div class="card tint stack small"><b>${T('मालक पॅनेलसाठी ईमेल पडताळा')}</b><span>${T('तुमच्या ईमेलवर पडताळणी लिंक पाठवू. ती उघडल्यावर "पडताळले" दाबा.')}</span>
+     <div class="grid2"><button class="btn" type="button" data-act="verify">${T('लिंक पाठवा')}</button><button class="btn" type="button" data-act="verified">${T('पडताळले')}</button></div></div>`;
+const accountCard = () => `${ownerCard()}<div class="card stack"><b>${T('खाते')}</b><span class="small muted">${esc(S.user.email)}</span>
+  <div class="grid2"><button class="btn" type="button" data-act="switch">${T('दुसरी सोसायटी')}</button><button class="btn" type="button" data-act="signout">${T('लॉगआउट')}</button></div>
+  <button class="link danger" type="button" data-act="delacct">${T('खाते हटवा')}</button></div>`;
 
 /* ---------- shared views ---------- */
 function vNotices() {
-  return `${isAdmin() ? `<div class="grid2"><button class="tile primary" type="button" data-act="newnotice">${IC.doc}<b>नवीन सूचना</b><span>पाणी, सभा, दुरुस्ती…</span></button><button class="tile" type="button" data-act="newminutes">${IC.doc}<b>नवीन इतिवृत्त</b><span>सभेचे ठराव</span></button></div>` : ''}
-    <h2>सूचना फलक</h2>
-    ${S.notices.length ? `<ul class="list">${S.notices.map(n => `<li><span class="grow"><b>${esc(n.heading)}</b><span class="tiny muted">${n.kind === 'minutes' ? 'इतिवृत्त' : 'सूचना'} · ${esc(n.dateLine || '')}</span></span><button class="btn small" type="button" data-opennotice="${n.id}">उघडा</button></li>`).join('')}</ul>` : `<div class="card empty muted">अजून काही सूचना नाहीत.</div>`}`;
+  return `${isAdmin() ? `<div class="grid2"><button class="tile primary" type="button" data-act="newnotice">${IC.doc}<b>${T('नवीन सूचना')}</b><span>${T('पाणी, सभा, दुरुस्ती…')}</span></button><button class="tile" type="button" data-act="newminutes">${IC.doc}<b>${T('नवीन इतिवृत्त')}</b><span>${T('सभेचे ठराव')}</span></button></div>` : ''}
+    <h2>${T('सूचना फलक')}</h2>
+    ${S.notices.length ? `<ul class="list">${S.notices.map(n => `<li><span class="grow"><b>${esc(n.heading)}</b><span class="tiny muted">${n.kind === 'minutes' ? T('इतिवृत्त') : T('सूचना')} · ${esc(n.dateLine || '')}</span></span><button class="btn small" type="button" data-opennotice="${n.id}">${T('उघडा')}</button></li>`).join('')}</ul>` : `<div class="card empty muted">${T('अजून काही सूचना नाहीत.')}</div>`}`;
 }
 function vComplaints() {
   const list = S.complaints.filter(c => complaintFilter === 'all' || (complaintFilter === 'open' ? c.status !== 'closed' : c.status === 'closed'));
   const open = S.complaints.filter(c => c.status !== 'closed').length;
-  return `<button class="btn primary block" type="button" data-act="newcomplaint">नवीन तक्रार नोंदवा</button>
-    <div class="chips">${[['open', `उघड्या ${open}`], ['closed', `सोडवलेल्या ${S.complaints.length - open}`], ['all', 'सर्व']].map(([k, l]) => `<button class="chip" type="button" data-cf="${k}" aria-pressed="${complaintFilter === k}">${l}</button>`).join('')}</div>
-    ${list.length ? `<ul class="list">${list.map(c => `<li><span class="flat">${esc(c.flatId || '—')}</span><span class="grow"><span>${esc(c.text)}</span><span class="tiny muted">${esc(c.name || '')} · ${esc(fmtDate(new Date(c.createdAt).toISOString().slice(0, 10)))}${c.status === 'closed' ? ' · सोडवली' : ''}</span></span>
-      ${isAdmin() ? `<button class="btn small" type="button" data-ctoggle="${c.id}">${c.status === 'closed' ? 'पुन्हा उघडा' : 'सोडवली'}</button>` : `<span class="pill ${c.status === 'closed' ? 'ok' : 'wait'}">${c.status === 'closed' ? 'सोडवली' : 'उघडी'}</span>`}</li>`).join('')}</ul>` : `<div class="card empty muted">इथे काही नाही.</div>`}`;
+  return `<button class="btn primary block" type="button" data-act="newcomplaint">${T('नवीन तक्रार नोंदवा')}</button>
+    <div class="chips">${[['open', `${T('उघड्या')} ${open}`], ['closed', `${T('सोडवलेल्या')} ${S.complaints.length - open}`], ['all', T('सर्व')]].map(([k, l]) => `<button class="chip" type="button" data-cf="${k}" aria-pressed="${complaintFilter === k}">${l}</button>`).join('')}</div>
+    ${list.length ? `<ul class="list">${list.map(c => `<li><span class="flat">${esc(c.flatId || '—')}</span><span class="grow"><span>${esc(c.text)}</span><span class="tiny muted">${esc(c.name || '')} · ${esc(fmtDate(new Date(c.createdAt).toISOString().slice(0, 10)))}${c.status === 'closed' ? ` · ${T('सोडवली')}` : ''}</span></span>
+      ${isAdmin() ? `<button class="btn small" type="button" data-ctoggle="${c.id}">${c.status === 'closed' ? T('पुन्हा उघडा') : T('सोडवली')}</button>` : `<span class="pill ${c.status === 'closed' ? 'ok' : 'wait'}">${c.status === 'closed' ? T('सोडवली') : T('उघडी')}</span>`}</li>`).join('')}</ul>` : `<div class="card empty muted">${T('इथे काही नाही.')}</div>`}`;
 }
 
 /* ---------- committee, contacts ---------- */
@@ -439,41 +448,41 @@ const waBtn = (phone, label) => phone ? `<button class="iconbtn" type="button" d
 
 function vCommittee() {
   const list = committeeList();
-  const key = list.filter(c => KEY_POSTS.includes(c.post)), rest = list.filter(c => !KEY_POSTS.includes(c.post));
+  const key = list.filter(c => KEY_POSTS.includes(canon(c.post))), rest = list.filter(c => !KEY_POSTS.includes(canon(c.post)));
   const person = (c, big) => `<div class="card person ${big ? 'big' : ''}"><span class="av ${big ? 'lg' : ''}">${esc(initials(c.name))}</span>
-    <span class="grow"><span class="post">${esc(c.post || 'सदस्य')}</span><b>${esc(c.name)}</b><span class="tiny muted">${c.flatId ? 'सदनिका ' + esc(c.flatId) : ''}</span></span>
+    <span class="grow"><span class="post">${esc(T(c.post || 'सदस्य'))}</span><b>${esc(c.name)}</b><span class="tiny muted">${c.flatId ? `${T('सदनिका')} ` + esc(c.flatId) : ''}</span></span>
     <span class="row g6">${telBtn(c.phone, c.name)}${waBtn(c.phone, c.name)}</span></div>`;
-  return `${isAdmin() ? `<button class="btn ghost block" type="button" data-act="editcommittee">${IC.edit} समिती सदस्य बदला</button>` : ''}
-    ${list.length ? `${key.map(c => person(c, true)).join('')}${rest.length ? `<h2>सदस्य · ${rest.length}</h2>${rest.map(c => person(c, false)).join('')}` : ''}`
-      : `<div class="card empty muted">${isAdmin() ? 'अजून समिती भरलेली नाही. वरील बटणाने १२ सदस्य जोडा.' : 'समितीने अजून माहिती भरलेली नाही.'}</div>`}`;
+  return `${isAdmin() ? `<button class="btn ghost block" type="button" data-act="editcommittee">${IC.edit} ${T('समिती सदस्य बदला')}</button>` : ''}
+    ${list.length ? `${key.map(c => person(c, true)).join('')}${rest.length ? `<h2>${T('इतर सदस्य')} · ${rest.length}</h2>${rest.map(c => person(c, false)).join('')}` : ''}`
+      : `<div class="card empty muted">${isAdmin() ? T('अजून समिती भरलेली नाही. वरील बटणाने १२ सदस्य जोडा.') : T('समितीने अजून माहिती भरलेली नाही.')}</div>`}`;
 }
 function vContacts() {
   const list = contactsList();
-  return `${isAdmin() ? `<button class="btn ghost block" type="button" data-act="editcontacts">${IC.edit} संपर्क बदला</button>` : ''}
-    ${CONTACT_CATS.map(cat => { const l = list.filter(c => (c.cat || 'सेवा') === cat); return l.length ? `<h2>${cat}</h2><ul class="list">${l.map(c => `<li><span class="grow"><b>${esc(c.label)}</b><span class="tiny muted">${esc([c.name, c.phone].filter(Boolean).join(' · '))}</span></span>${telBtn(c.phone, c.label)}</li>`).join('')}</ul>` : ''; }).join('')}`;
+  return `${isAdmin() ? `<button class="btn ghost block" type="button" data-act="editcontacts">${IC.edit} ${T('संपर्क बदला')}</button>` : ''}
+    ${CONTACT_CATS.map(cat => { const l = list.filter(c => canon(c.cat || 'सेवा') === cat); return l.length ? `<h2>${T(cat)}</h2><ul class="list">${l.map(c => `<li><span class="grow"><b>${esc(T(c.label))}</b><span class="tiny muted">${esc([c.name, c.phone].filter(Boolean).join(' · '))}</span></span>${telBtn(c.phone, c.label)}</li>`).join('')}</ul>` : ''; }).join('')}`;
 }
 
 /* ---------- funds (वर्गणी) ---------- */
 function vFunds() {
   const open = S.funds.filter(f => f.status !== 'closed'), closed = S.funds.filter(f => f.status === 'closed');
-  return `${isAdmin() ? `<button class="btn primary block" type="button" data-act="newfund">${IC.plus} नवीन वर्गणी</button>` : ''}
-    ${open.length ? `<div class="card stack"><span class="kicker">सुरू</span>${open.map(fundRow).join('')}</div>` : `<div class="card empty muted">सध्या कोणतीही वर्गणी सुरू नाही.</div>`}
-    ${closed.length ? `<div class="card stack"><span class="kicker">बंद</span>${closed.map(fundRow).join('')}</div>` : ''}`;
+  return `${isAdmin() ? `<button class="btn primary block" type="button" data-act="newfund">${IC.plus} ${T('नवीन वर्गणी')}</button>` : ''}
+    ${open.length ? `<div class="card stack"><span class="kicker">${T('सुरू')}</span>${open.map(fundRow).join('')}</div>` : `<div class="card empty muted">${T('सध्या कोणतीही वर्गणी सुरू नाही.')}</div>`}
+    ${closed.length ? `<div class="card stack"><span class="kicker">${T('बंद')}</span>${closed.map(fundRow).join('')}</div>` : ''}`;
 }
 
 /* ---------- messages ---------- */
 function vMessages() {
   const list = [...S.messages].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.createdAt - a.createdAt);
-  const seg = `<div class="seg" role="group" aria-label="प्रकार"><button class="chip" type="button" data-mseg="ann" aria-pressed="${msgSeg === 'ann'}">घोषणा · ${S.messages.length}</button><button class="chip" type="button" data-mseg="notice" aria-pressed="${msgSeg === 'notice'}">सूचना पत्रे · ${S.notices.length}</button></div>`;
-  if (msgSeg === 'notice') return `${pageTitle('संदेश')}${seg}${vNotices()}`;
-  return `${pageTitle('संदेश')}${seg}
-    ${isAdmin() ? `<button class="btn primary block" type="button" data-act="newmsg">${IC.mega} नवीन घोषणा</button>` : ''}
+  const seg = `<div class="seg" role="group" aria-label="${T('प्रकार')}"><button class="chip" type="button" data-mseg="ann" aria-pressed="${msgSeg === 'ann'}">${T('घोषणा')} · ${S.messages.length}</button><button class="chip" type="button" data-mseg="notice" aria-pressed="${msgSeg === 'notice'}">${T('सूचना पत्रे')} · ${S.notices.length}</button></div>`;
+  if (msgSeg === 'notice') return `${pageTitle(T('संदेश'))}${seg}${vNotices()}`;
+  return `${pageTitle(T('संदेश'))}${seg}
+    ${isAdmin() ? `<button class="btn primary block" type="button" data-act="newmsg">${IC.mega} ${T('नवीन घोषणा')}</button>` : ''}
     ${list.length ? list.map(m => `<article class="card msg ${m.important ? 'important' : ''}">
-      <div class="row between"><span class="kicker">${m.pinned ? IC.pin + ' ' : ''}${esc(m.by || 'समिती')}${m.byPost ? ' · ' + esc(m.byPost) : ''}</span><span class="tiny muted">${ago(m.createdAt)}</span></div>
-      ${m.important ? '<span class="tag">महत्त्वाचे</span>' : ''}
+      <div class="row between"><span class="kicker">${m.pinned ? IC.pin + ' ' : ''}${esc(m.by || T('समिती'))}${m.byPost ? ' · ' + esc(T(m.byPost)) : ''}</span><span class="tiny muted">${ago(m.createdAt)}</span></div>
+      ${m.important ? `<span class="tag">${T('महत्त्वाचे')}</span>` : ''}
       <p class="msgtext">${esc(m.text)}</p>
-      <div class="row g6 msgacts"><button class="btn small ghost" type="button" data-msgwa="${m.id}">${IC.wa} पाठवा</button>${isAdmin() ? `<button class="btn small ghost" type="button" data-msgpin="${m.id}">${IC.pin} ${m.pinned ? 'काढा' : 'वर ठेवा'}</button><button class="btn small ghost danger" type="button" data-msgdel="${m.id}">हटवा</button>` : ''}</div>
-    </article>`).join('') : `<div class="card empty muted">अजून कोणतीही घोषणा नाही.</div>`}`;
+      <div class="row g6 msgacts"><button class="btn small ghost" type="button" data-msgwa="${m.id}">${IC.wa} ${T('पाठवा')}</button>${isAdmin() ? `<button class="btn small ghost" type="button" data-msgpin="${m.id}">${IC.pin} ${m.pinned ? T('काढा') : T('वर ठेवा')}</button><button class="btn small ghost danger" type="button" data-msgdel="${m.id}">${T('हटवा')}</button>` : ''}</div>
+    </article>`).join('') : `<div class="card empty muted">${T('अजून कोणतीही घोषणा नाही.')}</div>`}`;
 }
 
 /* ---------- files ---------- */
@@ -481,26 +490,27 @@ const FOLDERS = ['नियम व उपविधी', 'लेखापरी�
 const fileKind = f => /pdf/.test(f.mime) ? 'PDF' : /^image\//.test(f.mime) ? 'IMG' : /sheet|excel|csv/.test(f.mime) ? 'XLS' : /word|document/.test(f.mime) ? 'DOC' : 'FILE';
 const fmtSize = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 function vFiles() {
-  const list = S.files.filter(f => fileFolder === 'all' || f.folder === fileFolder);
-  return `${pageTitle('फाइल्स')}
-    ${isAdmin() ? `<div class="grid2"><button class="btn primary" type="button" data-act="upload">${IC.plus} फाइल जोडा</button><button class="btn ghost" type="button" data-act="exportcsv">${IC.ledger} हिशोब (Excel)</button></div>` : ''}
-    <div class="chips scroll" role="group" aria-label="फोल्डर"><button class="chip" type="button" data-folder="all" aria-pressed="${fileFolder === 'all'}">सर्व · ${S.files.length}</button>${FOLDERS.map(fo => { const c = S.files.filter(f => f.folder === fo).length; return c || isAdmin() ? `<button class="chip" type="button" data-folder="${fo}" aria-pressed="${fileFolder === fo}">${fo}${c ? ' · ' + c : ''}</button>` : ''; }).join('')}</div>
-    ${list.length ? `<ul class="list">${list.map(f => `<li><span class="fic ${fileKind(f).toLowerCase()}">${fileKind(f)}</span><span class="grow"><b class="ellip">${esc(f.name)}</b><span class="tiny muted">${esc(f.folder || 'इतर')} · ${fmtSize(f.size || 0)} · ${fmtTs(f.createdAt)}${f.visibility === 'committee' ? ' · फक्त समिती' : ''}</span></span>
-      <button class="btn small ghost" type="button" data-file="${f.id}">उघडा</button></li>`).join('')}</ul>` : `<div class="card empty muted">${isAdmin() ? 'अजून फाइल नाही. उपविधी, लेखापरीक्षण अहवाल, बिले इथे जोडा.' : 'अजून कोणतीही फाइल नाही.'}</div>`}`;
+  const list = S.files.filter(f => fileFolder === 'all' || canon(f.folder) === fileFolder);
+  return `${pageTitle(T('फाइल्स'))}
+    ${isAdmin() ? `<div class="grid2"><button class="btn primary" type="button" data-act="upload">${IC.plus} ${T('फाइल जोडा')}</button><button class="btn ghost" type="button" data-act="exportcsv">${IC.ledger} ${T('हिशोब (Excel)')}</button></div>` : ''}
+    <div class="chips scroll" role="group" aria-label="${T('फोल्डर')}"><button class="chip" type="button" data-folder="all" aria-pressed="${fileFolder === 'all'}">${T('सर्व')} · ${S.files.length}</button>${FOLDERS.map(fo => { const c = S.files.filter(f => canon(f.folder) === fo).length; return c || isAdmin() ? `<button class="chip" type="button" data-folder="${fo}" aria-pressed="${fileFolder === fo}">${T(fo)}${c ? ' · ' + c : ''}</button>` : ''; }).join('')}</div>
+    ${list.length ? `<ul class="list">${list.map(f => `<li><span class="fic ${fileKind(f).toLowerCase()}">${fileKind(f)}</span><span class="grow"><b class="ellip">${esc(f.name)}</b><span class="tiny muted">${esc(T(f.folder || 'इतर'))} · ${fmtSize(f.size || 0)} · ${fmtTs(f.createdAt)}${f.visibility === 'committee' ? ` · ${T('फक्त समिती')}` : ''}</span></span>
+      <button class="btn small ghost" type="button" data-file="${f.id}">${T('उघडा')}</button></li>`).join('')}</ul>` : `<div class="card empty muted">${isAdmin() ? T('अजून फाइल नाही. उपविधी, लेखापरीक्षण अहवाल, बिले इथे जोडा.') : T('अजून कोणतीही फाइल नाही.')}</div>`}`;
 }
 
 /* ---------- more ---------- */
 function vMore() {
   const items = [
-    ['committee', IC.badge, 'समिती', `${committeeList().length} सदस्य`],
-    ['contacts', IC.phone, 'महत्त्वाचे संपर्क', `${contactsList().length} क्रमांक`],
-    ['funds', IC.coins, 'वर्गणी', `${S.funds.filter(f => f.status !== 'closed').length} सुरू`],
-    ['complaints', IC.chat, 'तक्रारी', `${S.complaints.filter(c => c.status !== 'closed').length} उघड्या`],
-    ...(isAdmin() ? [['members', IC.people, 'सभासद व मंजुरी', `${S.members.filter(m => m.status === 'pending').length} प्रलंबित`]] : []),
-    ['me', IC.user, 'माझे खाते', esc(S.user.email)]
+    ['committee', IC.badge, T('समिती'), `${T('{0} सदस्य', committeeList().length)}`],
+    ['contacts', IC.phone, T('महत्त्वाचे संपर्क'), `${contactsList().length} ${T('क्रमांक')}`],
+    ['funds', IC.coins, T('वर्गणी'), `${S.funds.filter(f => f.status !== 'closed').length} ${T('सुरू')}`],
+    ['complaints', IC.chat, T('तक्रारी'), `${S.complaints.filter(c => c.status !== 'closed').length} ${T('उघड्या')}`],
+    ...(isAdmin() ? [['members', IC.people, T('सभासद व मंजुरी'), `${S.members.filter(m => m.status === 'pending').length} ${T('प्रलंबित')}`]] : []),
+    ['me', IC.user, T('माझे खाते'), esc(S.user.email)]
   ];
-  return `${pageTitle('अधिक')}<div class="morelist">${items.map(([k, ic, t, sub]) => `<button class="card morerow btnlike" type="button" data-tab="${k}"><span class="mi">${ic}</span><span class="grow"><b>${t}</b><span class="tiny muted ellip">${sub}</span></span>${IC.chev}</button>`).join('')}
-    ${isAdmin() ? `<button class="card morerow btnlike" type="button" data-act="setup"><span class="mi">${IC.gear}</span><span class="grow"><b>सोसायटी माहिती व सदनिका</b><span class="tiny muted">${flats().length} सदनिका · ${rs(monthly())} दरमहा</span></span>${IC.chev}</button>` : ''}</div>`;
+  const langRow = `<div class="card stack"><span class="kicker">${T('भाषा')} · Language</span>${langChips()}</div>`;
+  return `${pageTitle(T('अधिक'))}<div class="morelist">${items.map(([k, ic, t, sub]) => `<button class="card morerow btnlike" type="button" data-tab="${k}"><span class="mi">${ic}</span><span class="grow"><b>${t}</b><span class="tiny muted ellip">${sub}</span></span>${IC.chev}</button>`).join('')}
+    ${isAdmin() ? `<button class="card morerow btnlike" type="button" data-act="setup"><span class="mi">${IC.gear}</span><span class="grow"><b>${T('सोसायटी माहिती व सदनिका')}</b><span class="tiny muted">${T('{0} सदनिका', flats().length)} · ${rs(monthly())} ${T('दरमहा')}</span></span>${IC.chev}</button>` : ''}</div>${langRow}`;
 }
 
 /* ---------- sheets ---------- */
@@ -515,23 +525,23 @@ function openSheet(html, mount) {
   if (mount) { const r = mount(wrap.firstElementChild); if (typeof r === 'function') sheetCleanup = r; }
 }
 const closeSheet = () => { if (sheetCleanup) { try { sheetCleanup(); } catch (e) {} sheetCleanup = null; } $('#sheetRoot').innerHTML = ''; };
-const sheetHead = t => `<div class="row between"><h3>${t}</h3><button class="btn small" type="button" data-close>बंद</button></div>`;
+const sheetHead = t => `<div class="row between"><h3>${t}</h3><button class="btn small" type="button" data-close>${T('बंद')}</button></div>`;
 
 function sheetSetup(isNew) {
   const p = isNew ? { startMonth: thisMonth } : S.society;
   const flatsText = (p.flats || []).map(f => [f.id, f.owner, f.phone].concat(f.opening ? [f.opening] : []).join(', ')).join('\n');
-  openSheet(`${sheetHead(isNew ? 'नवीन सोसायटी' : 'सोसायटीची माहिती')}
+  openSheet(`${sheetHead(isNew ? T('नवीन सोसायटी') : T('सोसायटीची माहिती'))}
     <form id="setupForm" class="stack">
-      <div class="field"><label for="sName">सोसायटीचे पूर्ण नाव</label><input type="text" id="sName" required value="${esc(p.name || '')}" placeholder="……… सहकारी गृहनिर्माण संस्था मर्या."></div>
-      <div class="field"><label for="sAddr">पत्ता</label><input type="text" id="sAddr" value="${esc(p.address || '')}" placeholder="उदा. वडगाव बुद्रुक, पुणे"></div>
-      <div class="grid2"><div class="field"><label for="sReg">नोंदणी क्रमांक</label><input type="text" id="sReg" value="${esc(p.regNo || '')}"></div>
-      <div class="field"><label for="sMonthly">मासिक शुल्क (₹)</label><input type="number" id="sMonthly" min="0" inputmode="numeric" required value="${esc(p.monthly || '')}"></div></div>
-      <div class="field"><label for="sUpi">संस्थेचा UPI आयडी <span class="hint">(सभासद यावर थेट भरतील)</span></label><input type="text" id="sUpi" value="${esc(p.upi || '')}" placeholder="उदा. societyname@okaxis" autocapitalize="off"></div>
-      <div class="grid2"><div class="field"><label for="sStart">खाते कोणत्या महिन्यापासून</label><input type="month" id="sStart" value="${esc(p.startMonth || thisMonth)}"></div>
-      ${isNew ? `<div class="field"><label for="sMy">तुमची सदनिका</label><input type="text" id="sMy" placeholder="उदा. A-101"></div>` : '<div></div>'}</div>
-      <div class="field"><label for="sFlats">सदनिका यादी <span class="hint">(एका ओळीत एक: सदनिका, मालकाचे नाव, फोन, जुनी थकबाकी. Excel मधून पेस्ट करू शकता.)</span></label>
-        <textarea id="sFlats" rows="8" placeholder="A-101, श्री. पाटील, 9876543210&#10;A-102, सौ. जोशी, 9822012345, 3000">${esc(flatsText)}</textarea></div>
-      <button class="btn primary block" type="submit">${isNew ? 'सोसायटी तयार करा' : 'जतन करा'}</button>
+      <div class="field"><label for="sName">${T('सोसायटीचे पूर्ण नाव')}</label><input type="text" id="sName" required value="${esc(p.name || '')}" placeholder="……… ${T('सहकारी गृहनिर्माण संस्था मर्या.')}"></div>
+      <div class="field"><label for="sAddr">${T('पत्ता')}</label><input type="text" id="sAddr" value="${esc(p.address || '')}" placeholder="${T('उदा. वडगाव बुद्रुक, पुणे')}"></div>
+      <div class="grid2"><div class="field"><label for="sReg">${T('नोंदणी क्रमांक')}</label><input type="text" id="sReg" value="${esc(p.regNo || '')}"></div>
+      <div class="field"><label for="sMonthly">${T('मासिक शुल्क (₹)')}</label><input type="number" id="sMonthly" min="0" inputmode="numeric" required value="${esc(p.monthly || '')}"></div></div>
+      <div class="field"><label for="sUpi">${T('संस्थेचा UPI आयडी')} <span class="hint">(${T('सभासद यावर थेट भरतील')})</span></label><input type="text" id="sUpi" value="${esc(p.upi || '')}" placeholder="${T('उदा. societyname')}@okaxis" autocapitalize="off"></div>
+      <div class="grid2"><div class="field"><label for="sStart">${T('खाते कोणत्या महिन्यापासून')}</label><input type="month" id="sStart" value="${esc(p.startMonth || thisMonth)}"></div>
+      ${isNew ? `<div class="field"><label for="sMy">${T('तुमची सदनिका')}</label><input type="text" id="sMy" placeholder="${T('उदा. A-101')}"></div>` : '<div></div>'}</div>
+      <div class="field"><label for="sFlats">${T('सदनिका यादी')} <span class="hint">(${T('एका ओळीत एक: सदनिका, मालकाचे नाव, फोन, जुनी थकबाकी. Excel मधून पेस्ट करू शकता.')})</span></label>
+        <textarea id="sFlats" rows="8" placeholder="${T('A-101, श्री. पाटील, 9876543210')}&#${T('10;A-102, सौ. जोशी, 9822012345, 3000')}">${esc(flatsText)}</textarea></div>
+      <button class="btn primary block" type="submit">${isNew ? T('सोसायटी तयार करा') : T('जतन करा')}</button>
     </form>`, el => {
     el.querySelector('#setupForm').addEventListener('submit', async e => {
       e.preventDefault();
@@ -539,11 +549,11 @@ function sheetSetup(isNew) {
       const fl = el.querySelector('#sFlats').value.split('\n').map(l => l.split(/[,\t]/).map(x => x.trim())).filter(a => a[0])
         .map(a => ({ id: a[0].replace(/[\/\s]+/g, '-').toUpperCase(), owner: a[1] || '', phone: a[2] || '', opening: Number(String(a[3] || '').replace(/[^\d.]/g, '')) || 0 }));
       const seen = new Set(), dup = fl.find(f => seen.has(f.id) || !seen.add(f.id));
-      if (dup) { toast(`सदनिका ${dup.id} दोनदा आहे.`); btn.disabled = false; return; }
+      if (dup) { toast(T('सदनिका {0} दोनदा आहे.', dup.id)); btn.disabled = false; return; }
       const data = { name: el.querySelector('#sName').value.trim(), address: el.querySelector('#sAddr').value.trim(), regNo: el.querySelector('#sReg').value.trim(), monthly: Number(el.querySelector('#sMonthly').value) || 0, upi: el.querySelector('#sUpi').value.trim(), startMonth: el.querySelector('#sStart').value || thisMonth, flats: fl };
       try {
-        if (isNew) { data.myFlat = (el.querySelector('#sMy').value || '').trim().toUpperCase(); const sid = await B.createSociety(S.user, data); closeSheet(); selectSociety(sid); toast('सोसायटी तयार झाली. आता जॉइन कोड सभासदांना पाठवा.'); }
-        else { await B.updateSociety(S.sid, data); closeSheet(); toast('माहिती जतन झाली.'); }
+        if (isNew) { data.myFlat = (el.querySelector('#sMy').value || '').trim().toUpperCase(); const sid = await B.createSociety(S.user, data); closeSheet(); selectSociety(sid); toast(T('सोसायटी तयार झाली. आता जॉइन कोड सभासदांना पाठवा.')); }
+        else { await B.updateSociety(S.sid, data); closeSheet(); toast(T('माहिती जतन झाली.')); }
       } catch (er) { fail(er); btn.disabled = false; }
     });
   });
@@ -551,49 +561,49 @@ function sheetSetup(isNew) {
 
 function sheetPay(flatId) {
   const f = flats().find(x => x.id === flatId), m = ledgerMonth, pay = ((S.accounts[flatId] || {}).payments || {})[m], due = dueFor(flatId, m);
-  openSheet(`${sheetHead(`सदनिका ${esc(flatId)} · ${monthName(m)}`)}
-    <div class="small muted">${esc(f.owner || '')}${due || pay ? ` · थकबाकी ${rs(due + (pay ? Number(pay.amount) : 0))}` : ''}</div>
+  openSheet(`${sheetHead(`${T('सदनिका')} ${esc(flatId)} · ${monthName(m)}`)}
+    <div class="small muted">${esc(f.owner || '')}${due || pay ? ` · ${T('थकबाकी')} ${rs(due + (pay ? Number(pay.amount) : 0))}` : ''}</div>
     <form id="payForm" class="stack">
-      <div class="grid2"><div class="field"><label for="pAmt">रक्कम (₹)</label><input type="number" id="pAmt" min="0" inputmode="numeric" required value="${esc(pay ? pay.amount : (due || monthly()))}"></div>
-      <div class="field"><label for="pDate">दिनांक</label><input type="date" id="pDate" required value="${esc(pay ? pay.date : today)}"></div></div>
-      <div class="grid2"><div class="field"><label for="pMode">कसे भरले</label><select id="pMode">${['UPI', 'रोख', 'चेक', 'बँक ट्रान्सफर'].map(x => `<option ${pay && pay.mode === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
-      <div class="field"><label for="pRef">संदर्भ क्र. <span class="hint">(ऐच्छिक)</span></label><input type="text" id="pRef" value="${esc(pay && pay.ref || '')}"></div></div>
-      <button class="btn primary block" type="submit">जमा नोंदवा</button>
-      ${pay ? `<button class="btn block danger" type="button" id="pDel">ही नोंद काढा</button>` : ''}
+      <div class="grid2"><div class="field"><label for="pAmt">${T('रक्कम (₹)')}</label><input type="number" id="pAmt" min="0" inputmode="numeric" required value="${esc(pay ? pay.amount : (due || monthly()))}"></div>
+      <div class="field"><label for="pDate">${T('दिनांक')}</label><input type="date" id="pDate" required value="${esc(pay ? pay.date : today)}"></div></div>
+      <div class="grid2"><div class="field"><label for="pMode">${T('कसे भरले')}</label><select id="pMode">${['UPI', 'रोख', 'चेक', 'बँक ट्रान्सफर'].map(x => `<option value="${x}" ${pay && canon(pay.mode) === x ? 'selected' : ''}>${T(x)}</option>`).join('')}</select></div>
+      <div class="field"><label for="pRef">${T('संदर्भ क्र.')} <span class="hint">(${T('ऐच्छिक')})</span></label><input type="text" id="pRef" value="${esc(pay && pay.ref || '')}"></div></div>
+      <button class="btn primary block" type="submit">${T('जमा नोंदवा')}</button>
+      ${pay ? `<button class="btn block danger" type="button" id="pDel">${T('ही नोंद काढा')}</button>` : ''}
     </form>`, el => {
     el.querySelector('#payForm').addEventListener('submit', async e => {
       e.preventDefault();
       const rec = { amount: Number(el.querySelector('#pAmt').value) || 0, date: el.querySelector('#pDate').value, mode: el.querySelector('#pMode').value, ref: el.querySelector('#pRef').value.trim() };
-      try { await B.setPayment(S.sid, flatId, m, rec); closeSheet(); toast(`सदनिका ${flatId}: ${rs(rec.amount)} जमा नोंदवले.`); } catch (er) { fail(er); }
+      try { await B.setPayment(S.sid, flatId, m, rec); closeSheet(); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); } catch (er) { fail(er); }
     });
     const del = el.querySelector('#pDel');
-    if (del) del.addEventListener('click', async () => { try { await B.setPayment(S.sid, flatId, m, null); closeSheet(); toast('नोंद काढली.'); } catch (er) { fail(er); } });
+    if (del) del.addEventListener('click', async () => { try { await B.setPayment(S.sid, flatId, m, null); closeSheet(); toast(T('नोंद काढली.')); } catch (er) { fail(er); } });
   });
 }
 
 function sheetReminders() {
   const rows = flats().map(f => ({ f, due: dueFor(f.id, ledgerMonth) })).filter(r => r.due > 0);
-  openSheet(`${sheetHead(`थकबाकी आठवण · ${rows.length}`)}
-    <p class="small muted m0">प्रत्येक सदनिकेसाठी WhatsApp उघडा. फोन क्रमांक नसल्यास WhatsApp मध्ये संपर्क निवडा.</p>
-    <ul class="list">${rows.map(({ f, due }, i) => `<li class="wrap"><span class="flat">${esc(f.id)}</span><span class="grow"><span>${esc(f.owner || '')}</span><span class="tiny muted num">${esc(f.phone || 'फोन नाही')} · ${rs(due)}</span></span>
-      <span class="row g6"><button class="btn small good" type="button" data-wa="${i}">${IC.wa} WhatsApp</button><button class="btn small" type="button" data-cp="${i}" aria-label="संदेश कॉपी करा">${IC.copy}</button></span></li>`).join('')}</ul>`, el => {
+  openSheet(`${sheetHead(`${T('थकबाकी आठवण')} · ${rows.length}`)}
+    <p class="small muted m0">${T('प्रत्येक सदनिकेसाठी WhatsApp उघडा. फोन क्रमांक नसल्यास WhatsApp मध्ये संपर्क निवडा.')}</p>
+    <ul class="list">${rows.map(({ f, due }, i) => `<li class="wrap"><span class="flat">${esc(f.id)}</span><span class="grow"><span>${esc(f.owner || '')}</span><span class="tiny muted num">${esc(f.phone || T('फोन नाही'))} · ${rs(due)}</span></span>
+      <span class="row g6"><button class="btn small good" type="button" data-wa="${i}">${IC.wa} WhatsApp</button><button class="btn small" type="button" data-cp="${i}" aria-label="${T('संदेश कॉपी करा')}">${IC.copy}</button></span></li>`).join('')}</ul>`, el => {
     el.querySelectorAll('[data-wa]').forEach(b => b.addEventListener('click', () => { const r = rows[+b.dataset.wa]; openExternal(waLink(r.f.phone, reminderText(r.f, r.due))); }));
-    el.querySelectorAll('[data-cp]').forEach(b => b.addEventListener('click', async () => { const r = rows[+b.dataset.cp]; toast(await copyText(reminderText(r.f, r.due)) ? 'संदेश कॉपी झाला.' : 'कॉपी होऊ शकला नाही.'); }));
+    el.querySelectorAll('[data-cp]').forEach(b => b.addEventListener('click', async () => { const r = rows[+b.dataset.cp]; toast(await copyText(reminderText(r.f, r.due)) ? T('संदेश कॉपी झाला.') : T('कॉपी होऊ शकला नाही.')); }));
   });
 }
 
 function sheetIPaid(defaultAmt, fund) {
-  openSheet(`${sheetHead(fund ? 'वर्गणी भरणा नोंदवा' : 'भरणा नोंदवा')}
-    <p class="small muted m0">UPI ॲपमध्ये भरल्यानंतर इथे नोंद करा. समिती तपासून मंजूर करेल.</p>
+  openSheet(`${sheetHead(fund ? T('वर्गणी भरणा नोंदवा') : T('भरणा नोंदवा'))}
+    <p class="small muted m0">${T('UPI ॲपमध्ये भरल्यानंतर इथे नोंद करा. समिती तपासून मंजूर करेल.')}</p>
     <form id="ipForm" class="stack">
-      <div class="grid2"><div class="field"><label for="iAmt">रक्कम (₹)</label><input type="number" id="iAmt" min="1" inputmode="numeric" required value="${esc(defaultAmt || monthly())}"></div>
-      ${fund ? `<div class="field"><label>वर्गणी</label><input value="${esc(fund.title)}" disabled></div>` : `<div class="field"><label for="iMonth">कोणत्या महिन्याचे</label><input type="month" id="iMonth" required value="${thisMonth}"></div>`}</div>
-      <div class="field"><label for="iRef">UPI संदर्भ क्र. (UTR) <span class="hint">(UPI ॲपमधील १२ अंकी क्रमांक)</span></label><input type="text" id="iRef" inputmode="numeric" maxlength="22"></div>
-      <button class="btn primary block" type="submit">नोंद पाठवा</button></form>`, el => {
+      <div class="grid2"><div class="field"><label for="iAmt">${T('रक्कम (₹)')}</label><input type="number" id="iAmt" min="1" inputmode="numeric" required value="${esc(defaultAmt || monthly())}"></div>
+      ${fund ? `<div class="field"><label>${T('वर्गणी')}</label><input value="${esc(fund.title)}" disabled></div>` : `<div class="field"><label for="iMonth">${T('कोणत्या महिन्याचे')}</label><input type="month" id="iMonth" required value="${thisMonth}"></div>`}</div>
+      <div class="field"><label for="iRef">${T('UPI संदर्भ क्र. (UTR)')} <span class="hint">(${T('UPI ॲपमधील १२ अंकी क्रमांक')})</span></label><input type="text" id="iRef" inputmode="numeric" maxlength="22"></div>
+      <button class="btn primary block" type="submit">${T('नोंद पाठवा')}</button></form>`, el => {
     el.querySelector('#ipForm').addEventListener('submit', async e => {
       e.preventDefault();
       const c = { flatId: S.member.flatId, month: fund ? thisMonth : el.querySelector('#iMonth').value, ...(fund ? { fundId: fund.id, fundTitle: fund.title } : {}), amount: Number(el.querySelector('#iAmt').value) || 0, ref: el.querySelector('#iRef').value.trim(), date: today, uid: S.user.uid, name: S.user.name, status: 'pending', createdAt: Date.now() };
-      try { await B.addClaim(S.sid, c); closeSheet(); toast('नोंद पाठवली. समिती मंजूर केल्यावर थकबाकी अपडेट होईल.'); } catch (er) { fail(er); }
+      try { await B.addClaim(S.sid, c); closeSheet(); toast(T('नोंद पाठवली. समिती मंजूर केल्यावर थकबाकी अपडेट होईल.')); } catch (er) { fail(er); }
     });
   });
 }
@@ -602,47 +612,52 @@ function sheetEditMember(uid) {
   const m = S.members.find(x => x.id === uid); if (!m) return;
   openSheet(`${sheetHead(esc(m.name))}<span class="small muted">${esc(m.email)}</span>
     <form id="meForm" class="stack">
-      <div class="field"><label for="mFlat">सदनिका</label><select id="mFlat"><option value="">— नाही —</option>${flats().map(f => `<option ${f.id === m.flatId ? 'selected' : ''}>${esc(f.id)}</option>`).join('')}</select></div>
-      <div class="field"><label for="mRole">भूमिका</label><select id="mRole"><option value="resident" ${m.role !== 'admin' ? 'selected' : ''}>सभासद</option><option value="admin" ${m.role === 'admin' ? 'selected' : ''}>समिती (सर्व अधिकार)</option></select></div>
-      <button class="btn primary block" type="submit">जतन करा</button>
-      <button class="btn block danger" type="button" id="mDel">सोसायटीतून काढा</button></form>`, el => {
-    el.querySelector('#meForm').addEventListener('submit', async e => { e.preventDefault(); try { await B.updateMember(S.sid, uid, { flatId: el.querySelector('#mFlat').value, role: el.querySelector('#mRole').value }); closeSheet(); toast('बदल जतन झाले.'); } catch (er) { fail(er); } });
-    el.querySelector('#mDel').addEventListener('click', async () => { try { await B.removeMember(S.sid, uid); closeSheet(); toast('सदस्य काढला.'); } catch (er) { fail(er); } });
+      <div class="field"><label for="mFlat">${T('सदनिका')}</label><select id="mFlat"><option value="">— ${T('नाही')} —</option>${flats().map(f => `<option ${f.id === m.flatId ? 'selected' : ''}>${esc(f.id)}</option>`).join('')}</select></div>
+      <div class="field"><label for="mRole">${T('भूमिका')}</label><select id="mRole"><option value="resident" ${m.role !== 'admin' ? 'selected' : ''}>${T('सभासद')}</option><option value="admin" ${m.role === 'admin' ? 'selected' : ''}>${T('समिती (सर्व अधिकार)')}</option></select></div>
+      <button class="btn primary block" type="submit">${T('जतन करा')}</button>
+      <button class="btn block danger" type="button" id="mDel">${T('सोसायटीतून काढा')}</button></form>`, el => {
+    el.querySelector('#meForm').addEventListener('submit', async e => { e.preventDefault(); try { await B.updateMember(S.sid, uid, { flatId: el.querySelector('#mFlat').value, role: el.querySelector('#mRole').value }); closeSheet(); toast(T('बदल जतन झाले.')); } catch (er) { fail(er); } });
+    el.querySelector('#mDel').addEventListener('click', async () => { try { await B.removeMember(S.sid, uid); closeSheet(); toast(T('सदस्य काढला.')); } catch (er) { fail(er); } });
   });
 }
 
 function sheetComplaint() {
-  openSheet(`${sheetHead('नवीन तक्रार')}
+  openSheet(`${sheetHead(T('नवीन तक्रार'))}
     <form id="cForm" class="stack">
-      ${isAdmin() ? `<div class="field"><label for="cFlat">सदनिका</label><select id="cFlat"><option value="">सामायिक</option>${flats().map(f => `<option>${esc(f.id)}</option>`).join('')}</select></div>` : ''}
-      <div class="field"><label for="cText">तक्रार</label><textarea id="cText" required rows="4" placeholder="उदा. B विंगच्या जिन्यातील दिवा बंद आहे"></textarea></div>
-      <button class="btn primary block" type="submit">नोंदवा</button></form>`, el => {
+      ${isAdmin() ? `<div class="field"><label for="cFlat">${T('सदनिका')}</label><select id="cFlat"><option value="">${T('सामायिक')}</option>${flats().map(f => `<option>${esc(f.id)}</option>`).join('')}</select></div>` : ''}
+      <div class="field"><label for="cText">${T('तक्रार')}</label><textarea id="cText" required rows="4" placeholder="${T('उदा. B विंगच्या जिन्यातील दिवा बंद आहे')}"></textarea></div>
+      <button class="btn primary block" type="submit">${T('नोंदवा')}</button></form>`, el => {
     el.querySelector('#cForm').addEventListener('submit', async e => {
       e.preventDefault();
       const text = el.querySelector('#cText').value.trim(); if (!text) return;
       const c = { flatId: isAdmin() ? el.querySelector('#cFlat').value : (S.member.flatId || ''), text, uid: S.user.uid, name: S.user.name, status: 'open', createdAt: Date.now() };
-      try { await B.addComplaint(S.sid, c); closeSheet(); toast('तक्रार नोंदवली.'); } catch (er) { fail(er); }
+      try { await B.addComplaint(S.sid, c); closeSheet(); toast(T('तक्रार नोंदवली.')); } catch (er) { fail(er); }
     });
   });
 }
 
-/* notices + minutes */
+/* notices + minutes: written in the language chosen for the notice, not the app language */
+const DOC_WORDS = {
+  mr: { notice: 'सूचना', date: 'दिनांक: ', present: 'उपस्थित सदस्य: ', sign: 'सचिव, व्यवस्थापकीय समिती' },
+  hi: { notice: 'सूचना', date: 'दिनांक: ', present: 'उपस्थित सदस्य: ', sign: 'सचिव, प्रबंध समिति' },
+  en: { notice: 'Notice', date: 'Date: ', present: 'Members present: ', sign: 'Secretary, Managing Committee' }
+};
 function sheetNotice() {
-  let lang = 'mr', tpl = NOTICE_TEMPLATES[0];
+  let lang = LANG, tpl = NOTICE_TEMPLATES[0];
   const form = () => tpl.fields.map(f => {
-    const lbl = lang === 'en' ? f.en : f.mr, ph = f.ph ? f.ph[lang] : '';
+    const lbl = f[lang] || f.mr, ph = f.ph ? (f.ph[lang] || f.ph.mr) : '';
     if (f.options) return `<div class="field"><label for="f_${f.k}">${lbl}</label><select id="f_${f.k}">${f.options[lang].map(o => `<option>${esc(o)}</option>`).join('')}</select></div>`;
     if (f.type === 'textarea') return `<div class="field"><label for="f_${f.k}">${lbl}</label><textarea id="f_${f.k}" rows="4"></textarea></div>`;
     return `<div class="field"><label for="f_${f.k}">${lbl}</label><input id="f_${f.k}" type="${f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : 'text'}" placeholder="${esc(ph)}" ${f.type === 'date' ? `value="${today}"` : ''}></div>`;
   }).join('');
-  openSheet(`${sheetHead('नवीन सूचना')}
-    <div class="seg" role="group" aria-label="भाषा"><button class="chip" type="button" data-lang="mr" aria-pressed="true">मराठी</button><button class="chip" type="button" data-lang="en" aria-pressed="false">English</button></div>
-    <div class="chips" role="group" aria-label="प्रकार" id="tplChips"></div>
+  openSheet(`${sheetHead(T('नवीन सूचना'))}
+    <div class="seg" role="group" aria-label="${T('भाषा')}">${LANGS.map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${k === LANG}">${l}</button>`).join('')}</div>
+    <div class="chips" role="group" aria-label="${T('प्रकार')}" id="tplChips"></div>
     <div class="stack" id="tplFields"></div>
-    <button class="btn block" type="button" id="nBuild">मसुदा तयार करा</button>
-    <div class="field"><label for="nHead">शीर्षक</label><input type="text" id="nHead"></div>
-    <div class="field"><label for="nBody">मजकूर <span class="hint">(हवे तसे बदला)</span></label><textarea id="nBody" rows="8"></textarea></div>
-    <button class="btn primary block" type="button" id="nPub">प्रकाशित करा आणि पाठवा</button>`, el => {
+    <button class="btn block" type="button" id="nBuild">${T('मसुदा तयार करा')}</button>
+    <div class="field"><label for="nHead">${T('शीर्षक')}</label><input type="text" id="nHead"></div>
+    <div class="field"><label for="nBody">${T('मजकूर')} <span class="hint">(${T('हवे तसे बदला')})</span></label><textarea id="nBody" rows="8"></textarea></div>
+    <button class="btn primary block" type="button" id="nPub">${T('प्रकाशित करा आणि पाठवा')}</button>`, el => {
     const g = s => el.querySelector(s);
     const chips = () => { g('#tplChips').innerHTML = NOTICE_TEMPLATES.map(t => `<button class="chip" type="button" data-tpl="${t.id}" aria-pressed="${t === tpl}">${t.label[lang]}</button>`).join(''); };
     const build = () => { const f = {}; tpl.fields.forEach(x => { const i = g('#f_' + x.k); f[x.k] = i ? i.value.trim() : ''; }); const r = tpl.build(f, lang, d => fmtDate(d, lang)); g('#nHead').value = r.heading; g('#nBody').value = r.body; };
@@ -655,22 +670,22 @@ function sheetNotice() {
     g('#nBuild').addEventListener('click', build);
     g('#nPub').addEventListener('click', async () => {
       if (!g('#nBody').value.trim()) build();
-      const n = { kind: 'notice', lang, heading: g('#nHead').value.trim() || (lang === 'en' ? 'Notice' : 'सूचना'), dateLine: (lang === 'en' ? 'Date: ' : 'दिनांक: ') + fmtDate(today, lang), presentLine: '', body: g('#nBody').value.trim(), createdAt: Date.now(), by: S.user.name };
+      const n = { kind: 'notice', lang, heading: g('#nHead').value.trim() || DOC_WORDS[lang].notice, dateLine: DOC_WORDS[lang].date + fmtDate(today, lang), presentLine: '', body: g('#nBody').value.trim(), createdAt: Date.now(), by: S.user.name };
       await publishAndShare(n);
     });
   });
 }
 
 function sheetMinutes() {
-  let lang = 'mr';
-  openSheet(`${sheetHead('नवीन इतिवृत्त')}
-    <div class="seg" role="group" aria-label="भाषा"><button class="chip" type="button" data-lang="mr" aria-pressed="true">मराठी</button><button class="chip" type="button" data-lang="en" aria-pressed="false">English</button></div>
-    <div class="field"><label for="mType">सभेचा प्रकार</label><select id="mType"></select></div>
-    <div class="grid2"><div class="field"><label for="mDate">सभेचा दिनांक</label><input type="date" id="mDate" value="${today}"></div>
-    <div class="field"><label for="mPresent">उपस्थित सदस्य</label><input type="number" id="mPresent" min="0" inputmode="numeric"></div></div>
-    <div class="field"><label for="mBody">ठराव <span class="hint">(प्रत्येक ठराव नवीन ओळीत. खालील वाक्ये मदतीसाठी.)</span></label><textarea id="mBody" rows="8"></textarea></div>
+  let lang = LANG;
+  openSheet(`${sheetHead(T('नवीन इतिवृत्त'))}
+    <div class="seg" role="group" aria-label="${T('भाषा')}">${LANGS.map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${k === LANG}">${l}</button>`).join('')}</div>
+    <div class="field"><label for="mType">${T('सभेचा प्रकार')}</label><select id="mType"></select></div>
+    <div class="grid2"><div class="field"><label for="mDate">${T('सभेचा दिनांक')}</label><input type="date" id="mDate" value="${today}"></div>
+    <div class="field"><label for="mPresent">${T('उपस्थित सदस्य')}</label><input type="number" id="mPresent" min="0" inputmode="numeric"></div></div>
+    <div class="field"><label for="mBody">${T('ठराव')} <span class="hint">(${T('प्रत्येक ठराव नवीन ओळीत. खालील वाक्ये मदतीसाठी.')})</span></label><textarea id="mBody" rows="8"></textarea></div>
     <div class="chips" id="phr"></div>
-    <button class="btn primary block" type="button" id="mPub">प्रकाशित करा आणि पाठवा</button>`, el => {
+    <button class="btn primary block" type="button" id="mPub">${T('प्रकाशित करा आणि पाठवा')}</button>`, el => {
     const g = s => el.querySelector(s);
     const fill = () => { g('#mType').innerHTML = MINUTES_TYPES[lang].map(t => `<option>${esc(t)}</option>`).join(''); g('#phr').innerHTML = RESOLUTION_PHRASES[lang].map((p, i) => `<button class="chip small" type="button" data-phr="${i}">+ ${esc(p)}</button>`).join(''); };
     fill();
@@ -679,44 +694,44 @@ function sheetMinutes() {
       const p = e.target.closest('[data-phr]'); if (p) { const ta = g('#mBody'); ta.value = (ta.value.trim() ? ta.value.trimEnd() + '\n' : '') + RESOLUTION_PHRASES[lang][+p.dataset.phr]; ta.focus(); }
     });
     g('#mPub').addEventListener('click', async () => {
-      const body = g('#mBody').value.trim(); if (!body) { toast('किमान एक ठराव लिहा.'); return; }
+      const body = g('#mBody').value.trim(); if (!body) { toast(T('किमान एक ठराव लिहा.')); return; }
       const pr = g('#mPresent').value;
-      const n = { kind: 'minutes', lang, heading: g('#mType').value, dateLine: (lang === 'en' ? 'Date: ' : 'दिनांक: ') + fmtDate(g('#mDate').value, lang), presentLine: pr ? (lang === 'en' ? `Members present: ${pr}` : `उपस्थित सदस्य: ${pr}`) : '', body, createdAt: Date.now(), by: S.user.name };
+      const n = { kind: 'minutes', lang, heading: g('#mType').value, dateLine: DOC_WORDS[lang].date + fmtDate(g('#mDate').value, lang), presentLine: pr ? DOC_WORDS[lang].present + pr : '', body, createdAt: Date.now(), by: S.user.name };
       await publishAndShare(n);
     });
   });
 }
 
 async function publishAndShare(n) {
-  if (!n.body) { toast('मजकूर रिकामा आहे.'); return; }
+  if (!n.body) { toast(T('मजकूर रिकामा आहे.')); return; }
   try { await B.saveNotice(S.sid, n); } catch (e) { fail(e); return; }
-  closeSheet(); toast('प्रकाशित झाले. सभासदांना ॲपमध्ये दिसेल.');
+  closeSheet(); toast(T('प्रकाशित झाले. सभासदांना ॲपमध्ये दिसेल.'));
   sheetViewNotice(n);
 }
 
 function sheetViewNotice(n) {
-  openSheet(`${sheetHead(n.kind === 'minutes' ? 'इतिवृत्त' : 'सूचना')}
+  openSheet(`${sheetHead(n.kind === 'minutes' ? T('इतिवृत्त') : T('सूचना'))}
     <img class="docprev" id="vImg" alt="${esc(n.heading)}">
-    <div class="grid2"><button class="btn good" type="button" id="vShare">${IC.share} WhatsApp / शेअर</button><button class="btn" type="button" id="vCopy">${IC.copy} मजकूर कॉपी</button></div>
-    ${isAdmin() && n.id ? `<button class="btn block danger" type="button" id="vDel">हटवा</button>` : ''}`, async el => {
+    <div class="grid2"><button class="btn good" type="button" id="vShare">${IC.share} ${T('WhatsApp / शेअर')}</button><button class="btn" type="button" id="vCopy">${IC.copy} ${T('मजकूर कॉपी')}</button></div>
+    ${isAdmin() && n.id ? `<button class="btn block danger" type="button" id="vDel">${T('हटवा')}</button>` : ''}`, async el => {
     const blob = await drawLetterhead(S.society, n);
     const img = el.querySelector('#vImg'); if (img) img.src = URL.createObjectURL(blob);
     const name = `${n.kind === 'minutes' ? 'itivrutta' : 'suchana'}-${today}.png`;
-    el.querySelector('#vShare').addEventListener('click', async () => { const r = await shareImage(blob, name, n.heading); if (r === 'downloaded') toast('चित्र डाउनलोड झाले. WhatsApp मध्ये जोडा.'); if (r === 'failed') toast('शेअर होऊ शकले नाही.'); });
+    el.querySelector('#vShare').addEventListener('click', async () => { const r = await shareImage(blob, name, n.heading); if (r === 'downloaded') toast(T('चित्र डाउनलोड झाले. WhatsApp मध्ये जोडा.')); if (r === 'failed') toast(T('शेअर होऊ शकले नाही.')); });
     el.querySelector('#vCopy').addEventListener('click', async () => {
       const lines = n.body.split('\n').filter(Boolean);
-      const txt = `*${S.society.name}*\n*${n.heading}*\n${n.dateLine}${n.presentLine ? '\n' + n.presentLine : ''}\n\n${n.kind === 'minutes' ? lines.map((l, i) => `${i + 1}. ${l}`).join('\n') : lines.join('\n\n')}\n\n${n.lang === 'en' ? 'Secretary, Managing Committee' : 'सचिव, व्यवस्थापकीय समिती'}`;
-      toast(await copyText(txt) ? 'मजकूर कॉपी झाला.' : 'कॉपी होऊ शकले नाही.');
+      const txt = `*${S.society.name}*\n*${n.heading}*\n${n.dateLine}${n.presentLine ? '\n' + n.presentLine : ''}\n\n${n.kind === 'minutes' ? lines.map((l, i) => `${i + 1}. ${l}`).join('\n') : lines.join('\n\n')}\n\n${(DOC_WORDS[n.lang] || DOC_WORDS.mr).sign}`;
+      toast(await copyText(txt) ? T('मजकूर कॉपी झाला.') : T('कॉपी होऊ शकले नाही.'));
     });
-    const del = el.querySelector('#vDel'); if (del) del.addEventListener('click', async () => { try { await B.deleteNotice(S.sid, n.id); closeSheet(); toast('हटवले.'); } catch (e) { fail(e); } });
+    const del = el.querySelector('#vDel'); if (del) del.addEventListener('click', async () => { try { await B.deleteNotice(S.sid, n.id); closeSheet(); toast(T('हटवले.')); } catch (e) { fail(e); } });
   });
 }
 
 function sheetSwitch() {
   const socs = (S.userDoc && S.userDoc.societies) || {};
-  openSheet(`${sheetHead('तुमच्या सोसायट्या')}
-    <ul class="list">${Object.entries(socs).map(([sid, s]) => `<li><span class="grow"><b>${esc(s.name)}</b><span class="tiny muted">${s.role === 'admin' ? 'समिती' : 'सभासद'}</span></span>${sid === S.sid ? '<span class="pill ok">उघडी</span>' : `<button class="btn small" type="button" data-pick="${sid}">उघडा</button>`}</li>`).join('')}</ul>
-    <div class="grid2"><button class="btn" type="button" id="swJoin">कोडने जॉइन करा</button><button class="btn" type="button" id="swNew">नवीन सोसायटी</button></div>`, el => {
+  openSheet(`${sheetHead(T('तुमच्या सोसायट्या'))}
+    <ul class="list">${Object.entries(socs).map(([sid, s]) => `<li><span class="grow"><b>${esc(s.name)}</b><span class="tiny muted">${s.role === 'admin' ? T('समिती') : T('सभासद')}</span></span>${sid === S.sid ? `<span class="pill ok">${T('उघडी')}</span>` : `<button class="btn small" type="button" data-pick="${sid}">${T('उघडा')}</button>`}</li>`).join('')}</ul>
+    <div class="grid2"><button class="btn" type="button" id="swJoin">${T('कोडने जॉइन करा')}</button><button class="btn" type="button" id="swNew">${T('नवीन सोसायटी')}</button></div>`, el => {
     el.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => { closeSheet(); selectSociety(b.dataset.pick); }));
     el.querySelector('#swNew').addEventListener('click', () => sheetSetup(true));
     el.querySelector('#swJoin').addEventListener('click', () => { closeSheet(); S.sid = null; unsubAll(); if (memberSub) { memberSub(); memberSub = null; } render(); });
@@ -726,14 +741,14 @@ function sheetSwitch() {
 async function startJoin(code) {
   try {
     const r = await B.lookupCode(code);
-    if (!r) { toast('हा कोड सापडला नाही. समितीकडून पुन्हा तपासा.'); return; }
+    if (!r) { toast(T('हा कोड सापडला नाही. समितीकडून पुन्हा तपासा.')); return; }
     if (((S.userDoc && S.userDoc.societies) || {})[r.sid]) { selectSociety(r.sid); return; }
-    openSheet(`${sheetHead('जॉइन करा')}<p class="m0"><b>${esc(r.name)}</b></p>
-      <form id="jf" class="stack"><div class="field"><label for="jFlat">तुमची सदनिका</label><input id="jFlat" type="text" required placeholder="उदा. A-101" autocapitalize="characters"></div>
-      <button class="btn primary block" type="submit">विनंती पाठवा</button></form>`, el => {
+    openSheet(`${sheetHead(T('जॉइन करा'))}<p class="m0"><b>${esc(r.name)}</b></p>
+      <form id="jf" class="stack"><div class="field"><label for="jFlat">${T('तुमची सदनिका')}</label><input id="jFlat" type="text" required placeholder="${T('उदा. A-101')}" autocapitalize="characters"></div>
+      <button class="btn primary block" type="submit">${T('विनंती पाठवा')}</button></form>`, el => {
       el.querySelector('#jf').addEventListener('submit', async e => {
         e.preventDefault();
-        try { await B.requestJoin(S.user, r.sid, r.name, el.querySelector('#jFlat').value.trim().toUpperCase().replace(/[\/\s]+/g, '-')); closeSheet(); selectSociety(r.sid); toast('विनंती पाठवली.'); } catch (er) { fail(er); }
+        try { await B.requestJoin(S.user, r.sid, r.name, el.querySelector('#jFlat').value.trim().toUpperCase().replace(/[\/\s]+/g, '-')); closeSheet(); selectSociety(r.sid); toast(T('विनंती पाठवली.')); } catch (er) { fail(er); }
       });
     });
   } catch (e) { fail(e); }
@@ -743,22 +758,22 @@ async function startJoin(code) {
 function sheetCommittee() {
   const cur = (S.society.committee || []).length ? S.society.committee : POSTS.map(post => ({ post, name: '', flatId: '', phone: '' }));
   const rows = Array.from({ length: Math.max(12, cur.length) }, (_, i) => cur[i] || { post: 'सदस्य', name: '', flatId: '', phone: '' });
-  openSheet(`${sheetHead('समिती सदस्य')}
-    <p class="small muted m0">पद, नाव, सदनिका आणि फोन भरा. सदनिका निवडल्यावर यादीतील नाव आणि फोन आपोआप येतो. रिकाम्या ओळी दाखवल्या जाणार नाहीत.</p>
-    <datalist id="postList">${POST_OPTIONS.map(p => `<option value="${p}">`).join('')}</datalist>
+  openSheet(`${sheetHead(T('समिती सदस्य'))}
+    <p class="small muted m0">${T('पद, नाव, सदनिका आणि फोन भरा. सदनिका निवडल्यावर यादीतील नाव आणि फोन आपोआप येतो. रिकाम्या ओळी दाखवल्या जाणार नाहीत.')}</p>
+    <datalist id="postList">${POST_OPTIONS.map(p => `<option value="${T(p)}">`).join('')}</datalist>
     <datalist id="flatList">${flats().map(f => `<option value="${esc(f.id)}">${esc(f.owner || '')}</option>`).join('')}</datalist>
     <form id="comForm" class="stack">${rows.map((r, i) => `<fieldset class="crow"><legend>${i + 1}</legend>
-      <div class="grid2"><div class="field"><label for="cp${i}">पद</label><input id="cp${i}" list="postList" value="${esc(r.post)}"></div><div class="field"><label for="cf${i}">सदनिका</label><input id="cf${i}" list="flatList" data-fill="${i}" value="${esc(r.flatId)}" autocapitalize="characters"></div></div>
-      <div class="grid2"><div class="field"><label for="cn${i}">नाव</label><input id="cn${i}" value="${esc(r.name)}"></div><div class="field"><label for="ct${i}">फोन</label><input id="ct${i}" type="tel" inputmode="tel" value="${esc(r.phone)}"></div></div></fieldset>`).join('')}
-      <button class="btn primary block sticky" type="submit">जतन करा</button></form>`, el => {
+      <div class="grid2"><div class="field"><label for="cp${i}">${T('पद')}</label><input id="cp${i}" list="postList" value="${esc(T(r.post))}"></div><div class="field"><label for="cf${i}">${T('सदनिका')}</label><input id="cf${i}" list="flatList" data-fill="${i}" value="${esc(r.flatId)}" autocapitalize="characters"></div></div>
+      <div class="grid2"><div class="field"><label for="cn${i}">${T('नाव')}</label><input id="cn${i}" value="${esc(r.name)}"></div><div class="field"><label for="ct${i}">${T('फोन')}</label><input id="ct${i}" type="tel" inputmode="tel" value="${esc(r.phone)}"></div></div></fieldset>`).join('')}
+      <button class="btn primary block sticky" type="submit">${T('जतन करा')}</button></form>`, el => {
     el.querySelectorAll('[data-fill]').forEach(inp => inp.addEventListener('change', () => {
       const i = inp.dataset.fill, f = flats().find(x => x.id === inp.value.trim().toUpperCase()); if (!f) return;
       inp.value = f.id; if (!el.querySelector('#cn' + i).value) el.querySelector('#cn' + i).value = f.owner || ''; if (!el.querySelector('#ct' + i).value) el.querySelector('#ct' + i).value = f.phone || '';
     }));
     el.querySelector('#comForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const committee = rows.map((_, i) => ({ post: el.querySelector('#cp' + i).value.trim() || 'सदस्य', name: el.querySelector('#cn' + i).value.trim(), flatId: el.querySelector('#cf' + i).value.trim().toUpperCase(), phone: el.querySelector('#ct' + i).value.trim() })).filter(c => c.name);
-      try { await B.updateSociety(S.sid, { committee }); closeSheet(); toast('समिती जतन झाली.'); } catch (er) { fail(er); }
+      const committee = rows.map((_, i) => ({ post: canon(el.querySelector('#cp' + i).value.trim()) || 'सदस्य', name: el.querySelector('#cn' + i).value.trim(), flatId: el.querySelector('#cf' + i).value.trim().toUpperCase(), phone: el.querySelector('#ct' + i).value.trim() })).filter(c => c.name);
+      try { await B.updateSociety(S.sid, { committee }); closeSheet(); toast(T('समिती जतन झाली.')); } catch (er) { fail(er); }
     });
   });
 }
@@ -767,17 +782,17 @@ function sheetCommittee() {
 function sheetContacts() {
   let rows = contactsList().map(c => ({ ...c }));
   if (!(S.society.contacts || []).length) rows = rows.concat([{ cat: 'सोसायटी', label: 'वॉचमन', name: '', phone: '' }, { cat: 'सोसायटी', label: 'व्यवस्थापक', name: '', phone: '' }, { cat: 'सेवा', label: 'प्लंबर', name: '', phone: '' }, { cat: 'सेवा', label: 'इलेक्ट्रिशियन', name: '', phone: '' }, { cat: 'सेवा', label: 'लिफ्ट दुरुस्ती', name: '', phone: '' }, { cat: 'जवळपास', label: 'जवळचे रुग्णालय', name: '', phone: '' }]);
-  openSheet(`${sheetHead('महत्त्वाचे संपर्क')}<p class="small muted m0">फोन नसलेल्या ओळी दाखवल्या जाणार नाहीत.</p><div id="ctRows" class="stack"></div>
-    <button class="btn ghost block" type="button" id="ctAdd">${IC.plus} संपर्क जोडा</button><button class="btn primary block sticky" type="button" id="ctSave">जतन करा</button>`, el => {
-    const read = () => { rows = [...el.querySelectorAll('.ctrow')].map(r => ({ cat: r.querySelector('select').value, label: r.querySelector('[data-k=label]').value.trim(), name: r.querySelector('[data-k=name]').value.trim(), phone: r.querySelector('[data-k=phone]').value.trim() })); };
+  openSheet(`${sheetHead(T('महत्त्वाचे संपर्क'))}<p class="small muted m0">${T('फोन नसलेल्या ओळी दाखवल्या जाणार नाहीत.')}</p><div id="ctRows" class="stack"></div>
+    <button class="btn ghost block" type="button" id="ctAdd">${IC.plus} ${T('संपर्क जोडा')}</button><button class="btn primary block sticky" type="button" id="ctSave">${T('जतन करा')}</button>`, el => {
+    const read = () => { rows = [...el.querySelectorAll('.ctrow')].map(r => ({ cat: r.querySelector('select').value, label: canon(r.querySelector('[data-k=label]').value.trim()), name: r.querySelector('[data-k=name]').value.trim(), phone: r.querySelector('[data-k=phone]').value.trim() })); };
     const draw = () => { el.querySelector('#ctRows').innerHTML = rows.map((c, i) => `<fieldset class="crow ctrow"><legend>${i + 1}</legend>
-      <div class="grid2"><div class="field"><label for="k${i}">प्रकार</label><select id="k${i}">${CONTACT_CATS.map(x => `<option ${x === c.cat ? 'selected' : ''}>${x}</option>`).join('')}</select></div><div class="field"><label for="l${i}">कोण</label><input id="l${i}" data-k="label" value="${esc(c.label)}" placeholder="उदा. वॉचमन"></div></div>
-      <div class="grid2"><div class="field"><label for="n${i}">नाव</label><input id="n${i}" data-k="name" value="${esc(c.name)}"></div><div class="field"><label for="p${i}">फोन</label><input id="p${i}" data-k="phone" type="tel" inputmode="tel" value="${esc(c.phone)}"></div></div>
-      <button class="link danger" type="button" data-rm="${i}">काढा</button></fieldset>`).join(''); };
+      <div class="grid2"><div class="field"><label for="k${i}">${T('प्रकार')}</label><select id="k${i}">${CONTACT_CATS.map(x => `<option value="${x}" ${x === canon(c.cat) ? 'selected' : ''}>${T(x)}</option>`).join('')}</select></div><div class="field"><label for="l${i}">${T('कोण')}</label><input id="l${i}" data-k="label" value="${esc(T(c.label))}" placeholder="${T('उदा. वॉचमन')}"></div></div>
+      <div class="grid2"><div class="field"><label for="n${i}">${T('नाव')}</label><input id="n${i}" data-k="name" value="${esc(c.name)}"></div><div class="field"><label for="p${i}">${T('फोन')}</label><input id="p${i}" data-k="phone" type="tel" inputmode="tel" value="${esc(c.phone)}"></div></div>
+      <button class="link danger" type="button" data-rm="${i}">${T('काढा')}</button></fieldset>`).join(''); };
     draw();
     el.querySelector('#ctAdd').addEventListener('click', () => { read(); rows.push({ cat: 'सेवा', label: '', name: '', phone: '' }); draw(); });
     el.addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (b) { read(); rows.splice(+b.dataset.rm, 1); draw(); } });
-    el.querySelector('#ctSave').addEventListener('click', async () => { read(); try { await B.updateSociety(S.sid, { contacts: rows.filter(c => c.phone && c.label) }); closeSheet(); toast('संपर्क जतन झाले.'); } catch (er) { fail(er); } });
+    el.querySelector('#ctSave').addEventListener('click', async () => { read(); try { await B.updateSociety(S.sid, { contacts: rows.filter(c => c.phone && c.label) }); closeSheet(); toast(T('संपर्क जतन झाले.')); } catch (er) { fail(er); } });
   });
 }
 
@@ -785,20 +800,20 @@ function sheetContacts() {
 function sheetDashboard() {
   const d = dashCfg(); let order = dashTiles().slice(); Object.keys(TILE_DEFS).forEach(k => { if (!order.includes(k)) order.push(k); });
   let on = new Set(dashTiles());
-  openSheet(`${sheetHead('डॅशबोर्ड बदला')}
-    <span class="kicker">बँक शिल्लक (समितीसाठी)</span>
-    <div class="grid2"><div class="field"><label for="dBank">बँक शिल्लक (₹)</label><input id="dBank" type="number" inputmode="numeric" value="${esc(d.bank ?? '')}"></div><div class="field"><label for="dFd">मुदत ठेव (₹)</label><input id="dFd" type="number" inputmode="numeric" value="${esc(d.fd ?? '')}"></div></div>
-    <div class="field"><label for="dAsOf">या दिवशीची शिल्लक</label><input id="dAsOf" type="date" value="${esc(d.asOf || today)}"></div>
-    <span class="kicker">काय दिसावे आणि कोणत्या क्रमाने</span><ul class="list" id="tList"></ul>
-    <button class="btn primary block" type="button" id="dSave">जतन करा</button>`, el => {
+  openSheet(`${sheetHead(T('डॅशबोर्ड बदला'))}
+    <span class="kicker">${T('बँक शिल्लक (समितीसाठी)')}</span>
+    <div class="grid2"><div class="field"><label for="dBank">${T('बँक शिल्लक (₹)')}</label><input id="dBank" type="number" inputmode="numeric" value="${esc(d.bank ?? '')}"></div><div class="field"><label for="dFd">${T('मुदत ठेव (₹)')}</label><input id="dFd" type="number" inputmode="numeric" value="${esc(d.fd ?? '')}"></div></div>
+    <div class="field"><label for="dAsOf">${T('या दिवशीची शिल्लक')}</label><input id="dAsOf" type="date" value="${esc(d.asOf || today)}"></div>
+    <span class="kicker">${T('काय दिसावे आणि कोणत्या क्रमाने')}</span><ul class="list" id="tList"></ul>
+    <button class="btn primary block" type="button" id="dSave">${T('जतन करा')}</button>`, el => {
     const draw = () => { el.querySelector('#tList').innerHTML = order.map((k, i) => `<li><label class="grow row g6 chk"><input type="checkbox" data-on="${k}" ${on.has(k) ? 'checked' : ''}> ${TILE_DEFS[k].label}</label>
-      <button class="iconbtn" type="button" data-mv="${i}:-1" aria-label="वर" ${i ? '' : 'disabled'}>↑</button><button class="iconbtn" type="button" data-mv="${i}:1" aria-label="खाली" ${i < order.length - 1 ? '' : 'disabled'}>↓</button></li>`).join(''); };
+      <button class="iconbtn" type="button" data-mv="${i}:-1" aria-label="${T('वर')}" ${i ? '' : 'disabled'}>↑</button><button class="iconbtn" type="button" data-mv="${i}:1" aria-label="${T('खाली')}" ${i < order.length - 1 ? '' : 'disabled'}>↓</button></li>`).join(''); };
     draw();
     el.addEventListener('change', e => { const c = e.target.closest('[data-on]'); if (c) { c.checked ? on.add(c.dataset.on) : on.delete(c.dataset.on); } });
     el.addEventListener('click', e => { const b = e.target.closest('[data-mv]'); if (!b) return; const [i, dir] = b.dataset.mv.split(':').map(Number); const j = i + dir; [order[i], order[j]] = [order[j], order[i]]; draw(); });
     el.querySelector('#dSave').addEventListener('click', async () => {
       const num = id => { const v = el.querySelector(id).value; return v === '' ? null : Number(v); };
-      try { await B.updateSociety(S.sid, { dashboard: { tiles: order.filter(k => on.has(k)), bank: num('#dBank'), fd: num('#dFd'), asOf: el.querySelector('#dAsOf').value || today } }); closeSheet(); toast('डॅशबोर्ड जतन झाला.'); } catch (er) { fail(er); }
+      try { await B.updateSociety(S.sid, { dashboard: { tiles: order.filter(k => on.has(k)), bank: num('#dBank'), fd: num('#dFd'), asOf: el.querySelector('#dAsOf').value || today } }); closeSheet(); toast(T('डॅशबोर्ड जतन झाला.')); } catch (er) { fail(er); }
     });
   });
 }
@@ -806,17 +821,17 @@ function sheetDashboard() {
 /* ---------- announcements ---------- */
 function sheetMessage() {
   const myPost = (committeeList().find(c => c.flatId && c.flatId === S.member.flatId) || {}).post || '';
-  openSheet(`${sheetHead('नवीन घोषणा')}
-    <form id="msgForm" class="stack"><div class="field"><label for="mText">संदेश</label><textarea id="mText" rows="6" required placeholder="उदा. उद्या सकाळी १० ते १२ लिफ्टची देखभाल असल्याने लिफ्ट बंद राहील."></textarea></div>
-    <label class="chk row g6"><input type="checkbox" id="mImp"> महत्त्वाचे म्हणून दाखवा</label>
-    <label class="chk row g6"><input type="checkbox" id="mPin"> सर्वात वर ठेवा</label>
-    <label class="chk row g6"><input type="checkbox" id="mWa" checked> WhatsApp वरही पाठवा</label>
-    <button class="btn primary block" type="submit">प्रकाशित करा</button></form>`, el => {
+  openSheet(`${sheetHead(T('नवीन घोषणा'))}
+    <form id="msgForm" class="stack"><div class="field"><label for="mText">${T('संदेश')}</label><textarea id="mText" rows="6" required placeholder="${T('उदा. उद्या सकाळी १० ते १२ लिफ्टची देखभाल असल्याने लिफ्ट बंद राहील.')}"></textarea></div>
+    <label class="chk row g6"><input type="checkbox" id="mImp"> ${T('महत्त्वाचे म्हणून दाखवा')}</label>
+    <label class="chk row g6"><input type="checkbox" id="mPin"> ${T('सर्वात वर ठेवा')}</label>
+    <label class="chk row g6"><input type="checkbox" id="mWa" checked> ${T('WhatsApp वरही पाठवा')}</label>
+    <button class="btn primary block" type="submit">${T('प्रकाशित करा')}</button></form>`, el => {
     el.querySelector('#msgForm').addEventListener('submit', async e => {
       e.preventDefault();
       const text = el.querySelector('#mText').value.trim(); if (!text) return;
       const m = { text, important: el.querySelector('#mImp').checked, pinned: el.querySelector('#mPin').checked, by: S.user.name, byPost: myPost, uid: S.user.uid, createdAt: Date.now() };
-      try { await B.saveMessage(S.sid, m); closeSheet(); toast('घोषणा प्रकाशित झाली.'); if (el.querySelector('#mWa').checked) openExternal(waLink('', `*${S.society.name}*\n${m.important ? '*महत्त्वाची घोषणा*\n' : ''}${text}\n\n- ${m.byPost || 'समिती'}`)); } catch (er) { fail(er); }
+      try { await B.saveMessage(S.sid, m); closeSheet(); toast(T('घोषणा प्रकाशित झाली.')); if (el.querySelector('#mWa').checked) openExternal(waLink('', `*${S.society.name}*\n${m.important ? `*${T('महत्त्वाची घोषणा')}*\n` : ''}${text}\n\n- ${T(m.byPost || 'समिती')}`)); } catch (er) { fail(er); }
     });
   });
 }
@@ -824,21 +839,21 @@ function sheetMessage() {
 /* ---------- funds ---------- */
 function sheetFundEdit(f) {
   const x = f || { title: '', desc: '', perFlat: '', target: '', due: '' };
-  openSheet(`${sheetHead(f ? 'वर्गणी बदला' : 'नवीन वर्गणी')}
+  openSheet(`${sheetHead(f ? T('वर्गणी बदला') : T('नवीन वर्गणी'))}
     <form id="fForm" class="stack">
-      <div class="field"><label for="fTitle">कशासाठी</label><input id="fTitle" required value="${esc(x.title)}" placeholder="उदा. गणेशोत्सव 2027"></div>
-      <div class="field"><label for="fDesc">माहिती <span class="hint">(ऐच्छिक)</span></label><textarea id="fDesc" rows="3">${esc(x.desc)}</textarea></div>
-      <div class="grid2"><div class="field"><label for="fPer">प्रति सदनिका (₹) <span class="hint">रिकामे = ऐच्छिक रक्कम</span></label><input id="fPer" type="number" inputmode="numeric" min="0" value="${esc(x.perFlat || '')}"></div>
-      <div class="field"><label for="fTarget">एकूण लक्ष्य (₹) <span class="hint">ऐच्छिक</span></label><input id="fTarget" type="number" inputmode="numeric" min="0" value="${esc(x.target || '')}"></div></div>
-      <div class="field"><label for="fDue">शेवटची तारीख</label><input id="fDue" type="date" value="${esc(x.due || '')}"></div>
-      <button class="btn primary block" type="submit">${f ? 'जतन करा' : 'सुरू करा'}</button></form>`, el => {
+      <div class="field"><label for="fTitle">${T('कशासाठी')}</label><input id="fTitle" required value="${esc(x.title)}" placeholder="${T('उदा. गणेशोत्सव 2027')}"></div>
+      <div class="field"><label for="fDesc">${T('माहिती')} <span class="hint">(${T('ऐच्छिक')})</span></label><textarea id="fDesc" rows="3">${esc(x.desc)}</textarea></div>
+      <div class="grid2"><div class="field"><label for="fPer">${T('प्रति सदनिका (₹)')} <span class="hint">${T('रिकामे')} = ${T('ऐच्छिक रक्कम')}</span></label><input id="fPer" type="number" inputmode="numeric" min="0" value="${esc(x.perFlat || '')}"></div>
+      <div class="field"><label for="fTarget">${T('एकूण लक्ष्य (₹)')} <span class="hint">${T('ऐच्छिक')}</span></label><input id="fTarget" type="number" inputmode="numeric" min="0" value="${esc(x.target || '')}"></div></div>
+      <div class="field"><label for="fDue">${T('शेवटची तारीख')}</label><input id="fDue" type="date" value="${esc(x.due || '')}"></div>
+      <button class="btn primary block" type="submit">${f ? T('जतन करा') : T('सुरू करा')}</button></form>`, el => {
     el.querySelector('#fForm').addEventListener('submit', async e => {
       e.preventDefault();
       const data = { title: el.querySelector('#fTitle').value.trim(), desc: el.querySelector('#fDesc').value.trim(), perFlat: Number(el.querySelector('#fPer').value) || 0, target: Number(el.querySelector('#fTarget').value) || 0, due: el.querySelector('#fDue').value };
       try {
         if (f) await B.saveFund(S.sid, { id: f.id, ...data });
-        else { await B.saveFund(S.sid, { ...data, status: 'open', paid: {}, createdAt: Date.now(), by: S.user.name }); openExternal(waLink('', `*${S.society.name}*\n*वर्गणी: ${data.title}*\n${data.desc ? data.desc + '\n' : ''}${data.perFlat ? `प्रति सदनिका ${rs(data.perFlat)}\n` : ''}${data.due ? `शेवटची तारीख: ${fmtDate(data.due)}\n` : ''}Sachiv ॲपमधून UPI द्वारे भरा.\n- समिती`)); }
-        closeSheet(); toast(f ? 'जतन झाले.' : 'वर्गणी सुरू झाली.');
+        else { await B.saveFund(S.sid, { ...data, status: 'open', paid: {}, createdAt: Date.now(), by: S.user.name }); openExternal(waLink('', `*${S.society.name}*\n*${T('वर्गणी')}: ${data.title}*\n${data.desc ? data.desc + '\n' : ''}${data.perFlat ? `${T('प्रति सदनिका')} ${rs(data.perFlat)}\n` : ''}${data.due ? `${T('शेवटची तारीख')}: ${fmtDate(data.due)}\n` : ''}${T('Sachiv ॲपमधून UPI द्वारे भरा.')}\n- ${T('समिती')}`)); }
+        closeSheet(); toast(f ? T('जतन झाले.') : T('वर्गणी सुरू झाली.'));
       } catch (er) { fail(er); }
     });
   });
@@ -850,43 +865,43 @@ function sheetFund(id) {
   const unpaid = flats().filter(x => !paid[x.id]);
   openSheet(`${sheetHead(esc(f.title))}
     ${f.desc ? `<p class="small m0">${esc(f.desc)}</p>` : ''}
-    <div class="grid2"><div class="card"><span class="kicker">जमा</span><b class="num lg good">${rs(got)}</b>${f.target ? `<span class="tiny muted">लक्ष्य ${rs(f.target)}</span>` : ''}</div><div class="card"><span class="kicker">सदनिका</span><b class="num lg">${Object.keys(paid).length}<small class="muted"> / ${flats().length}</small></b>${f.due ? `<span class="tiny muted">${fmtDate(f.due)} पर्यंत</span>` : ''}</div></div>
-    ${!isAdmin() && my && f.status !== 'closed' ? (mine ? `<div class="card accent small">तुम्ही ${rs(mine.amount)} भरले ✓</div>` : pendMine ? `<div class="pill wait">${rs(pendMine.amount)} समितीच्या मंजुरीसाठी</div>` : S.society.upi ? `<div class="field"><label for="fAmt">रक्कम (₹)</label><input id="fAmt" type="number" inputmode="numeric" min="1" value="${esc(f.perFlat || '')}"></div><button class="btn primary block" type="button" id="fPay">UPI ने भरा</button><button class="link" type="button" id="fIPaid">आधीच भरले? नोंद करा</button>` : '') : ''}
-    ${isAdmin() ? `<div class="grid2"><button class="btn ghost" type="button" id="fEdit">${IC.edit} बदला</button><button class="btn ghost" type="button" id="fWa">${IC.wa} आठवण</button></div>` : ''}
-    <span class="kicker">भरलेल्या सदनिका · ${Object.keys(paid).length}</span>
-    ${Object.keys(paid).length ? `<ul class="list">${Object.entries(paid).sort((a, b) => a[0].localeCompare(b[0])).map(([fl, p]) => `<li><span class="flat">${esc(fl)}</span><span class="grow"><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(p.mode || '')}</span></span><b class="num">${rs(p.amount)}</b>${isAdmin() ? `<button class="iconbtn" type="button" data-fundunpay="${esc(fl)}" aria-label="नोंद काढा">✕</button>` : ''}</li>`).join('')}</ul>` : '<p class="small muted m0">अजून कोणी भरली नाही.</p>'}
-    ${isAdmin() && unpaid.length ? `<span class="kicker">बाकी · ${unpaid.length}</span><ul class="list">${unpaid.map(x => `<li><span class="flat">${esc(x.id)}</span><span class="grow small">${esc(x.owner || '')}</span><button class="btn small ghost" type="button" data-fundcash="${esc(x.id)}">जमा</button></li>`).join('')}</ul>` : ''}
-    ${isAdmin() ? `<div class="grid2"><button class="btn ghost" type="button" id="fClose">${f.status === 'closed' ? 'पुन्हा सुरू करा' : 'वर्गणी बंद करा'}</button><button class="btn ghost danger" type="button" id="fDel">हटवा</button></div>` : ''}`, el => {
+    <div class="grid2"><div class="card"><span class="kicker">${T('जमा')}</span><b class="num lg good">${rs(got)}</b>${f.target ? `<span class="tiny muted">${T('लक्ष्य')} ${rs(f.target)}</span>` : ''}</div><div class="card"><span class="kicker">${T('सदनिका')}</span><b class="num lg">${Object.keys(paid).length}<small class="muted"> / ${flats().length}</small></b>${f.due ? `<span class="tiny muted">${T('{0} पर्यंत', fmtDate(f.due))}</span>` : ''}</div></div>
+    ${!isAdmin() && my && f.status !== 'closed' ? (mine ? `<div class="card accent small">${T('तुम्ही')} ${rs(mine.amount)} ${T('भरले')} ✓</div>` : pendMine ? `<div class="pill wait">${rs(pendMine.amount)} ${T('समितीच्या मंजुरीसाठी')}</div>` : S.society.upi ? `<div class="field"><label for="fAmt">${T('रक्कम (₹)')}</label><input id="fAmt" type="number" inputmode="numeric" min="1" value="${esc(f.perFlat || '')}"></div><button class="btn primary block" type="button" id="fPay">${T('UPI ने भरा')}</button><button class="link" type="button" id="fIPaid">${T('आधीच भरले? नोंद करा')}</button>` : '') : ''}
+    ${isAdmin() ? `<div class="grid2"><button class="btn ghost" type="button" id="fEdit">${IC.edit} ${T('बदला')}</button><button class="btn ghost" type="button" id="fWa">${IC.wa} ${T('आठवण')}</button></div>` : ''}
+    <span class="kicker">${T('भरलेल्या सदनिका')} · ${Object.keys(paid).length}</span>
+    ${Object.keys(paid).length ? `<ul class="list">${Object.entries(paid).sort((a, b) => a[0].localeCompare(b[0])).map(([fl, p]) => `<li><span class="flat">${esc(fl)}</span><span class="grow"><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(T(p.mode || ''))}</span></span><b class="num">${rs(p.amount)}</b>${isAdmin() ? `<button class="iconbtn" type="button" data-fundunpay="${esc(fl)}" aria-label="${T('नोंद काढा')}">✕</button>` : ''}</li>`).join('')}</ul>` : `<p class="small muted m0">${T('अजून कोणी भरली नाही.')}</p>`}
+    ${isAdmin() && unpaid.length ? `<span class="kicker">${T('बाकी')} · ${unpaid.length}</span><ul class="list">${unpaid.map(x => `<li><span class="flat">${esc(x.id)}</span><span class="grow small">${esc(x.owner || '')}</span><button class="btn small ghost" type="button" data-fundcash="${esc(x.id)}">${T('जमा')}</button></li>`).join('')}</ul>` : ''}
+    ${isAdmin() ? `<div class="grid2"><button class="btn ghost" type="button" id="fClose">${f.status === 'closed' ? T('पुन्हा सुरू करा') : T('वर्गणी बंद करा')}</button><button class="btn ghost danger" type="button" id="fDel">${T('हटवा')}</button></div>` : ''}`, el => {
     const g = q => el.querySelector(q);
     if (g('#fPay')) g('#fPay').addEventListener('click', async () => {
-      const amt = Number(g('#fAmt').value) || 0; if (!amt) { toast('रक्कम टाका.'); return; }
+      const amt = Number(g('#fAmt').value) || 0; if (!amt) { toast(T('रक्कम टाका.')); return; }
       const ok = await openExternal(upiLink({ upi: S.society.upi, name: S.society.name, amount: amt, note: `${f.title} ${my}` }));
-      if (!ok) toast('UPI ॲप उघडले नाही. UPI आयडी: ' + S.society.upi);
+      if (!ok) toast(`${T('UPI ॲप उघडले नाही. UPI आयडी')}: ` + S.society.upi);
       setTimeout(() => sheetIPaid(amt, f), 600);
     });
     if (g('#fIPaid')) g('#fIPaid').addEventListener('click', () => sheetIPaid(Number(g('#fAmt').value) || f.perFlat, f));
     if (g('#fEdit')) g('#fEdit').addEventListener('click', () => sheetFundEdit(f));
-    if (g('#fWa')) g('#fWa').addEventListener('click', () => openExternal(waLink('', `*${S.society.name}*\n*वर्गणी: ${f.title}*\n${f.perFlat ? `प्रति सदनिका ${rs(f.perFlat)}. ` : ''}आतापर्यंत ${Object.keys(paid).length} सदनिकांनी ${rs(got)} भरले.\n${f.due ? `शेवटची तारीख: ${fmtDate(f.due)}\n` : ''}Sachiv ॲपमधून भरा.\n- समिती`)));
-    if (g('#fClose')) g('#fClose').addEventListener('click', async () => { if (locked()) { toast(LOCK_MSG); return; } try { await B.saveFund(S.sid, { id: f.id, status: f.status === 'closed' ? 'open' : 'closed' }); closeSheet(); toast('बदल जतन झाला.'); } catch (er) { fail(er); } });
-    if (g('#fDel')) g('#fDel').addEventListener('click', async e => { const b = e.currentTarget; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'नक्की हटवायचे?'; return; } try { await B.deleteFund(S.sid, f.id); closeSheet(); toast('वर्गणी हटवली.'); } catch (er) { fail(er); } });
+    if (g('#fWa')) g('#fWa').addEventListener('click', () => openExternal(waLink('', `*${S.society.name}*\n*${T('वर्गणी')}: ${f.title}*\n${f.perFlat ? T('{0} प्रति सदनिका', rs(f.perFlat)) + '. ' : ''}${T('आतापर्यंत {0} सदनिकांनी {1} भरले.', Object.keys(paid).length, rs(got))}\n${f.due ? `${T('शेवटची तारीख')}: ${fmtDate(f.due)}\n` : ''}${T('Sachiv ॲपमधून भरा.')}\n- ${T('समिती')}`)));
+    if (g('#fClose')) g('#fClose').addEventListener('click', async () => { if (locked()) { toast(LOCK_MSG); return; } try { await B.saveFund(S.sid, { id: f.id, status: f.status === 'closed' ? 'open' : 'closed' }); closeSheet(); toast(T('बदल जतन झाला.')); } catch (er) { fail(er); } });
+    if (g('#fDel')) g('#fDel').addEventListener('click', async e => { const b = e.currentTarget; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = T('नक्की हटवायचे?'); return; } try { await B.deleteFund(S.sid, f.id); closeSheet(); toast(T('वर्गणी हटवली.')); } catch (er) { fail(er); } });
     el.addEventListener('click', async e => {
       const c = e.target.closest('[data-fundcash]'), u = e.target.closest('[data-fundunpay]');
       if ((c || u) && locked()) { toast(LOCK_MSG); return; }
       if (c) sheetFundCash(f, c.dataset.fundcash);
-      if (u) { try { await B.setFundPaid(S.sid, f.id, u.dataset.fundunpay, null); toast('नोंद काढली.'); sheetFundSoon(f.id); } catch (er) { fail(er); } }
+      if (u) { try { await B.setFundPaid(S.sid, f.id, u.dataset.fundunpay, null); toast(T('नोंद काढली.')); sheetFundSoon(f.id); } catch (er) { fail(er); } }
     });
   });
 }
 const sheetFundSoon = id => setTimeout(() => sheetFund(id), 250);
 function sheetFundCash(f, flatId) {
   openSheet(`${sheetHead(`${esc(f.title)} · ${esc(flatId)}`)}
-    <form id="fcForm" class="stack"><div class="grid2"><div class="field"><label for="fcAmt">रक्कम (₹)</label><input id="fcAmt" type="number" inputmode="numeric" min="1" required value="${esc(f.perFlat || '')}"></div>
-    <div class="field"><label for="fcMode">कसे भरले</label><select id="fcMode">${['रोख', 'UPI', 'चेक', 'बँक ट्रान्सफर'].map(x => `<option>${x}</option>`).join('')}</select></div></div>
-    <button class="btn primary block" type="submit">जमा नोंदवा</button><button class="btn ghost block" type="button" id="fcBack">‹ मागे</button></form>`, el => {
+    <form id="fcForm" class="stack"><div class="grid2"><div class="field"><label for="fcAmt">${T('रक्कम (₹)')}</label><input id="fcAmt" type="number" inputmode="numeric" min="1" required value="${esc(f.perFlat || '')}"></div>
+    <div class="field"><label for="fcMode">${T('कसे भरले')}</label><select id="fcMode">${['रोख', 'UPI', 'चेक', 'बँक ट्रान्सफर'].map(x => `<option value="${x}">${T(x)}</option>`).join('')}</select></div></div>
+    <button class="btn primary block" type="submit">${T('जमा नोंदवा')}</button><button class="btn ghost block" type="button" id="fcBack">‹ ${T('मागे')}</button></form>`, el => {
     el.querySelector('#fcBack').addEventListener('click', () => sheetFund(f.id));
     el.querySelector('#fcForm').addEventListener('submit', async e => {
       e.preventDefault(); const amt = Number(el.querySelector('#fcAmt').value) || 0; if (!amt) return;
-      try { await B.setFundPaid(S.sid, f.id, flatId, { amount: amt, date: today, mode: el.querySelector('#fcMode').value }); toast(`${flatId}: ${rs(amt)} जमा.`); sheetFundSoon(f.id); } catch (er) { fail(er); }
+      try { await B.setFundPaid(S.sid, f.id, flatId, { amount: amt, date: today, mode: el.querySelector('#fcMode').value }); toast(`${flatId}: ${rs(amt)} ${T('जमा.')}`); sheetFundSoon(f.id); } catch (er) { fail(er); }
     });
   });
 }
@@ -903,78 +918,78 @@ async function shrinkImage(file) {
   return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
 }
 function sheetUpload() {
-  openSheet(`${sheetHead('फाइल जोडा')}
+  openSheet(`${sheetHead(T('फाइल जोडा'))}
     <form id="upForm" class="stack">
-      <div class="field"><label for="uFile">फाइल <span class="hint">(PDF, फोटो, Excel, Word · कमाल 5 MB)</span></label><input id="uFile" type="file" required accept=".pdf,image/*,.xls,.xlsx,.csv,.doc,.docx"></div>
-      <div class="field"><label for="uName">नाव</label><input id="uName" placeholder="उदा. लेखापरीक्षण अहवाल 2025-26"></div>
-      <div class="field"><label for="uFolder">फोल्डर</label><select id="uFolder">${FOLDERS.map(f => `<option ${f === fileFolder ? 'selected' : ''}>${f}</option>`).join('')}</select></div>
-      <div class="field"><label for="uVis">कोण पाहू शकेल</label><select id="uVis"><option value="all">सर्व सभासद</option><option value="committee">फक्त समिती</option></select></div>
-      <button class="btn primary block" type="submit">अपलोड करा</button><p class="tiny muted m0" id="uStat" role="status"></p></form>`, el => {
+      <div class="field"><label for="uFile">${T('फाइल')} <span class="hint">(${T('PDF, फोटो, Excel, Word')} · ${T('कमाल 5 MB')})</span></label><input id="uFile" type="file" required accept=".pdf,image/*,.xls,.xlsx,.csv,.doc,.docx"></div>
+      <div class="field"><label for="uName">${T('नाव')}</label><input id="uName" placeholder="${T('उदा. लेखापरीक्षण अहवाल 2025-26')}"></div>
+      <div class="field"><label for="uFolder">${T('फोल्डर')}</label><select id="uFolder">${FOLDERS.map(f => `<option value="${f}" ${f === fileFolder ? 'selected' : ''}>${T(f)}</option>`).join('')}</select></div>
+      <div class="field"><label for="uVis">${T('कोण पाहू शकेल')}</label><select id="uVis"><option value="all">${T('सर्व सभासद')}</option><option value="committee">${T('फक्त समिती')}</option></select></div>
+      <button class="btn primary block" type="submit">${T('अपलोड करा')}</button><p class="tiny muted m0" id="uStat" role="status"></p></form>`, el => {
     const inp = el.querySelector('#uFile');
     inp.addEventListener('change', () => { const f = inp.files[0]; if (f && !el.querySelector('#uName').value) el.querySelector('#uName').value = f.name.replace(/\.\w+$/, ''); });
     el.querySelector('#upForm').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = el.querySelector('[type=submit]'), st = el.querySelector('#uStat');
       let file = inp.files[0]; if (!file) return;
-      btn.disabled = true; st.textContent = 'तयार करत आहे…';
+      btn.disabled = true; st.textContent = T('तयार करत आहे…');
       try {
         file = await shrinkImage(file);
-        if (file.size > 5 * 1048576) { toast('फाइल 5 MB पेक्षा मोठी आहे.'); btn.disabled = false; st.textContent = ''; return; }
+        if (file.size > 5 * 1048576) { toast(T('फाइल 5 MB पेक्षा मोठी आहे.')); btn.disabled = false; st.textContent = ''; return; }
         const b64 = await readB64(file), chunks = [];
         for (let i = 0; i < b64.length; i += CHUNK) chunks.push(b64.slice(i, i + CHUNK));
-        st.textContent = `अपलोड करत आहे (${fmtSize(file.size)})…`;
+        st.textContent = `${T('अपलोड करत आहे')} (${fmtSize(file.size)})…`;
         const ext = (file.name.match(/\.\w+$/) || [''])[0];
         await B.uploadFile(S.sid, { name: (el.querySelector('#uName').value.trim() || file.name.replace(/\.\w+$/, '')) + ext, mime: file.type || 'application/octet-stream', size: file.size, folder: el.querySelector('#uFolder').value, visibility: el.querySelector('#uVis').value, by: S.user.name, createdAt: Date.now() }, chunks);
-        closeSheet(); toast('फाइल जोडली.');
+        closeSheet(); toast(T('फाइल जोडली.'));
       } catch (er) { fail(er); btn.disabled = false; st.textContent = ''; }
     });
   });
 }
 async function openFile(id) {
   const f = S.files.find(x => x.id === id); if (!f) return;
-  openSheet(`${sheetHead(esc(f.name))}<p class="small muted m0" id="foStat">उघडत आहे…</p><div id="foBody" class="stack"></div>`, async el => {
+  openSheet(`${sheetHead(esc(f.name))}<p class="small muted m0" id="foStat">${T('उघडत आहे…')}</p><div id="foBody" class="stack"></div>`, async el => {
     try {
       const parts = await B.readFile(S.sid, f.id, f.chunks || 1), bin = atob(parts.join('')), bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       const blob = new Blob([bytes], { type: f.mime });
-      el.querySelector('#foStat').textContent = `${f.folder || ''} · ${fmtSize(f.size || bytes.length)} · ${fmtTs(f.createdAt)}${f.by ? ' · ' + f.by : ''}`;
+      el.querySelector('#foStat').textContent = `${T(f.folder || '')} · ${fmtSize(f.size || bytes.length)} · ${fmtTs(f.createdAt)}${f.by ? ' · ' + f.by : ''}`;
       el.querySelector('#foBody').innerHTML = `${/^image\//.test(f.mime) ? `<img class="docprev" alt="${esc(f.name)}" src="${URL.createObjectURL(blob)}">` : `<div class="card center"><span class="fic big ${fileKind(f).toLowerCase()}">${fileKind(f)}</span></div>`}
-        <button class="btn primary block" type="button" id="foOpen">${IC.share} उघडा / पाठवा</button>
-        ${isAdmin() ? `<button class="btn ghost block danger" type="button" id="foDel">हटवा</button>` : ''}`;
-      el.querySelector('#foOpen').addEventListener('click', async () => { const r = await shareFile(blob, f.name, f.name); if (r === 'downloaded') toast('फाइल डाउनलोड झाली.'); if (r === 'failed') toast('उघडता आली नाही.'); });
-      const del = el.querySelector('#foDel'); if (del) del.addEventListener('click', async () => { if (del.dataset.sure !== '1') { del.dataset.sure = '1'; del.textContent = 'नक्की हटवायचे?'; return; } try { await B.deleteFile(S.sid, f.id, f.chunks || 1); closeSheet(); toast('फाइल हटवली.'); } catch (er) { fail(er); } });
+        <button class="btn primary block" type="button" id="foOpen">${IC.share} ${T('उघडा / पाठवा')}</button>
+        ${isAdmin() ? `<button class="btn ghost block danger" type="button" id="foDel">${T('हटवा')}</button>` : ''}`;
+      el.querySelector('#foOpen').addEventListener('click', async () => { const r = await shareFile(blob, f.name, f.name); if (r === 'downloaded') toast(T('फाइल डाउनलोड झाली.')); if (r === 'failed') toast(T('उघडता आली नाही.')); });
+      const del = el.querySelector('#foDel'); if (del) del.addEventListener('click', async () => { if (del.dataset.sure !== '1') { del.dataset.sure = '1'; del.textContent = T('नक्की हटवायचे?'); return; } try { await B.deleteFile(S.sid, f.id, f.chunks || 1); closeSheet(); toast(T('फाइल हटवली.')); } catch (er) { fail(er); } });
     } catch (er) { el.querySelector('#foStat').textContent = errMsg(er); }
   });
 }
 async function exportLedger() {
   const months = monthsBetween(S.society.startMonth || thisMonth, thisMonth);
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const rows = [['सदनिका', 'मालक', 'फोन', ...months.map(monthName), 'एकूण भरले', 'थकबाकी'].map(q).join(',')];
+  const rows = [[T('सदनिका'), T('मालक'), T('फोन'), ...months.map(monthName), T('एकूण भरले'), T('थकबाकी')].map(q).join(',')];
   for (const f of flats()) {
     const P = (S.accounts[f.id] || {}).payments || {};
     const vals = months.map(m => P[m] ? Number(P[m].amount) || 0 : '');
     rows.push([f.id, f.owner, f.phone, ...vals, vals.reduce((a, v) => a + (Number(v) || 0), 0), dueFor(f.id, thisMonth)].map(q).join(','));
   }
   const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv' });
-  const r = await shareFile(blob, `hishob-${today}.csv`, `${S.society.name} हिशोब`);
-  if (r === 'downloaded') toast('हिशोब डाउनलोड झाला (Excel मध्ये उघडा).');
+  const r = await shareFile(blob, `hishob-${today}.csv`, `${S.society.name} ${T('हिशोब')}`);
+  if (r === 'downloaded') toast(T('हिशोब डाउनलोड झाला (Excel मध्ये उघडा).'));
 }
 
 /* owner panel: every society, its plan, and a way to extend it after the society pays */
 function sheetOwner() {
   let list = [], q = '';
-  openSheet(`${sheetHead('मालक पॅनेल')}
+  openSheet(`${sheetHead(T('मालक पॅनेल'))}
     <div class="grid2" id="oStats"></div>
-    <input type="search" id="oQ" placeholder="सोसायटी किंवा कोड शोधा" aria-label="सोसायटी शोधा">
-    <ul class="list" id="oList"><li class="muted small">आणत आहे…</li></ul>`, el => {
+    <input type="search" id="oQ" placeholder="${T('सोसायटी किंवा कोड शोधा')}" aria-label="${T('सोसायटी शोधा')}">
+    <ul class="list" id="oList"><li class="muted small">${T('आणत आहे…')}</li></ul>`, el => {
     const draw = () => {
       const st = list.map(x => ({ x, p: planState(x) }));
       const paid = st.filter(o => !o.p.expired && !o.p.trial).length, trial = st.filter(o => o.p.trial).length, exp = st.filter(o => o.p.expired).length;
-      el.querySelector('#oStats').innerHTML = `<div class="card"><div class="tiny muted">सशुल्क</div><b class="big good num">${paid}</b></div><div class="card"><div class="tiny muted">मोफत / संपलेले</div><b class="big num">${trial} / <span class="bad">${exp}</span></b></div>`;
+      el.querySelector('#oStats').innerHTML = `<div class="card"><div class="tiny muted">${T('सशुल्क')}</div><b class="big good num">${paid}</b></div><div class="card"><div class="tiny muted">${T('मोफत / संपलेले')}</div><b class="big num">${trial} / <span class="bad">${exp}</span></b></div>`;
       const rows = st.filter(({ x }) => !q || (x.name || '').toLowerCase().includes(q) || (x.code || '').toLowerCase().includes(q));
-      el.querySelector('#oList').innerHTML = rows.length ? rows.map(({ x, p }) => `<li><span class="grow"><b>${esc(x.name)}</b><span class="tiny muted">${(x.flats || []).length} सदनिका · ${esc(x.code || '')} · नोंद ${fmtTs(x.createdAt || Date.now())}</span></span>
-        <span class="pill ${p.expired ? 'due' : p.trial ? 'wait' : 'ok'}">${p.expired ? 'संपले' : p.trial ? `मोफत ${p.left}दि` : fmtTs(p.end)}</span>
-        <button class="btn small" type="button" data-plan="${x.id}">बदला</button></li>`).join('') : `<li class="muted small">काही नाही.</li>`;
+      el.querySelector('#oList').innerHTML = rows.length ? rows.map(({ x, p }) => `<li><span class="grow"><b>${esc(x.name)}</b><span class="tiny muted">${T('{0} सदनिका', (x.flats || []).length)} · ${esc(x.code || '')} · ${T('नोंद')} ${fmtTs(x.createdAt || Date.now())}</span></span>
+        <span class="pill ${p.expired ? 'due' : p.trial ? 'wait' : 'ok'}">${p.expired ? T('संपले') : p.trial ? `${T('मोफत')} ${p.left}${T('दि')}` : fmtTs(p.end)}</span>
+        <button class="btn small" type="button" data-plan="${x.id}">${T('बदला')}</button></li>`).join('') : `<li class="muted small">${T('काही नाही.')}</li>`;
     };
     el.querySelector('#oQ').addEventListener('input', e => { q = e.target.value.trim().toLowerCase(); draw(); });
     el.addEventListener('click', e => { const b = e.target.closest('[data-plan]'); if (b) { const x = list.find(y => y.id === b.dataset.plan); if (x) sheetPlan(x); } });
@@ -985,38 +1000,38 @@ function sheetOwner() {
 function sheetPlan(x) {
   const p = planState(x), base = Math.max(Date.now(), p.end);
   openSheet(`${sheetHead(esc(x.name))}
-    <div class="small">सध्या: <b>${p.expired ? 'संपले' : p.trial ? 'मोफत कालावधी' : 'सशुल्क'}</b> · ${fmtTs(p.end)} पर्यंत</div>
-    <div class="chips">${[[1, '+1 महिना'], [3, '+3 महिने'], [6, '+6 महिने'], [12, '+1 वर्ष']].map(([n, l]) => `<button class="chip" type="button" data-add="${n}">${l}</button>`).join('')}</div>
-    <div class="field"><label for="plDate">सदस्यत्व या दिवसापर्यंत</label><input type="date" id="plDate" value="${isoDay(base)}"></div>
-    <button class="btn primary block" type="button" id="plSave">जतन करा</button>
-    <button class="btn block danger" type="button" id="plStop">आताच बंद करा</button>
-    <button class="btn block" type="button" id="plBack">‹ सर्व सोसायट्या</button>`, el => {
+    <div class="small">${T('सध्या')}: <b>${p.expired ? T('संपले') : p.trial ? T('मोफत कालावधी') : T('सशुल्क')}</b> · ${T('{0} पर्यंत', fmtTs(p.end))}</div>
+    <div class="chips">${[[1, `+${T('1 महिना')}`], [3, `+${T('3 महिने')}`], [6, `+${T('6 महिने')}`], [12, `+${T('1 वर्ष')}`]].map(([n, l]) => `<button class="chip" type="button" data-add="${n}">${l}</button>`).join('')}</div>
+    <div class="field"><label for="plDate">${T('सदस्यत्व या दिवसापर्यंत')}</label><input type="date" id="plDate" value="${isoDay(base)}"></div>
+    <button class="btn primary block" type="button" id="plSave">${T('जतन करा')}</button>
+    <button class="btn block danger" type="button" id="plStop">${T('आताच बंद करा')}</button>
+    <button class="btn block" type="button" id="plBack">‹ ${T('सर्व सोसायट्या')}</button>`, el => {
     const inp = el.querySelector('#plDate');
     el.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => { inp.value = isoDay(addMonthsTs(base, +b.dataset.add)); el.querySelectorAll('[data-add]').forEach(c => c.setAttribute('aria-pressed', String(c === b))); }));
     el.querySelector('#plSave').addEventListener('click', async () => {
       if (!inp.value) return;
       const until = new Date(inp.value + 'T23:59:59').getTime();
-      try { await B.setPlan(x.id, { paidUntil: until, lastPaidAt: Date.now() }); toast(`${x.name}: ${fmtTs(until)} पर्यंत सुरू.`); sheetOwner(); } catch (e) { fail(e); }
+      try { await B.setPlan(x.id, { paidUntil: until, lastPaidAt: Date.now() }); toast(`${x.name}: ${T('{0} पर्यंत सुरू.', fmtTs(until))}`); sheetOwner(); } catch (e) { fail(e); }
     });
     el.querySelector('#plStop').addEventListener('click', async () => {
-      try { await B.setPlan(x.id, { paidUntil: 0, trialEnds: Date.now() }); toast('सदस्यत्व बंद केले.'); sheetOwner(); } catch (e) { fail(e); }
+      try { await B.setPlan(x.id, { paidUntil: 0, trialEnds: Date.now() }); toast(T('सदस्यत्व बंद केले.')); sheetOwner(); } catch (e) { fail(e); }
     });
     el.querySelector('#plBack').addEventListener('click', sheetOwner);
   });
 }
 
 function sheetDeleteAccount() {
-  openSheet(`${sheetHead('खाते हटवा')}
-    <p class="small m0">तुमचे Sachiv लॉगिन कायमचे हटवले जाईल आणि तुम्ही सर्व सोसायट्यांमधून बाहेर पडाल. सोसायटीच्या हिशोबातील नोंदी (भरणा, सूचना) सोसायटीच्या रेकॉर्डसाठी राहतील.</p>
-    <p class="small m0 muted">तुम्ही समितीत असाल, तर आधी दुसऱ्या सदस्याला समिती भूमिका द्या.</p>
-    <form id="delForm" class="stack"><div class="field"><label for="dPass">खात्री करण्यासाठी पासवर्ड टाका</label><input id="dPass" type="password" required autocomplete="current-password"></div>
-    <button class="btn block danger-fill" type="submit">खाते कायमचे हटवा</button></form>`, el => {
+  openSheet(`${sheetHead(T('खाते हटवा'))}
+    <p class="small m0">${T('तुमचे Sachiv लॉगिन कायमचे हटवले जाईल आणि तुम्ही सर्व सोसायट्यांमधून बाहेर पडाल. सोसायटीच्या हिशोबातील नोंदी (भरणा, सूचना) सोसायटीच्या रेकॉर्डसाठी राहतील.')}</p>
+    <p class="small m0 muted">${T('तुम्ही समितीत असाल, तर आधी दुसऱ्या सदस्याला समिती भूमिका द्या.')}</p>
+    <form id="delForm" class="stack"><div class="field"><label for="dPass">${T('खात्री करण्यासाठी पासवर्ड टाका')}</label><input id="dPass" type="password" required autocomplete="current-password"></div>
+    <button class="btn block danger-fill" type="submit">${T('खाते कायमचे हटवा')}</button></form>`, el => {
     el.querySelector('#delForm').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = el.querySelector('[type=submit]'); btn.disabled = true;
       try {
         await B.deleteAccount(el.querySelector('#dPass').value, Object.keys((S.userDoc && S.userDoc.societies) || {}));
-        closeSheet(); S.sid = null; LS.set('sachiv-sid', null); authMode = 'login'; toast('तुमचे खाते हटवले.');
+        closeSheet(); S.sid = null; LS.set('sachiv-sid', null); authMode = 'login'; toast(T('तुमचे खाते हटवले.'));
       } catch (er) { toast(errMsg(er)); btn.disabled = false; }
     });
   });
@@ -1039,20 +1054,21 @@ document.addEventListener('click', async e => {
   const d = t.dataset;
   if (d.tel) { e.preventDefault(); openExternal('tel:' + d.tel); return; }
   if (d.waTo) { openExternal(waLink(d.waTo, '')); return; }
+  if (d.setlang) { if (d.setlang !== LANG) setLang(d.setlang); return; }
   if (t.closest('.sheet')) return;
   try {
     if (locked() && (['newnotice', 'newminutes', 'reminders', 'newmsg', 'newfund', 'upload'].includes(d.act) || d.pay || d.claimOk || d.claimNo || d.mok || d.ctoggle || d.medit || d.msgpin || d.msgdel)) { toast(LOCK_MSG); return; }
     if (d.tab) { S.tab = d.tab; render(); window.scrollTo(0, 0); }
     else if (d.tabGo) { S.tab = d.tabGo; if (S.tab === 'ledger') ledgerFilter = 'due'; render(); window.scrollTo(0, 0); }
     else if (d.auth) { authMode = d.auth; render(); }
-    else if (d.act === 'forgot') { const em = ($('#aEmail') || {}).value; if (!em) { toast('आधी ईमेल लिहा.'); return; } await B.resetPassword(em.trim()); toast('पासवर्ड बदलण्याची लिंक ईमेलवर पाठवली.'); }
+    else if (d.act === 'forgot') { const em = ($('#aEmail') || {}).value; if (!em) { toast(T('आधी ईमेल लिहा.')); return; } await B.resetPassword(em.trim()); toast(T('पासवर्ड बदलण्याची लिंक ईमेलवर पाठवली.')); }
     else if (d.act === 'signout') { LS.set('sachiv-sid', null); authMode = 'login'; S.sid = null; await B.signOut(); }
     else if (d.act === 'create') sheetSetup(true);
     else if (d.act === 'owner') sheetOwner();
-    else if (d.act === 'verify') { await B.sendVerification(); toast('लिंक पाठवली. ईमेल उघडा (Spam सुद्धा तपासा).'); }
-    else if (d.act === 'verified') { const ok = await B.refreshUser(); toast(ok ? 'ईमेल पडताळले. मालक पॅनेल सुरू.' : 'अजून पडताळले नाही. ईमेलमधील लिंक उघडा.'); }
+    else if (d.act === 'verify') { await B.sendVerification(); toast(T('लिंक पाठवली. ईमेल उघडा (Spam सुद्धा तपासा).')); }
+    else if (d.act === 'verified') { const ok = await B.refreshUser(); toast(ok ? T('ईमेल पडताळले. मालक पॅनेल सुरू.') : T('अजून पडताळले नाही. ईमेलमधील लिंक उघडा.')); }
     else if (d.act === 'delacct') sheetDeleteAccount();
-    else if (d.act === 'support') openExternal(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Sachiv सदस्यत्व: ' + S.society.name + ' (' + S.society.code + ')')}`);
+    else if (d.act === 'support') openExternal(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`${T('Sachiv सदस्यत्व')}: ` + S.society.name + ' (' + S.society.code + ')')}`);
     else if (d.act === 'setup') sheetSetup(false);
     else if (d.act === 'switch') sheetSwitch();
     else if (d.act === 'leave') { const sid = S.sid; if (S.member) await B.removeMember(sid, S.user.uid); await B.leaveIndex(S.user.uid, sid); S.sid = null; LS.set('sachiv-sid', null); }
@@ -1071,17 +1087,17 @@ document.addEventListener('click', async e => {
     else if (d.folder) { fileFolder = d.folder; render(); }
     else if (d.fund) sheetFund(d.fund);
     else if (d.file) await openFile(d.file);
-    else if (d.msgwa) { const m = S.messages.find(x => x.id === d.msgwa); if (m) openExternal(waLink('', `*${S.society.name}*\n${m.important ? '*महत्त्वाची घोषणा*\n' : ''}${m.text}\n\n- ${m.byPost || 'समिती'}`)); }
+    else if (d.msgwa) { const m = S.messages.find(x => x.id === d.msgwa); if (m) openExternal(waLink('', `*${S.society.name}*\n${m.important ? `*${T('महत्त्वाची घोषणा')}*\n` : ''}${m.text}\n\n- ${T(m.byPost || 'समिती')}`)); }
     else if (d.msgpin) { const m = S.messages.find(x => x.id === d.msgpin); if (m) await B.saveMessage(S.sid, { ...m, pinned: !m.pinned }); }
-    else if (d.msgdel) { if (t.dataset.sure !== '1') { t.dataset.sure = '1'; t.textContent = 'नक्की?'; return; } await B.deleteMessage(S.sid, d.msgdel); toast('घोषणा हटवली.'); }
+    else if (d.msgdel) { if (t.dataset.sure !== '1') { t.dataset.sure = '1'; t.textContent = T('नक्की?'); return; } await B.deleteMessage(S.sid, d.msgdel); toast(T('घोषणा हटवली.')); }
     else if (d.act === 'invite') {
-      const txt = `${S.society.name}\nआपल्या सोसायटीचे देखभाल शुल्क, सूचना आणि तक्रारी आता Sachiv ॲपमध्ये.\n1. Sachiv ॲप उघडा आणि नवीन खाते तयार करा.\n2. जॉइन कोड टाका: ${S.society.code}\n3. तुमची सदनिका निवडा.\nधन्यवाद,\nसचिव`;
+      const txt = `${S.society.name}\n${T('आपल्या सोसायटीचे देखभाल शुल्क, सूचना आणि तक्रारी आता Sachiv ॲपमध्ये.')}\n${T('1. Sachiv ॲप उघडा आणि नवीन खाते तयार करा.')}\n${T('2. जॉइन कोड टाका')}: ${S.society.code}\n${T('3. तुमची सदनिका निवडा.')}\n${T('धन्यवाद')},\n${T('सचिव')}`;
       openExternal(waLink('', txt));
     }
     else if (d.act === 'pay') {
       const amt = Number(d.amt) || monthly();
       const ok = await openExternal(upiLink({ upi: S.society.upi, name: S.society.name, amount: amt, note: `Maint ${S.member.flatId} ${thisMonth}` }));
-      if (!ok) toast('UPI ॲप उघडले नाही. UPI आयडी: ' + S.society.upi);
+      if (!ok) toast(`${T('UPI ॲप उघडले नाही. UPI आयडी')}: ` + S.society.upi);
       setTimeout(() => sheetIPaid(amt), 600);
     }
     else if (d.act === 'ipaid') sheetIPaid();
@@ -1095,16 +1111,16 @@ document.addEventListener('click', async e => {
         const fund = S.funds.find(x => x.id === c.fundId), prevF = fund && (fund.paid || {})[c.flatId];
         await B.setFundPaid(S.sid, c.fundId, c.flatId, { amount: (prevF ? Number(prevF.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '' });
         await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid });
-        toast(`${c.flatId}: ${rs(c.amount)} वर्गणी मंजूर.`); return;
+        toast(`${c.flatId}: ${rs(c.amount)} ${T('वर्गणी मंजूर.')}`); return;
       }
       const prev = ((S.accounts[c.flatId] || {}).payments || {})[c.month];
       await B.setPayment(S.sid, c.flatId, c.month, { amount: (prev ? Number(prev.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '' });
       await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid });
-      toast(`${c.flatId}: ${rs(c.amount)} मंजूर करून खात्यात जमा केले.`);
+      toast(`${c.flatId}: ${rs(c.amount)} ${T('मंजूर करून खात्यात जमा केले.')}`);
     }
-    else if (d.claimNo) { await B.updateClaim(S.sid, d.claimNo, { status: 'rejected', decidedBy: S.user.uid }); toast('भरणा नाकारला.'); }
-    else if (d.mok) { const sel = document.querySelector(`[data-mflat="${d.mok}"]`); const flatId = sel ? sel.value : ''; if (!flatId) { toast('आधी सदनिका निवडा.'); return; } await B.updateMember(S.sid, d.mok, { status: 'active', flatId }); toast('सभासद मंजूर केला.'); }
-    else if (d.mno) { await B.removeMember(S.sid, d.mno); toast('विनंती नाकारली.'); }
+    else if (d.claimNo) { await B.updateClaim(S.sid, d.claimNo, { status: 'rejected', decidedBy: S.user.uid }); toast(T('भरणा नाकारला.')); }
+    else if (d.mok) { const sel = document.querySelector(`[data-mflat="${d.mok}"]`); const flatId = sel ? sel.value : ''; if (!flatId) { toast(T('आधी सदनिका निवडा.')); return; } await B.updateMember(S.sid, d.mok, { status: 'active', flatId }); toast(T('सभासद मंजूर केला.')); }
+    else if (d.mno) { await B.removeMember(S.sid, d.mno); toast(T('विनंती नाकारली.')); }
     else if (d.medit) sheetEditMember(d.medit);
     else if (d.ctoggle) { const c = S.complaints.find(x => x.id === d.ctoggle); if (c) await B.updateComplaint(S.sid, c.id, { status: c.status === 'closed' ? 'open' : 'closed' }); }
     else if (d.opennotice) { const n = S.notices.find(x => x.id === d.opennotice); if (n) sheetViewNotice(n); }

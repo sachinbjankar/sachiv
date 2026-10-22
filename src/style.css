@@ -225,3 +225,6 @@ nav .dot { position: absolute; top: 7px; left: calc(50% + 7px); width: 8px; heig
 .dash { grid-auto-flow: row dense; }
 .list li label.chk { flex-direction: row; align-items: center; gap: 10px; }
 .card > span.tiny, .card > span.small { display: block; }
+.langseg { padding: 3px; }
+.langseg .chip { min-height: 34px; padding: 4px 12px; font-size: 13px; }
+.hero .langseg { align-self: center; }
