@@ -93,6 +93,40 @@ export const backend = {
     return onSnapshot(q, s => cb(byNewest(list(s))), err);
   },
 
+
+  // Announcements (short messages from the committee)
+  watchMessages(sid, cb, err) { return onSnapshot(query(collection(db, 'societies', sid, 'messages'), orderBy('createdAt', 'desc'), limit(100)), s => cb(list(s)), err); },
+  saveMessage(sid, m) { const { id, ...data } = m; return setDoc(doc(db, 'societies', sid, 'messages', id || newId()), data); },
+  deleteMessage: (sid, id) => deleteDoc(doc(db, 'societies', sid, 'messages', id)),
+
+  // Fund collections (वर्गणी). Each fund keeps a map of flats that have paid.
+  watchFunds(sid, cb, err) { return onSnapshot(query(collection(db, 'societies', sid, 'funds'), orderBy('createdAt', 'desc'), limit(50)), s => cb(list(s)), err); },
+  saveFund(sid, f) { const { id, ...data } = f; return id ? updateDoc(doc(db, 'societies', sid, 'funds', id), data) : setDoc(doc(db, 'societies', sid, 'funds', newId()), data); },
+  deleteFund: (sid, id) => deleteDoc(doc(db, 'societies', sid, 'funds', id)),
+  setFundPaid: (sid, fundId, flatId, rec) => setDoc(doc(db, 'societies', sid, 'funds', fundId), { paid: { [flatId]: rec ? rec : deleteField() } }, { merge: true }),
+
+  // Files: metadata doc + content split into ~700 KB chunks (Firestore docs max 1 MB).
+  watchFiles(sid, cb, err, publicOnly) {
+    const base = collection(db, 'societies', sid, 'files');
+    const q = publicOnly ? query(base, where('visibility', '==', 'all'), limit(300)) : query(base, orderBy('createdAt', 'desc'), limit(300));
+    return onSnapshot(q, s => cb(byNewest(list(s))), err);
+  },
+  async uploadFile(sid, meta, chunks) {
+    const id = newId();
+    for (let i = 0; i < chunks.length; i++) await setDoc(doc(db, 'societies', sid, 'files', id, 'chunks', String(i)), { d: chunks[i] });
+    await setDoc(doc(db, 'societies', sid, 'files', id), { ...meta, chunks: chunks.length });
+    return id;
+  },
+  async readFile(sid, id, n) {
+    const out = [];
+    for (let i = 0; i < n; i++) { const c = await getDoc(doc(db, 'societies', sid, 'files', id, 'chunks', String(i))); out.push(c.exists() ? c.data().d : ''); }
+    return out;
+  },
+  async deleteFile(sid, id, n) {
+    await deleteDoc(doc(db, 'societies', sid, 'files', id));
+    for (let i = 0; i < n; i++) { try { await deleteDoc(doc(db, 'societies', sid, 'files', id, 'chunks', String(i))); } catch (e) {} }
+  },
+
   // Owner only (rules check the owner's verified email).
   watchAllSocieties(cb, err) { return onSnapshot(query(collection(db, 'societies'), orderBy('createdAt', 'desc'), limit(500)), s => cb(list(s)), err); },
   setPlan: (sid, data) => updateDoc(doc(db, 'societies', sid), data),

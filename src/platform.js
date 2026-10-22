@@ -40,6 +40,24 @@ export async function shareImage(blob, filename, text) {
   } catch (e) { return e && (e.name === 'AbortError' || /cancel/i.test(String(e.message || e))) ? 'cancelled' : 'failed'; }
 }
 
+// Share or save any file (PDF, Excel, image). On the phone this opens Android's share sheet,
+// from which the person can open it in a viewer or send it on WhatsApp.
+export async function shareFile(blob, filename, text) {
+  try {
+    if (isNative) {
+      const data = await blobToBase64(blob);
+      const f = await Filesystem.writeFile({ path: filename.replace(/[\\/:*?"<>|]/g, '_'), data, directory: Directory.Cache });
+      await Share.share({ title: filename, text, files: [f.uri], dialogTitle: filename });
+      return 'shared';
+    }
+    const file = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: filename }); return 'shared'; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return 'downloaded';
+  } catch (e) { return e && (e.name === 'AbortError' || /cancel/i.test(String(e.message || e))) ? 'cancelled' : 'failed'; }
+}
+
 export async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; }
   catch (e) {

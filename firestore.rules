@@ -81,6 +81,29 @@ service cloud.firestore {
         allow write: if canManage(sid);
       }
 
+      // Announcements from the committee
+      match /messages/{id} {
+        allow read: if isActive(sid);
+        allow write: if canManage(sid);
+      }
+
+      // Fund collections (वर्गणी): everyone sees progress, committee records payments
+      match /funds/{id} {
+        allow read: if isActive(sid);
+        allow write: if canManage(sid);
+      }
+
+      // Society files: committee-only files stay hidden from residents
+      match /files/{id} {
+        allow read: if isAdmin(sid) || (isActive(sid) && resource.data.visibility == 'all');
+        allow write: if canManage(sid);
+        match /chunks/{n} {
+          allow read: if isAdmin(sid) || (isActive(sid)
+            && get(/databases/$(database)/documents/societies/$(sid)/files/$(id)).data.visibility == 'all');
+          allow write: if canManage(sid);
+        }
+      }
+
       match /complaints/{id} {
         allow read: if isAdmin(sid) || (isActive(sid) && resource.data.uid == request.auth.uid);
         allow create: if isActive(sid)

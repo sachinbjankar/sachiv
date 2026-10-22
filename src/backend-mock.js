@@ -39,6 +39,18 @@ export const backend = {
     for (const sid of sids) delete store[`societies/${sid}/members/${current.uid}`];
     delete store['users/' + current.uid]; delete users[current.email]; current = null; notify(); authNotify();
   },
+
+  watchMessages(sid, cb) { return watch(() => cb(docsIn(`societies/${sid}/messages`).sort((a, b) => b.createdAt - a.createdAt))); },
+  async saveMessage(sid, m) { const { id, ...data } = m; store[`societies/${sid}/messages/${id || newId()}`] = data; notify(); },
+  async deleteMessage(sid, id) { delete store[`societies/${sid}/messages/${id}`]; notify(); },
+  watchFunds(sid, cb) { return watch(() => cb(docsIn(`societies/${sid}/funds`).sort((a, b) => b.createdAt - a.createdAt))); },
+  async saveFund(sid, f) { const { id, ...data } = f; const k = `societies/${sid}/funds/${id || newId()}`; store[k] = { ...(store[k] || {}), ...data }; notify(); },
+  async deleteFund(sid, id) { delete store[`societies/${sid}/funds/${id}`]; notify(); },
+  async setFundPaid(sid, fundId, flatId, rec) { const k = `societies/${sid}/funds/${fundId}`; store[k] = deepMerge(store[k], { paid: { [flatId]: rec || '__DEL__' } }); notify(); },
+  watchFiles(sid, cb, err, publicOnly) { return watch(() => cb(docsIn(`societies/${sid}/files`).filter(f => !publicOnly || f.visibility === 'all').sort((a, b) => b.createdAt - a.createdAt))); },
+  async uploadFile(sid, meta, chunks) { const id = newId(); chunks.forEach((c, i) => { store[`societies/${sid}/files/${id}/chunks/${i}`] = { d: c }; }); store[`societies/${sid}/files/${id}`] = { ...meta, chunks: chunks.length }; notify(); return id; },
+  async readFile(sid, id, n) { return Array.from({ length: n }, (_, i) => (store[`societies/${sid}/files/${id}/chunks/${i}`] || {}).d || ''); },
+  async deleteFile(sid, id, n) { delete store[`societies/${sid}/files/${id}`]; for (let i = 0; i < n; i++) delete store[`societies/${sid}/files/${id}/chunks/${i}`]; notify(); },
   watchAllSocieties(cb) { return watch(() => cb(docsIn('societies').sort((a, b) => b.createdAt - a.createdAt))); },
   async setPlan(sid, data) { store['societies/' + sid] = { ...store['societies/' + sid], ...data }; notify(); },
 

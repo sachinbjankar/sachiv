@@ -10,7 +10,7 @@ import './style.css';
 import { backend as B } from './backend.js';
 import { NOTICE_TEMPLATES, MINUTES_TYPES, RESOLUTION_PHRASES } from './templates.js';
 import { drawLetterhead } from './letterhead.js';
-import { openExternal, upiLink, waLink, shareImage, copyText, isNative } from './platform.js';
+import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative } from './platform.js';
 import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS } from './config.js';
 
 /* ---------- helpers ---------- */
@@ -49,17 +49,31 @@ const IC = {
   wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="3"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
+  grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
+  folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  mega: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+  badge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 21l5-3 5 3-1.5-7.5"/></svg>',
+  coins: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v2c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v8"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   rupee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12M6 9h12M9 4c3 0 5 1.6 5 5s-2 5-5 5H6l8 7"/></svg>'
 };
 
 /* ---------- state ---------- */
-const S = { user: null, userDoc: null, sid: null, member: undefined, society: null, members: [], accounts: {}, myAccount: null, claims: [], notices: [], complaints: [], tab: 'home' };
+const S = { user: null, userDoc: null, sid: null, member: undefined, society: null, members: [], accounts: {}, myAccount: null, claims: [], notices: [], complaints: [], messages: [], funds: [], files: [], tab: 'home' };
 let subs = [], userSub = null, memberSub = null;
 const unsubAll = () => { subs.forEach(u => { try { u(); } catch (e) {} }); subs = []; };
 const isAdmin = () => S.member && S.member.status === 'active' && S.member.role === 'admin';
 const isActive = () => S.member && S.member.status === 'active';
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
-let ledgerMonth = thisMonth, ledgerFilter = 'due', complaintFilter = 'open';
+let ledgerMonth = thisMonth, ledgerFilter = 'due', complaintFilter = 'open', msgSeg = 'ann', fileFolder = 'all';
 
 /* ---------- plan (free trial / paid) ---------- */
 const DAY = 864e5;
@@ -126,7 +140,7 @@ function pickSociety() {
 
 function selectSociety(sid) {
   unsubAll(); if (memberSub) { memberSub(); memberSub = null; }
-  Object.assign(S, { sid, member: undefined, society: null, members: [], accounts: {}, myAccount: null, claims: [], notices: [], complaints: [], tab: 'home' });
+  Object.assign(S, { sid, member: undefined, society: null, members: [], accounts: {}, myAccount: null, claims: [], notices: [], complaints: [], messages: [], funds: [], files: [], tab: 'home' });
   LS.set('sachiv-sid', sid);
   if (!sid) { render(); return; }
   let wiredFor = null;
@@ -141,6 +155,9 @@ function selectSociety(sid) {
 function wire(sid, m) {
   subs.push(B.watchSociety(sid, s => { S.society = s; render(); }, fail));
   subs.push(B.watchNotices(sid, n => { S.notices = n; render(); }, fail));
+  subs.push(B.watchMessages(sid, l => { S.messages = l; render(); }, fail));
+  subs.push(B.watchFunds(sid, l => { S.funds = l; render(); }, fail));
+  subs.push(B.watchFiles(sid, l => { S.files = l; render(); }, fail, m.role !== 'admin'));
   if (m.role === 'admin') {
     subs.push(B.watchMembers(sid, l => { S.members = l; render(); }, fail));
     subs.push(B.watchAccounts(sid, l => { const A = {}; l.forEach(a => A[a.id] = a); S.accounts = A; render(); }, fail));
@@ -156,38 +173,54 @@ function wire(sid, m) {
 }
 
 /* ---------- render ---------- */
+const SUBPAGES = { committee: 'समिती', contacts: 'महत्त्वाचे संपर्क', funds: 'वर्गणी', complaints: 'तक्रारी', members: 'सभासद व मंजुरी', me: 'माझे खाते' };
+const seenKey = () => 'sachiv-seen-' + S.sid;
+const unreadCount = () => { const t = Number(LS.get(seenKey()) || 0); return S.messages.filter(m => m.createdAt > t && m.uid !== (S.user && S.user.uid)).length; };
 function render() {
   const head = $('#head'), v = $('#view'), tabs = $('#tabs');
-  if (!S.user) { head.innerHTML = brand() + `<div class="soc"><h1>हाऊसिंग सोसायटीचा डिजिटल सचिव</h1><div class="sub">देखभाल शुल्क, सूचना, इतिवृत्त आणि तक्रारी, एकाच ॲपमध्ये.</div></div>`; tabs.innerHTML = ''; v.innerHTML = viewAuth(); return; }
-  if (!S.userDoc) { head.innerHTML = brand(); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
+  document.body.dataset.screen = S.user ? 'app' : 'auth';
+  if (!S.user) { head.innerHTML = ''; tabs.innerHTML = ''; v.innerHTML = viewAuth(); return; }
+  if (!S.userDoc) { head.innerHTML = topBar(''); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
   const socs = (S.userDoc && S.userDoc.societies) || {};
-  if (!S.sid) { head.innerHTML = brand() + `<div class="soc"><div class="kicker">नमस्कार, ${esc(S.user.name)}</div><h1>तुमची सोसायटी जोडा</h1></div>`; tabs.innerHTML = ''; v.innerHTML = viewOnboard(); return; }
+  if (!S.sid) { head.innerHTML = topBar(''); tabs.innerHTML = ''; v.innerHTML = `${pageTitle('तुमची सोसायटी जोडा', 'नमस्कार, ' + esc(S.user.name))}` + viewOnboard(); return; }
   const sname = (socs[S.sid] || {}).name || '';
-  if (S.member === undefined) { head.innerHTML = brand() + socHead(sname); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
-  if (!S.member) { head.innerHTML = brand() + socHead(sname); tabs.innerHTML = ''; v.innerHTML = viewGone(sname); return; }
-  if (S.member.status !== 'active') { head.innerHTML = brand() + socHead(sname); tabs.innerHTML = ''; v.innerHTML = viewPending(sname); return; }
-  if (!S.society) { head.innerHTML = brand() + socHead(sname); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
-  head.innerHTML = brand() + socHead(S.society.name, true);
+  if (S.member === undefined || (S.member && S.member.status === 'active' && !S.society)) { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
+  if (!S.member) { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = viewGone(sname); return; }
+  if (S.member.status !== 'active') { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = viewPending(sname); return; }
+  head.innerHTML = topBar(S.society.name);
   const T = isAdmin()
-    ? [['home', 'मुख्य', IC.home], ['ledger', 'खाते', IC.ledger], ['notices', 'सूचना', IC.doc], ['complaints', 'तक्रारी', IC.chat], ['members', 'सदस्य', IC.people]]
-    : [['home', 'मुख्य', IC.home], ['notices', 'सूचना', IC.doc], ['complaints', 'तक्रारी', IC.chat], ['me', 'माझे', IC.user]];
-  if (!T.some(t => t[0] === S.tab)) S.tab = 'home';
-  tabs.innerHTML = `<nav aria-label="मुख्य मेनू">${T.map(([k, l, ic]) => `<button type="button" data-tab="${k}" ${k === S.tab ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${k === 'home' && isAdmin() && pendingCount() ? `<i class="dot" aria-label="${pendingCount()} प्रलंबित"></i>` : ''}</button>`).join('')}</nav>`;
-  tabs.querySelector('nav').style.gridTemplateColumns = `repeat(${T.length}, minmax(0, 1fr))`;
-  v.innerHTML = (isAdmin()
-    ? { home: aHome, ledger: aLedger, notices: vNotices, complaints: vComplaints, members: aMembers }
-    : { home: rHome, notices: vNotices, complaints: vComplaints, me: rMe })[S.tab]();
+    ? [['home', 'डॅशबोर्ड', IC.home], ['ledger', 'खाते', IC.ledger], ['messages', 'संदेश', IC.mega], ['files', 'फाइल्स', IC.folder], ['more', 'अधिक', IC.grid]]
+    : [['home', 'मुख्य', IC.home], ['messages', 'संदेश', IC.mega], ['files', 'फाइल्स', IC.folder], ['more', 'अधिक', IC.grid]];
+  if (!T.some(t => t[0] === S.tab) && !SUBPAGES[S.tab]) S.tab = 'home';
+  if (S.tab === 'members' && !isAdmin()) S.tab = 'more';
+  if (S.tab === 'messages') LS.set(seenKey(), String(Date.now()));
+  const navOn = SUBPAGES[S.tab] ? 'more' : S.tab;
+  const badge = k => (k === 'home' && isAdmin() && pendingCount()) || (k === 'messages' && unreadCount()) ? '<i class="dot" aria-label="नवीन"></i>' : '';
+  tabs.innerHTML = `<nav aria-label="मुख्य मेनू" style="grid-template-columns:repeat(${T.length},minmax(0,1fr))">${T.map(([k, l, ic]) => `<button type="button" data-tab="${k}" ${k === navOn ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${badge(k)}</button>`).join('')}</nav>`;
+  const views = isAdmin()
+    ? { home: aHome, ledger: aLedger, messages: vMessages, files: vFiles, more: vMore, committee: vCommittee, contacts: vContacts, funds: vFunds, complaints: vComplaints, members: aMembers, me: vMe }
+    : { home: rHome, messages: vMessages, files: vFiles, more: vMore, committee: vCommittee, contacts: vContacts, funds: vFunds, complaints: vComplaints, me: vMe };
+  const body = views[S.tab]();
+  v.innerHTML = SUBPAGES[S.tab] ? `<button class="backbtn" type="button" data-tab="more">${IC.back}<span>अधिक</span></button>${pageTitle(SUBPAGES[S.tab])}${body}` : body;
 }
 const pendingCount = () => S.claims.filter(c => c.status === 'pending').length + S.members.filter(m => m.status === 'pending').length;
-const brand = () => `<div class="brand"><span class="mark" aria-hidden="true">स</span><b>Sachiv</b>${S.user ? `<button class="mode" type="button" data-act="switch">${Object.keys((S.userDoc && S.userDoc.societies) || {}).length > 1 ? 'सोसायटी बदला' : '+ सोसायटी'}</button>` : ''}</div>`;
-const socHead = (name, full) => `<div class="soc"><div class="kicker">${S.member && S.member.status === 'active' ? (isAdmin() ? 'समिती' : 'सभासद · सदनिका ' + esc(S.member.flatId || '—')) : 'सोसायटी'}</div><h1>${esc(name)}</h1>${full ? `<div class="sub">${flats().length} सदनिका${S.society.address ? ' · ' + esc(S.society.address) : ''}</div>` : ''}</div>`;
+const topBar = name => `<div class="topbar"><span class="mark" aria-hidden="true">स</span>${name ? `<button class="socbtn" type="button" data-act="switch"><span>${esc(name)}</span>${IC.down}</button>` : '<b class="brandname">Sachiv</b>'}${S.member && S.member.status === 'active' ? `<span class="rolechip">${isAdmin() ? 'समिती' : esc(S.member.flatId || 'सभासद')}</span>` : ''}</div>`;
+const pageTitle = (t, kicker) => `<div class="ptitle">${kicker ? `<div class="kicker">${kicker}</div>` : ''}<h1>${t}</h1></div>`;
 const loading = () => `<div class="card empty muted">माहिती आणत आहे…</div>`;
+const initials = n => String(n || '?').replace(/^(श्री|सौ|कु|डॉ|Mr|Mrs|Ms|Dr)\.?\s*/i, '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+const telBtn = (phone, label) => phone ? `<a class="iconbtn" href="tel:${esc(String(phone).replace(/[^\d+]/g, ''))}" data-tel="${esc(String(phone).replace(/[^\d+]/g, ''))}" aria-label="${esc(label || 'कॉल')} ${esc(phone)}">${IC.phone}</a>` : '';
+const ago = ts => { const m = Math.round((Date.now() - ts) / 60000); if (m < 1) return 'आत्ताच'; if (m < 60) return m + ' मिनिटांपूर्वी'; const h = Math.round(m / 60); if (h < 24) return h + ' तासांपूर्वी'; const d = Math.round(h / 24); return d < 7 ? d + ' दिवसांपूर्वी' : fmtTs(ts); };
 
 /* ---------- auth + onboarding views ---------- */
 let authMode = 'login';
 function viewAuth() {
   const su = authMode === 'signup';
-  return `<form class="card stack" id="authForm">
+  return `<section class="hero">
+    <span class="mark big" aria-hidden="true">स</span>
+    <h1>तुमच्या सोसायटीचा<br><em>डिजिटल सचिव.</em></h1>
+    <p>देखभाल शुल्क, वर्गणी, सूचना, फाइल्स आणि समिती. सगळे एका ठिकाणी.</p>
+  </section>
+  <form class="card stack" id="authForm">
     <div class="seg" role="group" aria-label="लॉगिन किंवा नोंदणी"><button type="button" class="chip" data-auth="login" aria-pressed="${!su}">लॉगिन</button><button type="button" class="chip" data-auth="signup" aria-pressed="${su}">नवीन खाते</button></div>
     ${su ? `<div class="field"><label for="aName">तुमचे नाव</label><input id="aName" type="text" required autocomplete="name"></div>` : ''}
     <div class="field"><label for="aEmail">ईमेल</label><input id="aEmail" type="email" required autocomplete="email" inputmode="email"></div>
@@ -217,28 +250,67 @@ function viewGone(name) {
 }
 
 /* ---------- admin views ---------- */
+/* dashboard tiles: committee can show/hide and reorder them (saved on the society) */
+const TILE_DEFS = {
+  collection: { label: 'या महिन्याची वसुली', wide: true },
+  actions: { label: 'झटपट कामे', wide: true },
+  dues: { label: 'एकूण थकबाकी' },
+  balance: { label: 'बँक शिल्लक' },
+  funds: { label: 'वर्गणी', wide: true },
+  complaints: { label: 'तक्रारी' },
+  members: { label: 'ॲपवरील सभासद' },
+  announce: { label: 'ताजी घोषणा', wide: true },
+  committee: { label: 'समिती', wide: true },
+  agm: { label: 'वार्षिक सभा' },
+  files: { label: 'फाइल्स' }
+};
+const DEFAULT_TILES = ['collection', 'actions', 'dues', 'balance', 'funds', 'complaints', 'members', 'announce', 'agm', 'files'];
+const dashCfg = () => (S.society && S.society.dashboard) || {};
+const dashTiles = () => Array.isArray(dashCfg().tiles) ? dashCfg().tiles.filter(k => TILE_DEFS[k]) : DEFAULT_TILES;
+const fundCollected = f => Object.values(f.paid || {}).reduce((a, p) => a + (Number(p.amount) || 0), 0);
+const ring = (pct, size = 92) => { const r = size / 2 - 7, c = 2 * Math.PI * r; return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" class="ring-bg"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" class="ring-fg" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct / 100)}" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg>`; };
+function tile(k) {
+  const s = monthSummary(thisMonth), n = flats().length;
+  switch (k) {
+    case 'collection': {
+      const pct = n ? Math.round(s.clear / n * 100) : 0;
+      return `<button class="card tile-card wide btnlike" type="button" data-tab-go="ledger"><div class="row g16">
+        <div class="ringwrap">${ring(pct)}<b class="ringnum num">${pct}<small>%</small></b></div>
+        <div class="grow"><span class="kicker">${MONTHS[now.getMonth()]} · वसुली</span><b class="num xl good">${rs(s.collected)}</b><span class="small muted">${s.clear} / ${n} सदनिका थकबाकीमुक्त</span></div></div></button>`;
+    }
+    case 'actions': return `<div class="card wide"><span class="kicker">झटपट कामे</span><div class="actions">
+        <button type="button" data-act="newmsg">${IC.mega}<span>घोषणा</span></button>
+        <button type="button" data-act="newnotice">${IC.doc}<span>सूचना</span></button>
+        <button type="button" data-act="newminutes">${IC.doc}<span>इतिवृत्त</span></button>
+        <button type="button" data-act="reminders">${IC.wa}<span>आठवण</span></button>
+        <button type="button" data-act="newfund">${IC.coins}<span>वर्गणी</span></button>
+        <button type="button" data-act="upload">${IC.folder}<span>फाइल</span></button></div></div>`;
+    case 'dues': return `<button class="card tile-card btnlike" type="button" data-tab-go="ledger"><span class="kicker">एकूण थकबाकी</span><b class="num lg bad">${rs(s.dueTotal)}</b><span class="small muted">${s.dueFlats} सदनिका</span></button>`;
+    case 'balance': { const d = dashCfg(); return `<button class="card tile-card btnlike" type="button" data-act="dashcfg"><span class="kicker">बँक शिल्लक</span>${d.bank != null && d.bank !== '' ? `<b class="num lg">${rs(d.bank)}</b><span class="small muted">${d.fd ? 'मुदत ठेव ' + rs(d.fd) + ' · ' : ''}${d.asOf ? fmtDate(d.asOf) : ''}</span>` : `<b class="lg dim">—</b><span class="small gold">शिल्लक भरा ›</span>`}</button>`; }
+    case 'funds': {
+      const open = S.funds.filter(f => f.status !== 'closed');
+      if (!open.length) return `<button class="card tile-card wide btnlike row between" type="button" data-act="newfund"><span><span class="kicker">वर्गणी</span><b>सध्या कोणतीही वर्गणी सुरू नाही</b></span><span class="gold small">+ नवीन</span></button>`;
+      return `<div class="card wide stack"><span class="kicker">वर्गणी सुरू · ${open.length}</span>${open.slice(0, 3).map(fundRow).join('')}</div>`;
+    }
+    case 'complaints': { const o = S.complaints.filter(c => c.status !== 'closed').length; return `<button class="card tile-card btnlike" type="button" data-tab-go="complaints"><span class="kicker">उघड्या तक्रारी</span><b class="num lg ${o ? 'warn' : ''}">${o}</b><span class="small muted">एकूण ${S.complaints.length}</span></button>`; }
+    case 'members': { const a = S.members.filter(m => m.status === 'active').length; return `<button class="card tile-card btnlike" type="button" data-tab-go="members"><span class="kicker">ॲपवरील सभासद</span><b class="num lg">${a}<small class="muted"> / ${n}</small></b><span class="small muted">जॉइन कोड ${esc(S.society.code)}</span></button>`; }
+    case 'announce': { const m = S.messages[0]; return m ? `<button class="card tile-card wide btnlike" type="button" data-tab-go="messages"><span class="kicker">ताजी घोषणा · ${ago(m.createdAt)}</span><span class="clamp">${esc(m.text)}</span></button>` : `<button class="card tile-card wide btnlike row between" type="button" data-act="newmsg"><span><span class="kicker">घोषणा</span><b>सर्व सभासदांना संदेश पाठवा</b></span><span class="gold small">+ नवीन</span></button>`; }
+    case 'committee': { const c = committeeList(); return `<button class="card tile-card wide btnlike" type="button" data-tab-go="committee"><span class="kicker">समिती · ${c.length}</span><div class="avatars">${c.slice(0, 7).map(x => `<span class="av sm">${esc(initials(x.name))}</span>`).join('')}</div></button>`; }
+    case 'agm': { const y = now.getMonth() + 1 > 9 ? now.getFullYear() + 1 : now.getFullYear(), d = Math.ceil((new Date(y, 8, 30) - now) / DAY); return `<div class="card tile-card"><span class="kicker">वार्षिक सभा</span><b class="num lg">${d}<small class="muted"> दिवस</small></b><span class="small muted">३० सप्टेंबर ${y} पूर्वी</span></div>`; }
+    case 'files': return `<button class="card tile-card btnlike" type="button" data-tab-go="files"><span class="kicker">फाइल्स</span><b class="num lg">${S.files.length}</b><span class="small muted">नोंदी आणि कागदपत्रे</span></button>`;
+  }
+  return '';
+}
 function aHome() {
-  const s = monthSummary(thisMonth), n = flats().length, pct = n ? Math.round(s.clear / n * 100) : 0;
   const pc = S.claims.filter(c => c.status === 'pending'), pm = S.members.filter(m => m.status === 'pending');
-  const agmYear = now.getMonth() + 1 > 9 ? now.getFullYear() + 1 : now.getFullYear(), days = Math.ceil((new Date(agmYear, 8, 30) - now) / 864e5);
   return `
+    ${pageTitle('डॅशबोर्ड', 'नमस्कार, ' + esc((S.user.name || '').split(' ')[0]))}
     ${planBanner(false)}
-    ${!n ? `<div class="card tint stack"><b>पहिली पायरी: सदनिकांची यादी भरा</b><span class="small">खाते आणि आठवणी सुरू करण्यासाठी सदस्य टॅबमधून सदनिका जोडा.</span><button class="btn primary" type="button" data-act="setup">सदनिका जोडा</button></div>` : ''}
-    ${pc.length ? `<h2>मंजुरीसाठी भरणा · ${pc.length}</h2><ul class="list">${pc.map(c => `<li><span class="flat">${esc(c.flatId)}</span><span class="grow"><b class="num">${rs(c.amount)}</b><span class="tiny muted">${esc(c.name || '')} · ${monthName(c.month)} · ${esc(fmtDate(c.date))}${c.ref ? ' · Ref ' + esc(c.ref) : ''}</span></span><span class="row g6"><button class="btn small good" type="button" data-claim-ok="${c.id}">मंजूर</button><button class="btn small" type="button" data-claim-no="${c.id}" aria-label="नाकारा">✕</button></span></li>`).join('')}</ul>` : ''}
-    ${pm.length ? `<button class="card tint row between btnlike" type="button" data-tab-go="members"><b>${pm.length} नवीन सभासद विनंत्या</b><span>पाहा ›</span></button>` : ''}
-    <button class="card btnlike" type="button" data-tab-go="ledger">
-      <div class="row between"><b>${MONTHS[now.getMonth()]} देखभाल शुल्क</b><span class="small muted num">${s.clear} / ${n} थकबाकीमुक्त</span></div>
-      <div class="bar" role="img" aria-label="${pct}% सदनिकांची थकबाकी नाही"><i style="width:${pct}%"></i></div>
-      <div class="row between small wrap"><span class="good num b6">या महिन्यात जमा ${rs(s.collected)}</span><span class="bad num b6">थकबाकी ${rs(s.dueTotal)} · ${s.dueFlats}</span></div>
-    </button>
-    <div class="grid2">
-      <button class="tile primary" type="button" data-act="newnotice">${IC.doc}<b>सूचना बनवा</b><span>तयार मसुदे, लेटरहेडवर</span></button>
-      <button class="tile" type="button" data-act="newminutes">${IC.doc}<b>इतिवृत्त बनवा</b><span>सभेचे ठराव</span></button>
-      <button class="tile" type="button" data-act="reminders">${IC.wa}<b>थकबाकी आठवण</b><span>${s.dueFlats} सदनिकांना</span></button>
-      <button class="tile" type="button" data-tab-go="complaints">${IC.chat}<b>तक्रारी</b><span>${S.complaints.filter(c => c.status !== 'closed').length} उघड्या</span></button>
-    </div>
-    <div class="card tint small"><b>वार्षिक सर्वसाधारण सभा</b><br>३० सप्टेंबर ${agmYear} पूर्वी घ्यावी लागते. आणखी ${days} दिवस बाकी.</div>
-    <div class="card row between wrap"><span class="small">सभासदांसाठी जॉइन कोड: <b class="code">${esc(S.society.code)}</b></span><button class="btn small" type="button" data-act="invite">${IC.share} पाठवा</button></div>`;
+    ${!flats().length ? `<div class="card accent stack"><b>पहिली पायरी: सदनिकांची यादी भरा</b><span class="small">खाते आणि आठवणी सुरू करण्यासाठी सदनिका जोडा.</span><button class="btn primary" type="button" data-act="setup">सदनिका जोडा</button></div>` : ''}
+    ${pc.length ? `<h2>मंजुरीसाठी भरणा · ${pc.length}</h2><ul class="list">${pc.map(c => `<li><span class="flat">${esc(c.flatId)}</span><span class="grow"><b class="num">${rs(c.amount)}</b><span class="tiny muted">${esc(c.name || '')} · ${c.fundId ? 'वर्गणी: ' + esc(c.fundTitle || '') : monthName(c.month)}${c.ref ? ' · UTR ' + esc(c.ref) : ''}</span></span><span class="row g6"><button class="btn small good" type="button" data-claim-ok="${c.id}">मंजूर</button><button class="btn small ghost" type="button" data-claim-no="${c.id}" aria-label="नाकारा">✕</button></span></li>`).join('')}</ul>` : ''}
+    ${pm.length ? `<button class="card accent row between btnlike" type="button" data-tab-go="members"><b>${pm.length} नवीन सभासद विनंत्या</b><span class="gold">पाहा ›</span></button>` : ''}
+    <div class="dash">${dashTiles().map(tile).join('')}</div>
+    <button class="btn ghost block" type="button" data-act="dashcfg">${IC.edit} डॅशबोर्ड बदला</button>`;
 }
 
 function aLedger() {
@@ -246,7 +318,7 @@ function aLedger() {
   let rows = flats().map(f => ({ f, due: dueFor(f.id, m), pay: ((S.accounts[f.id] || {}).payments || {})[m] }));
   if (ledgerFilter === 'due') rows = rows.filter(r => r.due > 0);
   if (ledgerFilter === 'paid') rows = rows.filter(r => r.pay);
-  return `
+  return `${pageTitle('खाते')}
     <div class="row between"><button class="btn small" type="button" data-month="-1" aria-label="मागील महिना">‹</button><b>${monthName(m)}</b><button class="btn small" type="button" data-month="1" aria-label="पुढील महिना" ${m >= thisMonth ? 'disabled' : ''}>›</button></div>
     <div class="grid2">
       <div class="card"><div class="tiny muted">या महिन्यात जमा</div><b class="good num big">${rs(s.collected)}</b><div class="tiny muted">${s.paidCount} सदनिका</div></div>
@@ -276,35 +348,54 @@ function aMembers() {
       ${m.id === S.user.uid ? '' : `<button class="btn small" type="button" data-medit="${m.id}">बदला</button>`}</li>`).join('')}</ul>
     <div class="card stack"><b>सोसायटी आणि सदनिका</b><span class="small muted">${flats().length} सदनिका · ${rs(monthly())} प्रति महिना${S.society.upi ? ' · UPI ' + esc(S.society.upi) : ' · UPI आयडी भरलेला नाही'}</span>
       <button class="btn primary" type="button" data-act="setup">माहिती आणि सदनिका बदला</button></div>
-    ${planBanner(true)}
-    ${accountCard()}`;
+`;
 }
 
 /* ---------- resident views ---------- */
+const fundRow = f => {
+  const got = fundCollected(f), cnt = Object.keys(f.paid || {}).length, tgt = Number(f.target) || (Number(f.perFlat) || 0) * flats().length;
+  const pct = tgt ? Math.min(100, Math.round(got / tgt * 100)) : Math.round(cnt / Math.max(1, flats().length) * 100);
+  const mine = S.member && S.member.flatId && (f.paid || {})[S.member.flatId];
+  return `<button class="fundrow btnlike" type="button" data-fund="${f.id}"><span class="row between"><b>${esc(f.title)}</b><span class="num small">${rs(got)}${tgt ? ` <span class="muted">/ ${rs(tgt)}</span>` : ''}</span></span>
+    <span class="bar"><i style="width:${pct}%"></i></span>
+    <span class="row between tiny muted"><span>${cnt} सदनिकांनी भरली${f.perFlat ? ` · ${rs(f.perFlat)} प्रति सदनिका` : ''}</span>${!isAdmin() && S.member.flatId ? (mine ? '<span class="good">✓ तुम्ही भरली</span>' : '<span class="gold">भरा ›</span>') : (f.due ? `<span>${fmtDate(f.due)} पर्यंत</span>` : '')}</span></button>`;
+};
 function rHome() {
   const f = flats().find(x => x.id === S.member.flatId);
-  if (!f) return `<div class="card stack"><b>सदनिका जोडलेली नाही</b><span class="small muted">समितीने तुमची सदनिका यादीत जोडल्यावर तुमची थकबाकी इथे दिसेल.</span></div>${latestNotice()}`;
+  const openFunds = S.funds.filter(x => x.status !== 'closed');
+  const imp = S.messages.find(m => m.pinned) || S.messages.find(m => m.important);
+  const extra = `
+    ${imp ? `<button class="card msg ${imp.important ? 'important' : ''} btnlike" type="button" data-tab-go="messages"><span class="kicker">${imp.pinned ? IC.pin + ' ' : ''}${imp.important ? 'महत्त्वाची घोषणा' : 'घोषणा'} · ${ago(imp.createdAt)}</span><span class="clamp">${esc(imp.text)}</span></button>` : ''}
+    ${openFunds.length ? `<div class="card stack"><span class="kicker">वर्गणी</span>${openFunds.map(fundRow).join('')}</div>` : ''}
+    <div class="grid2">
+      <button class="card tile-card btnlike" type="button" data-tab-go="committee">${IC.badge}<b>समिती</b><span class="small muted">${committeeList().length} सदस्य</span></button>
+      <button class="card tile-card btnlike" type="button" data-tab-go="contacts">${IC.phone}<b>संपर्क</b><span class="small muted">महत्त्वाचे क्रमांक</span></button>
+    </div>`;
+  if (!f) return `${pageTitle('नमस्कार, ' + esc((S.user.name || '').split(' ')[0]))}<div class="card stack"><b>सदनिका जोडलेली नाही</b><span class="small muted">समितीने तुमची सदनिका यादीत जोडल्यावर तुमची थकबाकी इथे दिसेल.</span></div>${extra}`;
   const P = (S.myAccount && S.myAccount.payments) || {}, due = dueFor(f.id, thisMonth, P), n = monthsDue(due);
-  const pending = S.claims.filter(c => c.status === 'pending');
-  const payable = Math.max(0, due - pending.reduce((s, c) => s + Number(c.amount || 0), 0));
+  const pending = S.claims.filter(c => c.status === 'pending' && !c.fundId);
+  const pendSum = pending.reduce((a, c) => a + Number(c.amount || 0), 0);
+  const payable = Math.max(0, due - pendSum);
   const hist = Object.entries(P).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
   return `
-    <div class="card stack center">
-      <span class="small muted">सदनिका ${esc(f.id)} · ${esc(f.owner || S.user.name)}</span>
-      ${due > 0 ? `<b class="bad num huge">${rs(due)}</b><span class="small">थकबाकी${n > 1 ? ` · ${n} महिने` : ''}</span>` : `<b class="good huge">थकबाकी नाही</b><span class="small muted">${MONTHS[now.getMonth()]} पर्यंत सर्व भरलेले आहे.</span>`}
-      ${pending.length ? `<span class="pill wait">${rs(pending.reduce((s, c) => s + Number(c.amount || 0), 0))} भरणा समितीच्या मंजुरीसाठी</span>` : ''}
-      ${S.society.upi ? `<button class="btn primary block" type="button" data-act="pay" data-amt="${payable || monthly()}">${IC.rupee} ${payable > 0 ? `${rs(payable)} UPI ने भरा` : `पुढील महिन्याचे ${rs(monthly())} भरा`}</button>
-        <button class="btn block" type="button" data-act="ipaid">आधीच भरले? नोंद करा</button>` : `<span class="small muted">समितीने अजून UPI आयडी जोडलेला नाही. समितीकडे थेट भरा.</span>`}
+    ${pageTitle('नमस्कार, ' + esc((S.user.name || '').split(' ')[0]), 'सदनिका ' + esc(f.id))}
+    <div class="card hero-card stack">
+      <span class="kicker">देखभाल शुल्क</span>
+      ${due > 0 ? `<b class="num huge">${rs(due)}</b><span class="small muted">थकबाकी${n > 1 ? ` · ${n} महिने` : ''} · ${rs(monthly())} दरमहा</span>` : `<b class="huge good">सर्व भरलेले ✓</b><span class="small muted">${MONTHS[now.getMonth()]} पर्यंत कोणतीही थकबाकी नाही</span>`}
+      ${pendSum ? `<span class="pill wait">${rs(pendSum)} समितीच्या मंजुरीसाठी</span>` : ''}
+      ${S.society.upi ? `<button class="btn primary block" type="button" data-act="pay" data-amt="${payable || monthly()}">${payable > 0 ? `${rs(payable)} भरा` : `पुढील महिन्याचे ${rs(monthly())} आगाऊ भरा`}</button>
+        <button class="link" type="button" data-act="ipaid">आधीच भरले? नोंद करा</button>` : `<span class="small muted">समितीने अजून UPI आयडी जोडलेला नाही. समितीकडे थेट भरा.</span>`}
     </div>
-    ${S.claims.filter(c => c.status !== 'pending').slice(0, 3).map(c => `<div class="card small row between"><span>${monthName(c.month)} · ${rs(c.amount)}</span><span class="pill ${c.status === 'approved' ? 'ok' : 'due'}">${c.status === 'approved' ? 'मंजूर' : 'नाकारले'}</span></div>`).join('')}
-    ${latestNotice()}
+    ${S.claims.filter(c => c.status !== 'pending').slice(0, 2).map(c => `<div class="card small row between"><span>${c.fundId ? esc(c.fundTitle || 'वर्गणी') : monthName(c.month)} · ${rs(c.amount)}</span><span class="pill ${c.status === 'approved' ? 'ok' : 'due'}">${c.status === 'approved' ? 'मंजूर' : 'नाकारले'}</span></div>`).join('')}
+    ${extra}
     <h2>भरणा इतिहास</h2>
     ${hist.length ? `<ul class="list">${hist.map(([m, p]) => `<li><span class="grow"><b>${monthName(m)}</b><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(p.mode)}</span></span><span class="num b6">${rs(p.amount)}</span></li>`).join('')}</ul>` : `<div class="card empty muted small">अजून नोंद नाही.</div>`}`;
 }
 const latestNotice = () => { const n = S.notices[0]; return n ? `<button class="card btnlike stack" type="button" data-opennotice="${n.id}"><span class="tiny muted">नवीन ${n.kind === 'minutes' ? 'इतिवृत्त' : 'सूचना'}</span><b>${esc(n.heading)}</b><span class="small clamp">${esc(n.body)}</span></button>` : ''; };
-function rMe() {
-  return `<div class="card stack"><b>${esc(S.user.name)}</b><span class="small muted">${esc(S.user.email)}</span><span class="small">सदनिका ${esc(S.member.flatId || '—')} · ${esc(S.society.name)}</span></div>
-    ${S.society.upi ? `<div class="card small">संस्थेचा UPI आयडी: <b>${esc(S.society.upi)}</b></div>` : ''}
+function vMe() {
+  return `<div class="card row g16"><span class="av lg">${esc(initials(S.user.name))}</span><span class="grow"><b class="lg2">${esc(S.user.name)}</b><span class="small muted">${esc(S.user.email)}</span><span class="small">${isAdmin() ? 'समिती' : 'सभासद'} · सदनिका ${esc(S.member.flatId || '—')}</span></span></div>
+    ${isAdmin() ? planBanner(true) : ''}
+    ${S.society.upi ? `<div class="card small row between"><span class="muted">संस्थेचा UPI आयडी</span><b>${esc(S.society.upi)}</b></div>` : ''}
     ${accountCard()}`;
 }
 const ownerCard = () => !isOwnerUser() ? '' : S.user.emailVerified
@@ -328,6 +419,88 @@ function vComplaints() {
     <div class="chips">${[['open', `उघड्या ${open}`], ['closed', `सोडवलेल्या ${S.complaints.length - open}`], ['all', 'सर्व']].map(([k, l]) => `<button class="chip" type="button" data-cf="${k}" aria-pressed="${complaintFilter === k}">${l}</button>`).join('')}</div>
     ${list.length ? `<ul class="list">${list.map(c => `<li><span class="flat">${esc(c.flatId || '—')}</span><span class="grow"><span>${esc(c.text)}</span><span class="tiny muted">${esc(c.name || '')} · ${esc(fmtDate(new Date(c.createdAt).toISOString().slice(0, 10)))}${c.status === 'closed' ? ' · सोडवली' : ''}</span></span>
       ${isAdmin() ? `<button class="btn small" type="button" data-ctoggle="${c.id}">${c.status === 'closed' ? 'पुन्हा उघडा' : 'सोडवली'}</button>` : `<span class="pill ${c.status === 'closed' ? 'ok' : 'wait'}">${c.status === 'closed' ? 'सोडवली' : 'उघडी'}</span>`}</li>`).join('')}</ul>` : `<div class="card empty muted">इथे काही नाही.</div>`}`;
+}
+
+/* ---------- committee, contacts ---------- */
+const POSTS = ['अध्यक्ष', 'उपाध्यक्ष', 'सचिव', 'सहसचिव', 'खजिनदार', 'सहखजिनदार', 'सदस्य', 'सदस्य', 'सदस्य', 'सदस्य', 'सदस्य', 'सदस्य'];
+const POST_OPTIONS = ['अध्यक्ष', 'उपाध्यक्ष', 'सचिव', 'सहसचिव', 'खजिनदार', 'सहखजिनदार', 'सदस्य', 'स्वीकृत सदस्य', 'महिला प्रतिनिधी'];
+const KEY_POSTS = ['अध्यक्ष', 'सचिव', 'खजिनदार'];
+const committeeList = () => ((S.society && S.society.committee) || []).filter(c => c && c.name);
+const CONTACT_CATS = ['आपत्कालीन', 'सोसायटी', 'सेवा', 'जवळपास'];
+const DEFAULT_CONTACTS = [
+  { cat: 'आपत्कालीन', label: 'आपत्कालीन मदत', name: 'Emergency', phone: '112' },
+  { cat: 'आपत्कालीन', label: 'पोलीस', name: '', phone: '100' },
+  { cat: 'आपत्कालीन', label: 'अग्निशमन दल', name: '', phone: '101' },
+  { cat: 'आपत्कालीन', label: 'रुग्णवाहिका', name: '', phone: '108' },
+  { cat: 'आपत्कालीन', label: 'महिला हेल्पलाइन', name: '', phone: '1091' }
+];
+const contactsList = () => (S.society && Array.isArray(S.society.contacts)) ? S.society.contacts.filter(c => c && c.phone) : DEFAULT_CONTACTS;
+const waBtn = (phone, label) => phone ? `<button class="iconbtn" type="button" data-wa-to="${esc(phone)}" aria-label="WhatsApp ${esc(label || '')}">${IC.wa}</button>` : '';
+
+function vCommittee() {
+  const list = committeeList();
+  const key = list.filter(c => KEY_POSTS.includes(c.post)), rest = list.filter(c => !KEY_POSTS.includes(c.post));
+  const person = (c, big) => `<div class="card person ${big ? 'big' : ''}"><span class="av ${big ? 'lg' : ''}">${esc(initials(c.name))}</span>
+    <span class="grow"><span class="post">${esc(c.post || 'सदस्य')}</span><b>${esc(c.name)}</b><span class="tiny muted">${c.flatId ? 'सदनिका ' + esc(c.flatId) : ''}</span></span>
+    <span class="row g6">${telBtn(c.phone, c.name)}${waBtn(c.phone, c.name)}</span></div>`;
+  return `${isAdmin() ? `<button class="btn ghost block" type="button" data-act="editcommittee">${IC.edit} समिती सदस्य बदला</button>` : ''}
+    ${list.length ? `${key.map(c => person(c, true)).join('')}${rest.length ? `<h2>सदस्य · ${rest.length}</h2>${rest.map(c => person(c, false)).join('')}` : ''}`
+      : `<div class="card empty muted">${isAdmin() ? 'अजून समिती भरलेली नाही. वरील बटणाने १२ सदस्य जोडा.' : 'समितीने अजून माहिती भरलेली नाही.'}</div>`}`;
+}
+function vContacts() {
+  const list = contactsList();
+  return `${isAdmin() ? `<button class="btn ghost block" type="button" data-act="editcontacts">${IC.edit} संपर्क बदला</button>` : ''}
+    ${CONTACT_CATS.map(cat => { const l = list.filter(c => (c.cat || 'सेवा') === cat); return l.length ? `<h2>${cat}</h2><ul class="list">${l.map(c => `<li><span class="grow"><b>${esc(c.label)}</b><span class="tiny muted">${esc([c.name, c.phone].filter(Boolean).join(' · '))}</span></span>${telBtn(c.phone, c.label)}</li>`).join('')}</ul>` : ''; }).join('')}`;
+}
+
+/* ---------- funds (वर्गणी) ---------- */
+function vFunds() {
+  const open = S.funds.filter(f => f.status !== 'closed'), closed = S.funds.filter(f => f.status === 'closed');
+  return `${isAdmin() ? `<button class="btn primary block" type="button" data-act="newfund">${IC.plus} नवीन वर्गणी</button>` : ''}
+    ${open.length ? `<div class="card stack"><span class="kicker">सुरू</span>${open.map(fundRow).join('')}</div>` : `<div class="card empty muted">सध्या कोणतीही वर्गणी सुरू नाही.</div>`}
+    ${closed.length ? `<div class="card stack"><span class="kicker">बंद</span>${closed.map(fundRow).join('')}</div>` : ''}`;
+}
+
+/* ---------- messages ---------- */
+function vMessages() {
+  const list = [...S.messages].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.createdAt - a.createdAt);
+  const seg = `<div class="seg" role="group" aria-label="प्रकार"><button class="chip" type="button" data-mseg="ann" aria-pressed="${msgSeg === 'ann'}">घोषणा · ${S.messages.length}</button><button class="chip" type="button" data-mseg="notice" aria-pressed="${msgSeg === 'notice'}">सूचना पत्रे · ${S.notices.length}</button></div>`;
+  if (msgSeg === 'notice') return `${pageTitle('संदेश')}${seg}${vNotices()}`;
+  return `${pageTitle('संदेश')}${seg}
+    ${isAdmin() ? `<button class="btn primary block" type="button" data-act="newmsg">${IC.mega} नवीन घोषणा</button>` : ''}
+    ${list.length ? list.map(m => `<article class="card msg ${m.important ? 'important' : ''}">
+      <div class="row between"><span class="kicker">${m.pinned ? IC.pin + ' ' : ''}${esc(m.by || 'समिती')}${m.byPost ? ' · ' + esc(m.byPost) : ''}</span><span class="tiny muted">${ago(m.createdAt)}</span></div>
+      ${m.important ? '<span class="tag">महत्त्वाचे</span>' : ''}
+      <p class="msgtext">${esc(m.text)}</p>
+      <div class="row g6 msgacts"><button class="btn small ghost" type="button" data-msgwa="${m.id}">${IC.wa} पाठवा</button>${isAdmin() ? `<button class="btn small ghost" type="button" data-msgpin="${m.id}">${IC.pin} ${m.pinned ? 'काढा' : 'वर ठेवा'}</button><button class="btn small ghost danger" type="button" data-msgdel="${m.id}">हटवा</button>` : ''}</div>
+    </article>`).join('') : `<div class="card empty muted">अजून कोणतीही घोषणा नाही.</div>`}`;
+}
+
+/* ---------- files ---------- */
+const FOLDERS = ['नियम व उपविधी', 'लेखापरीक्षण', 'इतिवृत्त', 'बिले व पावत्या', 'करार व परवाने', 'इतर'];
+const fileKind = f => /pdf/.test(f.mime) ? 'PDF' : /^image\//.test(f.mime) ? 'IMG' : /sheet|excel|csv/.test(f.mime) ? 'XLS' : /word|document/.test(f.mime) ? 'DOC' : 'FILE';
+const fmtSize = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+function vFiles() {
+  const list = S.files.filter(f => fileFolder === 'all' || f.folder === fileFolder);
+  return `${pageTitle('फाइल्स')}
+    ${isAdmin() ? `<div class="grid2"><button class="btn primary" type="button" data-act="upload">${IC.plus} फाइल जोडा</button><button class="btn ghost" type="button" data-act="exportcsv">${IC.ledger} हिशोब (Excel)</button></div>` : ''}
+    <div class="chips scroll" role="group" aria-label="फोल्डर"><button class="chip" type="button" data-folder="all" aria-pressed="${fileFolder === 'all'}">सर्व · ${S.files.length}</button>${FOLDERS.map(fo => { const c = S.files.filter(f => f.folder === fo).length; return c || isAdmin() ? `<button class="chip" type="button" data-folder="${fo}" aria-pressed="${fileFolder === fo}">${fo}${c ? ' · ' + c : ''}</button>` : ''; }).join('')}</div>
+    ${list.length ? `<ul class="list">${list.map(f => `<li><span class="fic ${fileKind(f).toLowerCase()}">${fileKind(f)}</span><span class="grow"><b class="ellip">${esc(f.name)}</b><span class="tiny muted">${esc(f.folder || 'इतर')} · ${fmtSize(f.size || 0)} · ${fmtTs(f.createdAt)}${f.visibility === 'committee' ? ' · फक्त समिती' : ''}</span></span>
+      <button class="btn small ghost" type="button" data-file="${f.id}">उघडा</button></li>`).join('')}</ul>` : `<div class="card empty muted">${isAdmin() ? 'अजून फाइल नाही. उपविधी, लेखापरीक्षण अहवाल, बिले इथे जोडा.' : 'अजून कोणतीही फाइल नाही.'}</div>`}`;
+}
+
+/* ---------- more ---------- */
+function vMore() {
+  const items = [
+    ['committee', IC.badge, 'समिती', `${committeeList().length} सदस्य`],
+    ['contacts', IC.phone, 'महत्त्वाचे संपर्क', `${contactsList().length} क्रमांक`],
+    ['funds', IC.coins, 'वर्गणी', `${S.funds.filter(f => f.status !== 'closed').length} सुरू`],
+    ['complaints', IC.chat, 'तक्रारी', `${S.complaints.filter(c => c.status !== 'closed').length} उघड्या`],
+    ...(isAdmin() ? [['members', IC.people, 'सभासद व मंजुरी', `${S.members.filter(m => m.status === 'pending').length} प्रलंबित`]] : []),
+    ['me', IC.user, 'माझे खाते', esc(S.user.email)]
+  ];
+  return `${pageTitle('अधिक')}<div class="morelist">${items.map(([k, ic, t, sub]) => `<button class="card morerow btnlike" type="button" data-tab="${k}"><span class="mi">${ic}</span><span class="grow"><b>${t}</b><span class="tiny muted ellip">${sub}</span></span>${IC.chev}</button>`).join('')}
+    ${isAdmin() ? `<button class="card morerow btnlike" type="button" data-act="setup"><span class="mi">${IC.gear}</span><span class="grow"><b>सोसायटी माहिती व सदनिका</b><span class="tiny muted">${flats().length} सदनिका · ${rs(monthly())} दरमहा</span></span>${IC.chev}</button>` : ''}</div>`;
 }
 
 /* ---------- sheets ---------- */
@@ -409,17 +582,17 @@ function sheetReminders() {
   });
 }
 
-function sheetIPaid(defaultAmt) {
-  openSheet(`${sheetHead('भरणा नोंदवा')}
+function sheetIPaid(defaultAmt, fund) {
+  openSheet(`${sheetHead(fund ? 'वर्गणी भरणा नोंदवा' : 'भरणा नोंदवा')}
     <p class="small muted m0">UPI ॲपमध्ये भरल्यानंतर इथे नोंद करा. समिती तपासून मंजूर करेल.</p>
     <form id="ipForm" class="stack">
       <div class="grid2"><div class="field"><label for="iAmt">रक्कम (₹)</label><input type="number" id="iAmt" min="1" inputmode="numeric" required value="${esc(defaultAmt || monthly())}"></div>
-      <div class="field"><label for="iMonth">कोणत्या महिन्याचे</label><input type="month" id="iMonth" required value="${thisMonth}"></div></div>
+      ${fund ? `<div class="field"><label>वर्गणी</label><input value="${esc(fund.title)}" disabled></div>` : `<div class="field"><label for="iMonth">कोणत्या महिन्याचे</label><input type="month" id="iMonth" required value="${thisMonth}"></div>`}</div>
       <div class="field"><label for="iRef">UPI संदर्भ क्र. (UTR) <span class="hint">(UPI ॲपमधील १२ अंकी क्रमांक)</span></label><input type="text" id="iRef" inputmode="numeric" maxlength="22"></div>
       <button class="btn primary block" type="submit">नोंद पाठवा</button></form>`, el => {
     el.querySelector('#ipForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const c = { flatId: S.member.flatId, month: el.querySelector('#iMonth').value, amount: Number(el.querySelector('#iAmt').value) || 0, ref: el.querySelector('#iRef').value.trim(), date: today, uid: S.user.uid, name: S.user.name, status: 'pending', createdAt: Date.now() };
+      const c = { flatId: S.member.flatId, month: fund ? thisMonth : el.querySelector('#iMonth').value, ...(fund ? { fundId: fund.id, fundTitle: fund.title } : {}), amount: Number(el.querySelector('#iAmt').value) || 0, ref: el.querySelector('#iRef').value.trim(), date: today, uid: S.user.uid, name: S.user.name, status: 'pending', createdAt: Date.now() };
       try { await B.addClaim(S.sid, c); closeSheet(); toast('नोंद पाठवली. समिती मंजूर केल्यावर थकबाकी अपडेट होईल.'); } catch (er) { fail(er); }
     });
   });
@@ -566,6 +739,227 @@ async function startJoin(code) {
   } catch (e) { fail(e); }
 }
 
+/* ---------- committee editor: up to 12 posts ---------- */
+function sheetCommittee() {
+  const cur = (S.society.committee || []).length ? S.society.committee : POSTS.map(post => ({ post, name: '', flatId: '', phone: '' }));
+  const rows = Array.from({ length: Math.max(12, cur.length) }, (_, i) => cur[i] || { post: 'सदस्य', name: '', flatId: '', phone: '' });
+  openSheet(`${sheetHead('समिती सदस्य')}
+    <p class="small muted m0">पद, नाव, सदनिका आणि फोन भरा. सदनिका निवडल्यावर यादीतील नाव आणि फोन आपोआप येतो. रिकाम्या ओळी दाखवल्या जाणार नाहीत.</p>
+    <datalist id="postList">${POST_OPTIONS.map(p => `<option value="${p}">`).join('')}</datalist>
+    <datalist id="flatList">${flats().map(f => `<option value="${esc(f.id)}">${esc(f.owner || '')}</option>`).join('')}</datalist>
+    <form id="comForm" class="stack">${rows.map((r, i) => `<fieldset class="crow"><legend>${i + 1}</legend>
+      <div class="grid2"><div class="field"><label for="cp${i}">पद</label><input id="cp${i}" list="postList" value="${esc(r.post)}"></div><div class="field"><label for="cf${i}">सदनिका</label><input id="cf${i}" list="flatList" data-fill="${i}" value="${esc(r.flatId)}" autocapitalize="characters"></div></div>
+      <div class="grid2"><div class="field"><label for="cn${i}">नाव</label><input id="cn${i}" value="${esc(r.name)}"></div><div class="field"><label for="ct${i}">फोन</label><input id="ct${i}" type="tel" inputmode="tel" value="${esc(r.phone)}"></div></div></fieldset>`).join('')}
+      <button class="btn primary block sticky" type="submit">जतन करा</button></form>`, el => {
+    el.querySelectorAll('[data-fill]').forEach(inp => inp.addEventListener('change', () => {
+      const i = inp.dataset.fill, f = flats().find(x => x.id === inp.value.trim().toUpperCase()); if (!f) return;
+      inp.value = f.id; if (!el.querySelector('#cn' + i).value) el.querySelector('#cn' + i).value = f.owner || ''; if (!el.querySelector('#ct' + i).value) el.querySelector('#ct' + i).value = f.phone || '';
+    }));
+    el.querySelector('#comForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const committee = rows.map((_, i) => ({ post: el.querySelector('#cp' + i).value.trim() || 'सदस्य', name: el.querySelector('#cn' + i).value.trim(), flatId: el.querySelector('#cf' + i).value.trim().toUpperCase(), phone: el.querySelector('#ct' + i).value.trim() })).filter(c => c.name);
+      try { await B.updateSociety(S.sid, { committee }); closeSheet(); toast('समिती जतन झाली.'); } catch (er) { fail(er); }
+    });
+  });
+}
+
+/* ---------- contacts editor ---------- */
+function sheetContacts() {
+  let rows = contactsList().map(c => ({ ...c }));
+  if (!(S.society.contacts || []).length) rows = rows.concat([{ cat: 'सोसायटी', label: 'वॉचमन', name: '', phone: '' }, { cat: 'सोसायटी', label: 'व्यवस्थापक', name: '', phone: '' }, { cat: 'सेवा', label: 'प्लंबर', name: '', phone: '' }, { cat: 'सेवा', label: 'इलेक्ट्रिशियन', name: '', phone: '' }, { cat: 'सेवा', label: 'लिफ्ट दुरुस्ती', name: '', phone: '' }, { cat: 'जवळपास', label: 'जवळचे रुग्णालय', name: '', phone: '' }]);
+  openSheet(`${sheetHead('महत्त्वाचे संपर्क')}<p class="small muted m0">फोन नसलेल्या ओळी दाखवल्या जाणार नाहीत.</p><div id="ctRows" class="stack"></div>
+    <button class="btn ghost block" type="button" id="ctAdd">${IC.plus} संपर्क जोडा</button><button class="btn primary block sticky" type="button" id="ctSave">जतन करा</button>`, el => {
+    const read = () => { rows = [...el.querySelectorAll('.ctrow')].map(r => ({ cat: r.querySelector('select').value, label: r.querySelector('[data-k=label]').value.trim(), name: r.querySelector('[data-k=name]').value.trim(), phone: r.querySelector('[data-k=phone]').value.trim() })); };
+    const draw = () => { el.querySelector('#ctRows').innerHTML = rows.map((c, i) => `<fieldset class="crow ctrow"><legend>${i + 1}</legend>
+      <div class="grid2"><div class="field"><label for="k${i}">प्रकार</label><select id="k${i}">${CONTACT_CATS.map(x => `<option ${x === c.cat ? 'selected' : ''}>${x}</option>`).join('')}</select></div><div class="field"><label for="l${i}">कोण</label><input id="l${i}" data-k="label" value="${esc(c.label)}" placeholder="उदा. वॉचमन"></div></div>
+      <div class="grid2"><div class="field"><label for="n${i}">नाव</label><input id="n${i}" data-k="name" value="${esc(c.name)}"></div><div class="field"><label for="p${i}">फोन</label><input id="p${i}" data-k="phone" type="tel" inputmode="tel" value="${esc(c.phone)}"></div></div>
+      <button class="link danger" type="button" data-rm="${i}">काढा</button></fieldset>`).join(''); };
+    draw();
+    el.querySelector('#ctAdd').addEventListener('click', () => { read(); rows.push({ cat: 'सेवा', label: '', name: '', phone: '' }); draw(); });
+    el.addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (b) { read(); rows.splice(+b.dataset.rm, 1); draw(); } });
+    el.querySelector('#ctSave').addEventListener('click', async () => { read(); try { await B.updateSociety(S.sid, { contacts: rows.filter(c => c.phone && c.label) }); closeSheet(); toast('संपर्क जतन झाले.'); } catch (er) { fail(er); } });
+  });
+}
+
+/* ---------- dashboard settings: tiles + balance figures ---------- */
+function sheetDashboard() {
+  const d = dashCfg(); let order = dashTiles().slice(); Object.keys(TILE_DEFS).forEach(k => { if (!order.includes(k)) order.push(k); });
+  let on = new Set(dashTiles());
+  openSheet(`${sheetHead('डॅशबोर्ड बदला')}
+    <span class="kicker">बँक शिल्लक (समितीसाठी)</span>
+    <div class="grid2"><div class="field"><label for="dBank">बँक शिल्लक (₹)</label><input id="dBank" type="number" inputmode="numeric" value="${esc(d.bank ?? '')}"></div><div class="field"><label for="dFd">मुदत ठेव (₹)</label><input id="dFd" type="number" inputmode="numeric" value="${esc(d.fd ?? '')}"></div></div>
+    <div class="field"><label for="dAsOf">या दिवशीची शिल्लक</label><input id="dAsOf" type="date" value="${esc(d.asOf || today)}"></div>
+    <span class="kicker">काय दिसावे आणि कोणत्या क्रमाने</span><ul class="list" id="tList"></ul>
+    <button class="btn primary block" type="button" id="dSave">जतन करा</button>`, el => {
+    const draw = () => { el.querySelector('#tList').innerHTML = order.map((k, i) => `<li><label class="grow row g6 chk"><input type="checkbox" data-on="${k}" ${on.has(k) ? 'checked' : ''}> ${TILE_DEFS[k].label}</label>
+      <button class="iconbtn" type="button" data-mv="${i}:-1" aria-label="वर" ${i ? '' : 'disabled'}>↑</button><button class="iconbtn" type="button" data-mv="${i}:1" aria-label="खाली" ${i < order.length - 1 ? '' : 'disabled'}>↓</button></li>`).join(''); };
+    draw();
+    el.addEventListener('change', e => { const c = e.target.closest('[data-on]'); if (c) { c.checked ? on.add(c.dataset.on) : on.delete(c.dataset.on); } });
+    el.addEventListener('click', e => { const b = e.target.closest('[data-mv]'); if (!b) return; const [i, dir] = b.dataset.mv.split(':').map(Number); const j = i + dir; [order[i], order[j]] = [order[j], order[i]]; draw(); });
+    el.querySelector('#dSave').addEventListener('click', async () => {
+      const num = id => { const v = el.querySelector(id).value; return v === '' ? null : Number(v); };
+      try { await B.updateSociety(S.sid, { dashboard: { tiles: order.filter(k => on.has(k)), bank: num('#dBank'), fd: num('#dFd'), asOf: el.querySelector('#dAsOf').value || today } }); closeSheet(); toast('डॅशबोर्ड जतन झाला.'); } catch (er) { fail(er); }
+    });
+  });
+}
+
+/* ---------- announcements ---------- */
+function sheetMessage() {
+  const myPost = (committeeList().find(c => c.flatId && c.flatId === S.member.flatId) || {}).post || '';
+  openSheet(`${sheetHead('नवीन घोषणा')}
+    <form id="msgForm" class="stack"><div class="field"><label for="mText">संदेश</label><textarea id="mText" rows="6" required placeholder="उदा. उद्या सकाळी १० ते १२ लिफ्टची देखभाल असल्याने लिफ्ट बंद राहील."></textarea></div>
+    <label class="chk row g6"><input type="checkbox" id="mImp"> महत्त्वाचे म्हणून दाखवा</label>
+    <label class="chk row g6"><input type="checkbox" id="mPin"> सर्वात वर ठेवा</label>
+    <label class="chk row g6"><input type="checkbox" id="mWa" checked> WhatsApp वरही पाठवा</label>
+    <button class="btn primary block" type="submit">प्रकाशित करा</button></form>`, el => {
+    el.querySelector('#msgForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const text = el.querySelector('#mText').value.trim(); if (!text) return;
+      const m = { text, important: el.querySelector('#mImp').checked, pinned: el.querySelector('#mPin').checked, by: S.user.name, byPost: myPost, uid: S.user.uid, createdAt: Date.now() };
+      try { await B.saveMessage(S.sid, m); closeSheet(); toast('घोषणा प्रकाशित झाली.'); if (el.querySelector('#mWa').checked) openExternal(waLink('', `*${S.society.name}*\n${m.important ? '*महत्त्वाची घोषणा*\n' : ''}${text}\n\n- ${m.byPost || 'समिती'}`)); } catch (er) { fail(er); }
+    });
+  });
+}
+
+/* ---------- funds ---------- */
+function sheetFundEdit(f) {
+  const x = f || { title: '', desc: '', perFlat: '', target: '', due: '' };
+  openSheet(`${sheetHead(f ? 'वर्गणी बदला' : 'नवीन वर्गणी')}
+    <form id="fForm" class="stack">
+      <div class="field"><label for="fTitle">कशासाठी</label><input id="fTitle" required value="${esc(x.title)}" placeholder="उदा. गणेशोत्सव 2027"></div>
+      <div class="field"><label for="fDesc">माहिती <span class="hint">(ऐच्छिक)</span></label><textarea id="fDesc" rows="3">${esc(x.desc)}</textarea></div>
+      <div class="grid2"><div class="field"><label for="fPer">प्रति सदनिका (₹) <span class="hint">रिकामे = ऐच्छिक रक्कम</span></label><input id="fPer" type="number" inputmode="numeric" min="0" value="${esc(x.perFlat || '')}"></div>
+      <div class="field"><label for="fTarget">एकूण लक्ष्य (₹) <span class="hint">ऐच्छिक</span></label><input id="fTarget" type="number" inputmode="numeric" min="0" value="${esc(x.target || '')}"></div></div>
+      <div class="field"><label for="fDue">शेवटची तारीख</label><input id="fDue" type="date" value="${esc(x.due || '')}"></div>
+      <button class="btn primary block" type="submit">${f ? 'जतन करा' : 'सुरू करा'}</button></form>`, el => {
+    el.querySelector('#fForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = { title: el.querySelector('#fTitle').value.trim(), desc: el.querySelector('#fDesc').value.trim(), perFlat: Number(el.querySelector('#fPer').value) || 0, target: Number(el.querySelector('#fTarget').value) || 0, due: el.querySelector('#fDue').value };
+      try {
+        if (f) await B.saveFund(S.sid, { id: f.id, ...data });
+        else { await B.saveFund(S.sid, { ...data, status: 'open', paid: {}, createdAt: Date.now(), by: S.user.name }); openExternal(waLink('', `*${S.society.name}*\n*वर्गणी: ${data.title}*\n${data.desc ? data.desc + '\n' : ''}${data.perFlat ? `प्रति सदनिका ${rs(data.perFlat)}\n` : ''}${data.due ? `शेवटची तारीख: ${fmtDate(data.due)}\n` : ''}Sachiv ॲपमधून UPI द्वारे भरा.\n- समिती`)); }
+        closeSheet(); toast(f ? 'जतन झाले.' : 'वर्गणी सुरू झाली.');
+      } catch (er) { fail(er); }
+    });
+  });
+}
+function sheetFund(id) {
+  const f = S.funds.find(x => x.id === id); if (!f) return;
+  const paid = f.paid || {}, got = fundCollected(f), my = S.member.flatId, mine = my && paid[my];
+  const pendMine = S.claims.find(c => c.fundId === f.id && c.status === 'pending');
+  const unpaid = flats().filter(x => !paid[x.id]);
+  openSheet(`${sheetHead(esc(f.title))}
+    ${f.desc ? `<p class="small m0">${esc(f.desc)}</p>` : ''}
+    <div class="grid2"><div class="card"><span class="kicker">जमा</span><b class="num lg good">${rs(got)}</b>${f.target ? `<span class="tiny muted">लक्ष्य ${rs(f.target)}</span>` : ''}</div><div class="card"><span class="kicker">सदनिका</span><b class="num lg">${Object.keys(paid).length}<small class="muted"> / ${flats().length}</small></b>${f.due ? `<span class="tiny muted">${fmtDate(f.due)} पर्यंत</span>` : ''}</div></div>
+    ${!isAdmin() && my && f.status !== 'closed' ? (mine ? `<div class="card accent small">तुम्ही ${rs(mine.amount)} भरले ✓</div>` : pendMine ? `<div class="pill wait">${rs(pendMine.amount)} समितीच्या मंजुरीसाठी</div>` : S.society.upi ? `<div class="field"><label for="fAmt">रक्कम (₹)</label><input id="fAmt" type="number" inputmode="numeric" min="1" value="${esc(f.perFlat || '')}"></div><button class="btn primary block" type="button" id="fPay">UPI ने भरा</button><button class="link" type="button" id="fIPaid">आधीच भरले? नोंद करा</button>` : '') : ''}
+    ${isAdmin() ? `<div class="grid2"><button class="btn ghost" type="button" id="fEdit">${IC.edit} बदला</button><button class="btn ghost" type="button" id="fWa">${IC.wa} आठवण</button></div>` : ''}
+    <span class="kicker">भरलेल्या सदनिका · ${Object.keys(paid).length}</span>
+    ${Object.keys(paid).length ? `<ul class="list">${Object.entries(paid).sort((a, b) => a[0].localeCompare(b[0])).map(([fl, p]) => `<li><span class="flat">${esc(fl)}</span><span class="grow"><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(p.mode || '')}</span></span><b class="num">${rs(p.amount)}</b>${isAdmin() ? `<button class="iconbtn" type="button" data-fundunpay="${esc(fl)}" aria-label="नोंद काढा">✕</button>` : ''}</li>`).join('')}</ul>` : '<p class="small muted m0">अजून कोणी भरली नाही.</p>'}
+    ${isAdmin() && unpaid.length ? `<span class="kicker">बाकी · ${unpaid.length}</span><ul class="list">${unpaid.map(x => `<li><span class="flat">${esc(x.id)}</span><span class="grow small">${esc(x.owner || '')}</span><button class="btn small ghost" type="button" data-fundcash="${esc(x.id)}">जमा</button></li>`).join('')}</ul>` : ''}
+    ${isAdmin() ? `<div class="grid2"><button class="btn ghost" type="button" id="fClose">${f.status === 'closed' ? 'पुन्हा सुरू करा' : 'वर्गणी बंद करा'}</button><button class="btn ghost danger" type="button" id="fDel">हटवा</button></div>` : ''}`, el => {
+    const g = q => el.querySelector(q);
+    if (g('#fPay')) g('#fPay').addEventListener('click', async () => {
+      const amt = Number(g('#fAmt').value) || 0; if (!amt) { toast('रक्कम टाका.'); return; }
+      const ok = await openExternal(upiLink({ upi: S.society.upi, name: S.society.name, amount: amt, note: `${f.title} ${my}` }));
+      if (!ok) toast('UPI ॲप उघडले नाही. UPI आयडी: ' + S.society.upi);
+      setTimeout(() => sheetIPaid(amt, f), 600);
+    });
+    if (g('#fIPaid')) g('#fIPaid').addEventListener('click', () => sheetIPaid(Number(g('#fAmt').value) || f.perFlat, f));
+    if (g('#fEdit')) g('#fEdit').addEventListener('click', () => sheetFundEdit(f));
+    if (g('#fWa')) g('#fWa').addEventListener('click', () => openExternal(waLink('', `*${S.society.name}*\n*वर्गणी: ${f.title}*\n${f.perFlat ? `प्रति सदनिका ${rs(f.perFlat)}. ` : ''}आतापर्यंत ${Object.keys(paid).length} सदनिकांनी ${rs(got)} भरले.\n${f.due ? `शेवटची तारीख: ${fmtDate(f.due)}\n` : ''}Sachiv ॲपमधून भरा.\n- समिती`)));
+    if (g('#fClose')) g('#fClose').addEventListener('click', async () => { if (locked()) { toast(LOCK_MSG); return; } try { await B.saveFund(S.sid, { id: f.id, status: f.status === 'closed' ? 'open' : 'closed' }); closeSheet(); toast('बदल जतन झाला.'); } catch (er) { fail(er); } });
+    if (g('#fDel')) g('#fDel').addEventListener('click', async e => { const b = e.currentTarget; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'नक्की हटवायचे?'; return; } try { await B.deleteFund(S.sid, f.id); closeSheet(); toast('वर्गणी हटवली.'); } catch (er) { fail(er); } });
+    el.addEventListener('click', async e => {
+      const c = e.target.closest('[data-fundcash]'), u = e.target.closest('[data-fundunpay]');
+      if ((c || u) && locked()) { toast(LOCK_MSG); return; }
+      if (c) sheetFundCash(f, c.dataset.fundcash);
+      if (u) { try { await B.setFundPaid(S.sid, f.id, u.dataset.fundunpay, null); toast('नोंद काढली.'); sheetFundSoon(f.id); } catch (er) { fail(er); } }
+    });
+  });
+}
+const sheetFundSoon = id => setTimeout(() => sheetFund(id), 250);
+function sheetFundCash(f, flatId) {
+  openSheet(`${sheetHead(`${esc(f.title)} · ${esc(flatId)}`)}
+    <form id="fcForm" class="stack"><div class="grid2"><div class="field"><label for="fcAmt">रक्कम (₹)</label><input id="fcAmt" type="number" inputmode="numeric" min="1" required value="${esc(f.perFlat || '')}"></div>
+    <div class="field"><label for="fcMode">कसे भरले</label><select id="fcMode">${['रोख', 'UPI', 'चेक', 'बँक ट्रान्सफर'].map(x => `<option>${x}</option>`).join('')}</select></div></div>
+    <button class="btn primary block" type="submit">जमा नोंदवा</button><button class="btn ghost block" type="button" id="fcBack">‹ मागे</button></form>`, el => {
+    el.querySelector('#fcBack').addEventListener('click', () => sheetFund(f.id));
+    el.querySelector('#fcForm').addEventListener('submit', async e => {
+      e.preventDefault(); const amt = Number(el.querySelector('#fcAmt').value) || 0; if (!amt) return;
+      try { await B.setFundPaid(S.sid, f.id, flatId, { amount: amt, date: today, mode: el.querySelector('#fcMode').value }); toast(`${flatId}: ${rs(amt)} जमा.`); sheetFundSoon(f.id); } catch (er) { fail(er); }
+    });
+  });
+}
+
+/* ---------- files ---------- */
+const CHUNK = 932000; // base64 characters per Firestore doc (~700 KB of file)
+const readB64 = file => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(file); });
+async function shrinkImage(file) {
+  if (!/^image\/(jpeg|png|webp)/.test(file.type) || file.size < 1200000) return file;
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  const sc = Math.min(1, 1800 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+  c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
+  return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+}
+function sheetUpload() {
+  openSheet(`${sheetHead('फाइल जोडा')}
+    <form id="upForm" class="stack">
+      <div class="field"><label for="uFile">फाइल <span class="hint">(PDF, फोटो, Excel, Word · कमाल 5 MB)</span></label><input id="uFile" type="file" required accept=".pdf,image/*,.xls,.xlsx,.csv,.doc,.docx"></div>
+      <div class="field"><label for="uName">नाव</label><input id="uName" placeholder="उदा. लेखापरीक्षण अहवाल 2025-26"></div>
+      <div class="field"><label for="uFolder">फोल्डर</label><select id="uFolder">${FOLDERS.map(f => `<option ${f === fileFolder ? 'selected' : ''}>${f}</option>`).join('')}</select></div>
+      <div class="field"><label for="uVis">कोण पाहू शकेल</label><select id="uVis"><option value="all">सर्व सभासद</option><option value="committee">फक्त समिती</option></select></div>
+      <button class="btn primary block" type="submit">अपलोड करा</button><p class="tiny muted m0" id="uStat" role="status"></p></form>`, el => {
+    const inp = el.querySelector('#uFile');
+    inp.addEventListener('change', () => { const f = inp.files[0]; if (f && !el.querySelector('#uName').value) el.querySelector('#uName').value = f.name.replace(/\.\w+$/, ''); });
+    el.querySelector('#upForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = el.querySelector('[type=submit]'), st = el.querySelector('#uStat');
+      let file = inp.files[0]; if (!file) return;
+      btn.disabled = true; st.textContent = 'तयार करत आहे…';
+      try {
+        file = await shrinkImage(file);
+        if (file.size > 5 * 1048576) { toast('फाइल 5 MB पेक्षा मोठी आहे.'); btn.disabled = false; st.textContent = ''; return; }
+        const b64 = await readB64(file), chunks = [];
+        for (let i = 0; i < b64.length; i += CHUNK) chunks.push(b64.slice(i, i + CHUNK));
+        st.textContent = `अपलोड करत आहे (${fmtSize(file.size)})…`;
+        const ext = (file.name.match(/\.\w+$/) || [''])[0];
+        await B.uploadFile(S.sid, { name: (el.querySelector('#uName').value.trim() || file.name.replace(/\.\w+$/, '')) + ext, mime: file.type || 'application/octet-stream', size: file.size, folder: el.querySelector('#uFolder').value, visibility: el.querySelector('#uVis').value, by: S.user.name, createdAt: Date.now() }, chunks);
+        closeSheet(); toast('फाइल जोडली.');
+      } catch (er) { fail(er); btn.disabled = false; st.textContent = ''; }
+    });
+  });
+}
+async function openFile(id) {
+  const f = S.files.find(x => x.id === id); if (!f) return;
+  openSheet(`${sheetHead(esc(f.name))}<p class="small muted m0" id="foStat">उघडत आहे…</p><div id="foBody" class="stack"></div>`, async el => {
+    try {
+      const parts = await B.readFile(S.sid, f.id, f.chunks || 1), bin = atob(parts.join('')), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: f.mime });
+      el.querySelector('#foStat').textContent = `${f.folder || ''} · ${fmtSize(f.size || bytes.length)} · ${fmtTs(f.createdAt)}${f.by ? ' · ' + f.by : ''}`;
+      el.querySelector('#foBody').innerHTML = `${/^image\//.test(f.mime) ? `<img class="docprev" alt="${esc(f.name)}" src="${URL.createObjectURL(blob)}">` : `<div class="card center"><span class="fic big ${fileKind(f).toLowerCase()}">${fileKind(f)}</span></div>`}
+        <button class="btn primary block" type="button" id="foOpen">${IC.share} उघडा / पाठवा</button>
+        ${isAdmin() ? `<button class="btn ghost block danger" type="button" id="foDel">हटवा</button>` : ''}`;
+      el.querySelector('#foOpen').addEventListener('click', async () => { const r = await shareFile(blob, f.name, f.name); if (r === 'downloaded') toast('फाइल डाउनलोड झाली.'); if (r === 'failed') toast('उघडता आली नाही.'); });
+      const del = el.querySelector('#foDel'); if (del) del.addEventListener('click', async () => { if (del.dataset.sure !== '1') { del.dataset.sure = '1'; del.textContent = 'नक्की हटवायचे?'; return; } try { await B.deleteFile(S.sid, f.id, f.chunks || 1); closeSheet(); toast('फाइल हटवली.'); } catch (er) { fail(er); } });
+    } catch (er) { el.querySelector('#foStat').textContent = errMsg(er); }
+  });
+}
+async function exportLedger() {
+  const months = monthsBetween(S.society.startMonth || thisMonth, thisMonth);
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [['सदनिका', 'मालक', 'फोन', ...months.map(monthName), 'एकूण भरले', 'थकबाकी'].map(q).join(',')];
+  for (const f of flats()) {
+    const P = (S.accounts[f.id] || {}).payments || {};
+    const vals = months.map(m => P[m] ? Number(P[m].amount) || 0 : '');
+    rows.push([f.id, f.owner, f.phone, ...vals, vals.reduce((a, v) => a + (Number(v) || 0), 0), dueFor(f.id, thisMonth)].map(q).join(','));
+  }
+  const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv' });
+  const r = await shareFile(blob, `hishob-${today}.csv`, `${S.society.name} हिशोब`);
+  if (r === 'downloaded') toast('हिशोब डाउनलोड झाला (Excel मध्ये उघडा).');
+}
+
 /* owner panel: every society, its plan, and a way to extend it after the society pays */
 function sheetOwner() {
   let list = [], q = '';
@@ -641,10 +1035,13 @@ document.addEventListener('submit', async e => {
 });
 
 document.addEventListener('click', async e => {
-  const t = e.target.closest('button, a'); if (!t || t.closest('.sheet')) return;
+  const t = e.target.closest('button, a'); if (!t) return;
   const d = t.dataset;
+  if (d.tel) { e.preventDefault(); openExternal('tel:' + d.tel); return; }
+  if (d.waTo) { openExternal(waLink(d.waTo, '')); return; }
+  if (t.closest('.sheet')) return;
   try {
-    if (locked() && (['newnotice', 'newminutes', 'reminders'].includes(d.act) || d.pay || d.claimOk || d.claimNo || d.mok || d.ctoggle || d.medit)) { toast(LOCK_MSG); return; }
+    if (locked() && (['newnotice', 'newminutes', 'reminders', 'newmsg', 'newfund', 'upload'].includes(d.act) || d.pay || d.claimOk || d.claimNo || d.mok || d.ctoggle || d.medit || d.msgpin || d.msgdel)) { toast(LOCK_MSG); return; }
     if (d.tab) { S.tab = d.tab; render(); window.scrollTo(0, 0); }
     else if (d.tabGo) { S.tab = d.tabGo; if (S.tab === 'ledger') ledgerFilter = 'due'; render(); window.scrollTo(0, 0); }
     else if (d.auth) { authMode = d.auth; render(); }
@@ -663,6 +1060,20 @@ document.addEventListener('click', async e => {
     else if (d.act === 'newminutes') sheetMinutes();
     else if (d.act === 'reminders') sheetReminders();
     else if (d.act === 'newcomplaint') sheetComplaint();
+    else if (d.act === 'newmsg') sheetMessage();
+    else if (d.act === 'editcommittee') sheetCommittee();
+    else if (d.act === 'editcontacts') sheetContacts();
+    else if (d.act === 'dashcfg') sheetDashboard();
+    else if (d.act === 'newfund') sheetFundEdit(null);
+    else if (d.act === 'upload') sheetUpload();
+    else if (d.act === 'exportcsv') await exportLedger();
+    else if (d.mseg) { msgSeg = d.mseg; render(); }
+    else if (d.folder) { fileFolder = d.folder; render(); }
+    else if (d.fund) sheetFund(d.fund);
+    else if (d.file) await openFile(d.file);
+    else if (d.msgwa) { const m = S.messages.find(x => x.id === d.msgwa); if (m) openExternal(waLink('', `*${S.society.name}*\n${m.important ? '*महत्त्वाची घोषणा*\n' : ''}${m.text}\n\n- ${m.byPost || 'समिती'}`)); }
+    else if (d.msgpin) { const m = S.messages.find(x => x.id === d.msgpin); if (m) await B.saveMessage(S.sid, { ...m, pinned: !m.pinned }); }
+    else if (d.msgdel) { if (t.dataset.sure !== '1') { t.dataset.sure = '1'; t.textContent = 'नक्की?'; return; } await B.deleteMessage(S.sid, d.msgdel); toast('घोषणा हटवली.'); }
     else if (d.act === 'invite') {
       const txt = `${S.society.name}\nआपल्या सोसायटीचे देखभाल शुल्क, सूचना आणि तक्रारी आता Sachiv ॲपमध्ये.\n1. Sachiv ॲप उघडा आणि नवीन खाते तयार करा.\n2. जॉइन कोड टाका: ${S.society.code}\n3. तुमची सदनिका निवडा.\nधन्यवाद,\nसचिव`;
       openExternal(waLink('', txt));
@@ -680,6 +1091,12 @@ document.addEventListener('click', async e => {
     else if (d.pay) sheetPay(d.pay);
     else if (d.claimOk) {
       const c = S.claims.find(x => x.id === d.claimOk); if (!c) return;
+      if (c.fundId) {
+        const fund = S.funds.find(x => x.id === c.fundId), prevF = fund && (fund.paid || {})[c.flatId];
+        await B.setFundPaid(S.sid, c.fundId, c.flatId, { amount: (prevF ? Number(prevF.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '' });
+        await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid });
+        toast(`${c.flatId}: ${rs(c.amount)} वर्गणी मंजूर.`); return;
+      }
       const prev = ((S.accounts[c.flatId] || {}).payments || {})[c.month];
       await B.setPayment(S.sid, c.flatId, c.month, { amount: (prev ? Number(prev.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '' });
       await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid });
