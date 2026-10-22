@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="mr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sachiv · सोसायटीचा डिजिटल सचिव</title>
+<meta name="description" content="हाऊसिंग सोसायटीसाठी ॲप: देखभाल शुल्क वसुली, UPI भरणा, WhatsApp आठवण, सूचना, इतिवृत्त, वर्गणी, फाइल्स. मराठी, हिंदी, English. 30 दिवस मोफत.">
+<meta name="theme-color" content="#0B5D4B">
+<meta property="og:title" content="Sachiv · सोसायटीचा डिजिटल सचिव">
+<meta property="og:description" content="देखभाल वसुली, सूचना, वर्गणी आणि हिशोब, एका ॲपमध्ये. 30 दिवस मोफत.">
+<meta property="og:image" content="img/dash.jpg">
+<link rel="icon" href="img/icon-180.png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<style>
+@font-face { font-family: Mukta; font-weight: 400; font-display: swap; src: url(fonts/mukta-devanagari-400-normal.woff2) format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+@font-face { font-family: Mukta; font-weight: 600; font-display: swap; src: url(fonts/mukta-devanagari-600-normal.woff2) format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+@font-face { font-family: Mukta; font-weight: 800; font-display: swap; src: url(fonts/mukta-devanagari-800-normal.woff2) format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+@font-face { font-family: Mukta; font-weight: 400; font-display: swap; src: url(fonts/mukta-latin-400-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+@font-face { font-family: Mukta; font-weight: 600; font-display: swap; src: url(fonts/mukta-latin-600-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+@font-face { font-family: Mukta; font-weight: 800; font-display: swap; src: url(fonts/mukta-latin-800-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+:root {
+  --green: #0B5D4B; --green2: #08473A; --green-soft: #E2F3EE; --gold: #D99A1E; --butter: #FFD27A; --gold-soft: #FFF8E8;
+  --ink: #0F172A; --ink2: #334155; --muted: #64748B; --tile: #F8FAFC; --edge: #EEF2F6; --edge2: #E2E8F0; --bg: #FFFFFF;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.6 Mukta, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+/* nav */
+.nav { position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,.92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--edge); }
+.nav .wrap { display: flex; align-items: center; gap: 12px; height: 66px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 21px; color: var(--green); text-decoration: none; }
+.brand img { width: 36px; height: 36px; border-radius: 10px; }
+.langs { margin-left: auto; display: flex; background: #F1F5F9; border-radius: 12px; padding: 3px; }
+.langs button { border: 0; background: none; font: 600 14px Mukta, sans-serif; color: var(--ink2); padding: 6px 11px; border-radius: 9px; cursor: pointer; min-height: 36px; }
+.langs button[aria-pressed="true"] { background: #fff; color: var(--green); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 12px 22px; border-radius: 14px; font: 800 17px Mukta, sans-serif; text-decoration: none; border: 0; cursor: pointer; }
+.btn svg { width: 20px; height: 20px; flex: none; }
+.btn.wa { background: var(--green); color: #fff; box-shadow: 0 10px 24px rgba(11,93,75,.25); }
+.btn.gold { background: var(--butter); color: #3D2A00; }
+.btn.line { background: #fff; color: var(--green); border: 1.5px solid var(--edge2); }
+.nav .btn { min-height: 42px; padding: 8px 14px; font-size: 15px; border-radius: 12px; }
+@media (max-width: 620px) { .nav .btn.wa span { display: none; } .nav .btn.wa { padding: 8px 11px; } .langs button { padding: 6px 8px; } }
+/* hero */
+.hero { padding: 48px 0 56px; background: radial-gradient(90% 70% at 85% 10%, #E8F6F1 0%, #fff 60%); overflow: hidden; }
+.hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }
+.kick { display: inline-flex; align-items: center; gap: 8px; background: var(--gold-soft); color: #9A6B00; border: 1px solid #F8E7BD; border-radius: 999px; padding: 4px 14px; font-weight: 700; font-size: 15px; }
+h1 { font-size: clamp(36px, 5.6vw, 60px); line-height: 1.08; letter-spacing: -1px; margin: 16px 0 14px; font-weight: 800; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--green); }
+.lead { font-size: 20px; color: var(--ink2); max-width: 34ch; margin: 0 0 26px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.note { margin-top: 14px; font-size: 15px; color: var(--muted); }
+.phones { position: relative; height: 560px; }
+.phones img { position: absolute; width: 270px; border-radius: 34px; box-shadow: 0 30px 60px rgba(15,23,42,.18), 0 0 0 8px #0F172A; }
+.phones img:first-child { left: 8%; top: 0; transform: rotate(-4deg); }
+.phones img:last-child { right: 4%; top: 46px; transform: rotate(5deg); }
+@media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; } .phones { height: 470px; } .phones img { width: 220px; } .phones img:first-child { left: 2%; } .phones img:last-child { right: 0; } }
+/* strip */
+.strip { border-top: 1px solid var(--edge); border-bottom: 1px solid var(--edge); background: var(--tile); }
+.strip .wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 18px 20px; }
+.strip div { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15.5px; color: var(--ink2); }
+.strip svg { width: 22px; height: 22px; color: var(--green); flex: none; }
+@media (max-width: 760px) { .strip .wrap { grid-template-columns: 1fr 1fr; } }
+/* sections */
+section { padding: 72px 0; }
+h2 { font-size: clamp(28px, 3.8vw, 40px); line-height: 1.15; letter-spacing: -.5px; margin: 0 0 10px; font-weight: 800; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 18.5px; margin: 0 0 34px; max-width: 52ch; }
+.feat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.f { background: var(--tile); border: 1px solid var(--edge); border-radius: 22px; padding: 22px; }
+.f .ic { width: 50px; height: 50px; border-radius: 16px; background: #fff; border: 1px solid var(--edge2); display: grid; place-items: center; color: var(--green); margin-bottom: 14px; }
+.f .ic svg { width: 24px; height: 24px; }
+.f h3 { margin: 0 0 6px; font-size: 20px; font-weight: 800; }
+.f p { margin: 0; color: var(--ink2); font-size: 16px; }
+.f.hl { background: var(--gold-soft); border-color: #F8E7BD; }
+@media (max-width: 900px) { .feat { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .feat { grid-template-columns: 1fr; } }
+.gallery { display: flex; gap: 18px; overflow-x: auto; padding: 6px 4px 20px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.gallery figure { margin: 0; flex: none; width: 230px; scroll-snap-align: start; text-align: center; }
+.gallery img { width: 100%; border-radius: 28px; box-shadow: 0 16px 34px rgba(15,23,42,.14), 0 0 0 6px #0F172A; }
+.gallery figcaption { margin-top: 14px; font-weight: 700; color: var(--ink2); }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: s; }
+.step { border: 1px solid var(--edge); border-radius: 22px; padding: 24px; position: relative; }
+.step::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--green); color: var(--butter); font-weight: 800; font-size: 20px; margin-bottom: 14px; }
+.step h3 { margin: 0 0 6px; font-size: 20px; font-weight: 800; } .step p { margin: 0; color: var(--ink2); font-size: 16px; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+.dark { background: radial-gradient(120% 90% at 100% 0%, #13806A 0%, var(--green) 50%, var(--green2) 100%); color: #fff; }
+.dark .sub { color: #CFEDE3; }
+.price { display: grid; grid-template-columns: 1.1fr .9fr; gap: 24px; align-items: center; }
+.pcard { background: #fff; color: var(--ink); border-radius: 28px; padding: 30px; box-shadow: 0 30px 60px rgba(0,0,0,.2); }
+.pcard .tag { display: inline-block; background: var(--gold-soft); color: #9A6B00; border: 1px solid #F8E7BD; border-radius: 999px; padding: 3px 12px; font-weight: 800; font-size: 14px; }
+.amt { font-size: 60px; font-weight: 800; letter-spacing: -2px; line-height: 1; margin: 16px 0 4px; color: var(--green); }
+.amt small { font-size: 20px; letter-spacing: 0; color: var(--muted); font-weight: 600; }
+.pcard ul { list-style: none; padding: 0; margin: 20px 0 24px; display: grid; gap: 10px; }
+.pcard li { display: flex; gap: 10px; align-items: flex-start; font-size: 16.5px; }
+.pcard li svg { width: 20px; height: 20px; color: var(--green); flex: none; margin-top: 3px; }
+.pcard .btn { width: 100%; }
+.bigs { display: grid; gap: 18px; }
+.bigs b { display: block; font-size: 40px; font-weight: 800; letter-spacing: -1px; color: var(--butter); line-height: 1.1; }
+.bigs span { color: #CFEDE3; font-size: 17px; }
+@media (max-width: 860px) { .price { grid-template-columns: 1fr; } }
+details { border: 1px solid var(--edge); border-radius: 18px; padding: 4px 20px; margin-bottom: 12px; background: #fff; }
+summary { cursor: pointer; font-weight: 800; font-size: 18px; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--green); font-size: 24px; line-height: 1; }
+details[open] summary::after { content: "−"; }
+details p { margin: 0 0 16px; color: var(--ink2); }
+.final { text-align: center; }
+.final .ctas { justify-content: center; }
+footer { border-top: 1px solid var(--edge); padding: 28px 0 40px; color: var(--muted); font-size: 15px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
+footer a { color: var(--green); font-weight: 600; text-decoration: none; }
+.floatwa { position: fixed; right: 18px; bottom: 18px; z-index: 20; width: 60px; height: 60px; border-radius: 50%; background: #25D366; color: #fff; display: grid; place-items: center; box-shadow: 0 10px 26px rgba(37,211,102,.45); }
+.floatwa svg { width: 30px; height: 30px; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="#top"><img src="img/icon-180.png" alt="">Sachiv</a>
+  <div class="langs" role="group" aria-label="भाषा / Language"><button type="button" data-l="mr" aria-pressed="true">मराठी</button><button type="button" data-l="hi" aria-pressed="false">हिंदी</button><button type="button" data-l="en" aria-pressed="false">English</button></div>
+  <a class="btn wa" data-wa href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg><span data-t="navcta"></span></a>
+</div></header>
+
+<main id="top">
+<section class="hero"><div class="wrap">
+  <div>
+    <span class="kick" data-t="kick"></span>
+    <h1 data-t="h1"></h1>
+    <p class="lead" data-t="lead"></p>
+    <div class="ctas">
+      <a class="btn wa" data-wa href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg><span data-t="cta1"></span></a>
+      <a class="btn line" href="https://github.com/sachinbjankar/sachiv/releases/latest/download/Sachiv.apk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span data-t="cta2"></span></a>
+    </div>
+    <p class="note" data-t="note"></p>
+  </div>
+  <div class="phones" aria-hidden="true"><img src="img/dash.jpg" alt=""><img src="img/home.jpg" alt=""></div>
+</div></section>
+
+<div class="strip"><div class="wrap">
+  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12M6 9h12M9 4c3 0 5 1.6 5 5s-2 5-5 5H6l8 7"/></svg><span data-t="s1"></span></div>
+  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg><span data-t="s2"></span></div>
+  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-t="s3"></span></div>
+  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><span data-t="s4"></span></div>
+</div></div>
+
+<section id="features"><div class="wrap">
+  <h2 data-t="fh"></h2><p class="sub" data-t="fs"></p>
+  <div class="feat">
+    <div class="f hl"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12M6 9h12M9 4c3 0 5 1.6 5 5s-2 5-5 5H6l8 7"/></svg></div><h3 data-t="f1h"></h3><p data-t="f1p"></p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg></div><h3 data-t="f2h"></h3><p data-t="f2p"></p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg></div><h3 data-t="f3h"></h3><p data-t="f3p"></p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v2c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg></div><h3 data-t="f4h"></h3><p data-t="f4p"></p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg></div><h3 data-t="f5h"></h3><p data-t="f5p"></p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><h3 data-t="f6h"></h3><p data-t="f6p"></p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 21l5-3 5 3-1.5-7.5"/></svg></div><h3 data-t="f7h"></h3><p data-t="f7p"></p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg></div><h3 data-t="f8h"></h3><p data-t="f8p"></p></div>
+    <div class="f"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg></div><h3 data-t="f9h"></h3><p data-t="f9p"></p></div>
+  </div>
+</div></section>
+
+<section style="background:var(--tile);border-top:1px solid var(--edge);border-bottom:1px solid var(--edge)"><div class="wrap">
+  <h2 data-t="gh"></h2><p class="sub" data-t="gs"></p>
+  <div class="gallery">
+    <figure><img src="img/dash.jpg" alt="" loading="lazy"><figcaption data-t="g1"></figcaption></figure>
+    <figure><img src="img/home.jpg" alt="" loading="lazy"><figcaption data-t="g2"></figcaption></figure>
+    <figure><img src="img/msg.jpg" alt="" loading="lazy"><figcaption data-t="g3"></figcaption></figure>
+    <figure><img src="img/committee.jpg" alt="" loading="lazy"><figcaption data-t="g4"></figcaption></figure>
+    <figure><img src="img/fund.jpg" alt="" loading="lazy"><figcaption data-t="g5"></figcaption></figure>
+    <figure><img src="img/files.jpg" alt="" loading="lazy"><figcaption data-t="g6"></figcaption></figure>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2 data-t="hh"></h2><p class="sub" data-t="hs"></p>
+  <div class="steps"><div class="step"><h3 data-t="h1h"></h3><p data-t="h1p"></p></div><div class="step"><h3 data-t="h2h"></h3><p data-t="h2p"></p></div><div class="step"><h3 data-t="h3h"></h3><p data-t="h3p"></p></div></div>
+</div></section>
+
+<section class="dark" id="price"><div class="wrap price">
+  <div>
+    <h2 data-t="ph"></h2><p class="sub" data-t="ps"></p>
+    <div class="bigs"><div><b data-t="b1"></b><span data-t="b1s"></span></div><div><b data-t="b2"></b><span data-t="b2s"></span></div></div>
+  </div>
+  <div class="pcard">
+    <span class="tag" data-t="ptag"></span>
+    <div class="amt">₹300<small data-t="pper"></small></div>
+    <div style="color:var(--muted)" data-t="pnote"></div>
+    <ul>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg><span data-t="p1"></span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg><span data-t="p2"></span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg><span data-t="p3"></span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg><span data-t="p4"></span></li>
+    </ul>
+    <a class="btn wa" data-wa href="#"><span data-t="cta1"></span></a>
+  </div>
+</div></section>
+
+<section id="faq"><div class="wrap" style="max-width:820px">
+  <h2 data-t="qh"></h2><p class="sub"></p>
+  <details><summary data-t="q1"></summary><p data-t="a1"></p></details>
+  <details><summary data-t="q2"></summary><p data-t="a2"></p></details>
+  <details><summary data-t="q3"></summary><p data-t="a3"></p></details>
+  <details><summary data-t="q4"></summary><p data-t="a4"></p></details>
+  <details><summary data-t="q5"></summary><p data-t="a5"></p></details>
+  <details><summary data-t="q6"></summary><p data-t="a6"></p></details>
+</div></section>
+
+<section class="final" style="padding-top:20px"><div class="wrap">
+  <h2 data-t="eh"></h2><p class="sub" style="margin-left:auto;margin-right:auto" data-t="es"></p>
+  <div class="ctas"><a class="btn wa" data-wa href="#"><span data-t="cta1"></span></a><a class="btn line" href="tel:+919404515200">📞 94045 15200</a></div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <span>© 2026 Sachiv · Pune</span>
+  <span><a href="../privacy.html" data-t="priv"></a> · <a href="../delete-account.html" data-t="del"></a> · <a href="mailto:sachin.bjankar@gmail.com">sachin.bjankar@gmail.com</a></span>
+</div></footer>
+<a class="floatwa" data-wa href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.4 8.4 0 1 1 21 11.5z"/><path d="M9 9.5c.5 2 2 3.5 4 4.5l1.2-1.2 2 .8v1.5c-3.5.3-8-3.7-8.2-7.6H9.5l.7 2z"/></svg></a>
+
+<script>
+const PHONE = '919404515200';
+const T = {
+  mr: {
+    navcta: 'मोफत डेमो', kick: 'हाऊसिंग सोसायट्यांसाठी', h1: 'सोसायटीची वसुली, सूचना आणि हिशोब <em>एका ॲपमध्ये.</em>',
+    lead: 'सचिव आणि खजिनदाराचे तासन्तास काम आता काही मिनिटांत. देखभाल शुल्क थेट सोसायटीच्या UPI खात्यात, थकबाकीची आठवण WhatsApp वर एका टॅपमध्ये.',
+    cta1: '30 दिवस मोफत सुरू करा', cta2: 'ॲप डाउनलोड करा (Android)', note: 'कार्ड नको, कमिशन नाही. सभासदांसाठी पूर्णपणे मोफत.',
+    s1: 'पैसे थेट सोसायटीच्या खात्यात', s2: 'मराठी · हिंदी · English', s3: 'प्रत्येक सोसायटीची माहिती खाजगी', s4: '5 मिनिटांत सुरुवात',
+    fh: 'समितीचे रोजचे काम, सोपे', fs: 'Excel, वह्या आणि WhatsApp ग्रुपमधला गोंधळ संपवा. एकाच ठिकाणी सगळं.',
+    f1h: 'देखभाल वसुली व UPI', f1p: 'प्रत्येक सदनिकेची थकबाकी आपोआप. सभासद ॲपमधून UPI ने थेट सोसायटीच्या खात्यात भरतात, समिती एका टॅपने मंजूर करते.',
+    f2h: 'WhatsApp आठवण', f2p: 'थकबाकीदारांना नाव आणि रकमेसह तयार संदेश, एका टॅपमध्ये WhatsApp वर.',
+    f3h: 'सूचना व इतिवृत्त', f3p: 'पाणी बंद, सभा, दुरुस्ती: तयार मसुदे. सोसायटीच्या लेटरहेडवर चित्र, WhatsApp वर शेअर.',
+    f4h: 'वर्गणी', f4p: 'गणेशोत्सव, दिवाळी, दुरुस्ती निधी. कोणी भरली, किती जमली, सगळ्यांना पारदर्शकपणे दिसते.',
+    f5h: 'घोषणा', f5p: 'महत्त्वाचे संदेश सर्व सभासदांच्या ॲपमध्ये, सर्वात वर. WhatsApp ग्रुपमध्ये हरवत नाहीत.',
+    f6h: 'फाइल्स व नोंदी', f6p: 'उपविधी, ऑडिट अहवाल, बिले, इतिवृत्त. फोल्डरनुसार, "फक्त समिती" पर्यायासह.',
+    f7h: 'समिती व संपर्क', f7p: '12 समिती सदस्य, वॉचमन, प्लंबर, इलेक्ट्रिशियन, आपत्कालीन क्रमांक. टॅप करून कॉल.',
+    f8h: 'तक्रारी', f8p: 'सभासद ॲपमधून तक्रार नोंदवतात, समिती "सोडवली" करते. सगळ्याची नोंद राहते.',
+    f9h: 'डॅशबोर्ड व Excel', f9p: 'वसुली, थकबाकी, बँक शिल्लक एका नजरेत. संपूर्ण हिशोब Excel मध्ये डाउनलोड.',
+    gh: 'असे दिसते ॲप', gs: 'समिती आणि सभासद, दोघांसाठी सोपे आणि स्वच्छ.',
+    g1: 'समितीचा डॅशबोर्ड', g2: 'सभासदाचे मुख्य पान', g3: 'घोषणा', g4: 'समिती', g5: 'वर्गणी', g6: 'फाइल्स',
+    hh: 'तीन पायऱ्यांत सुरुवात', hs: 'तांत्रिक ज्ञानाची गरज नाही.',
+    h1h: 'सोसायटी नोंदवा', h1p: 'नाव, मासिक शुल्क, UPI आयडी आणि सदनिकांची यादी (Excel मधून पेस्ट).',
+    h2h: 'जॉइन कोड पाठवा', h2p: 'सोसायटीच्या WhatsApp ग्रुपवर कोड पाठवा. सभासद ॲप इन्स्टॉल करून जॉइन होतात.',
+    h3h: 'वसुली ॲपमधून', h3p: 'सभासद UPI ने भरतात, तुम्ही मंजूर करता. सूचना, वर्गणी, तक्रारी सगळं इथेच.',
+    ph: 'सोपी किंमत', ps: 'संपूर्ण सोसायटीसाठी एक किंमत. सभासद कितीही असोत.',
+    b1: '30 दिवस मोफत', b1s: 'सर्व सुविधा, कोणतेही बंधन नाही', b2: '₹0 कमिशन', b2s: 'सभासदांचे पैसे थेट सोसायटीच्या खात्यात',
+    ptag: 'पहिला महिना मोफत', pper: ' / महिना', pnote: 'प्रति सोसायटी, सर्व सदनिकांसाठी',
+    p1: 'सर्व सभासद मोफत वापरतात', p2: 'वसुली, सूचना, वर्गणी, फाइल्स, तक्रारी', p3: 'मराठी, हिंदी, English', p4: 'फोनवर मदत आणि प्रशिक्षण',
+    qh: 'नेहमीचे प्रश्न',
+    q1: 'सभासदांचे पैसे कुठे जातात?', a1: 'थेट तुमच्या सोसायटीच्या UPI आयडी / बँक खात्यात. Sachiv पैसे हाताळत नाही आणि कोणतेही कमिशन घेत नाही.',
+    q2: 'सभासदांना पैसे द्यावे लागतात का?', a2: 'नाही. ₹300 दरमहा फक्त सोसायटी भरते. सर्व सभासद ॲप मोफत वापरतात.',
+    q3: 'किती सदनिका चालतात?', a3: '10 पासून 500+ सदनिका. विंग्स आणि सदनिका क्रमांक तुमच्या पद्धतीने.',
+    q4: 'आमची माहिती सुरक्षित आहे का?', a4: 'हो. माहिती Google Firebase वर सुरक्षित राहते. प्रत्येक सोसायटीची माहिती फक्त त्या सोसायटीच्या सदस्यांना दिसते, आणि सभासदाला फक्त स्वतःच्या सदनिकेचा हिशोब दिसतो.',
+    q5: 'जुनी थकबाकी कशी भरायची?', a5: 'सदनिका यादी भरताना प्रत्येक सदनिकेची जुनी थकबाकी लिहा. Excel मधून थेट पेस्ट करता येते.',
+    q6: 'ॲप कसे मिळेल?', a6: 'सध्या Android ॲप या पानावरून डाउनलोड करा. लवकरच Google Play Store वर. WhatsApp करा, आम्ही सेटअपसाठी मदत करू.',
+    eh: 'तुमच्या सोसायटीसाठी मोफत डेमो', es: 'WhatsApp करा. 15 मिनिटांत तुमची सोसायटी ॲपवर सुरू करून देऊ.',
+    priv: 'गोपनीयता धोरण', del: 'खाते हटवा', wa: 'नमस्कार, मला आमच्या सोसायटीसाठी Sachiv ॲपचा मोफत डेमो हवा आहे. सोसायटीचे नाव: '
+  },
+  hi: {
+    navcta: 'फ्री डेमो', kick: 'हाउसिंग सोसायटियों के लिए', h1: 'सोसायटी की वसूली, सूचनाएँ और हिसाब <em>एक ऐप में।</em>',
+    lead: 'सचिव और कोषाध्यक्ष का घंटों का काम अब कुछ मिनटों में। मेंटेनेंस सीधे सोसायटी के UPI खाते में, बकाया रिमाइंडर WhatsApp पर एक टैप में।',
+    cta1: '30 दिन फ्री शुरू करें', cta2: 'ऐप डाउनलोड करें (Android)', note: 'कार्ड नहीं, कमीशन नहीं। सदस्यों के लिए पूरी तरह फ्री।',
+    s1: 'पैसा सीधे सोसायटी के खाते में', s2: 'मराठी · हिंदी · English', s3: 'हर सोसायटी का डेटा निजी', s4: '5 मिनट में शुरुआत',
+    fh: 'समिति का रोज़ का काम, आसान', fs: 'Excel, रजिस्टर और WhatsApp ग्रुप की उलझन खत्म। सब एक जगह।',
+    f1h: 'मेंटेनेंस वसूली और UPI', f1p: 'हर फ्लैट का बकाया अपने आप। सदस्य ऐप से UPI द्वारा सीधे सोसायटी के खाते में भरते हैं, समिति एक टैप में मंज़ूर करती है।',
+    f2h: 'WhatsApp रिमाइंडर', f2p: 'बकायादारों को नाम और राशि के साथ तैयार संदेश, एक टैप में WhatsApp पर।',
+    f3h: 'सूचना और कार्यवृत्त', f3p: 'पानी बंद, सभा, मरम्मत: तैयार ड्राफ़्ट। सोसायटी के लेटरहेड पर चित्र, WhatsApp पर शेयर।',
+    f4h: 'चंदा', f4p: 'गणेशोत्सव, दिवाली, मरम्मत फंड। किसने दिया, कितना जमा हुआ, सबको पारदर्शी रूप से दिखता है।',
+    f5h: 'घोषणाएँ', f5p: 'ज़रूरी संदेश सभी सदस्यों के ऐप में, सबसे ऊपर। WhatsApp ग्रुप में खोते नहीं।',
+    f6h: 'फ़ाइलें और रिकॉर्ड', f6p: 'उपनियम, ऑडिट रिपोर्ट, बिल, कार्यवृत्त। फ़ोल्डर के अनुसार, "सिर्फ़ समिति" विकल्प के साथ।',
+    f7h: 'समिति और संपर्क', f7p: '12 समिति सदस्य, वॉचमैन, प्लंबर, इलेक्ट्रीशियन, आपातकालीन नंबर। टैप करके कॉल।',
+    f8h: 'शिकायतें', f8p: 'सदस्य ऐप से शिकायत दर्ज करते हैं, समिति "सुलझ गई" करती है। सबका रिकॉर्ड रहता है।',
+    f9h: 'डैशबोर्ड और Excel', f9p: 'वसूली, बकाया, बैंक बैलेंस एक नज़र में। पूरा हिसाब Excel में डाउनलोड।',
+    gh: 'ऐसा दिखता है ऐप', gs: 'समिति और सदस्य, दोनों के लिए आसान और साफ़।',
+    g1: 'समिति डैशबोर्ड', g2: 'सदस्य होम', g3: 'घोषणाएँ', g4: 'समिति', g5: 'चंदा', g6: 'फ़ाइलें',
+    hh: 'तीन कदम में शुरुआत', hs: 'तकनीकी जानकारी की ज़रूरत नहीं।',
+    h1h: 'सोसायटी रजिस्टर करें', h1p: 'नाम, मासिक शुल्क, UPI आईडी और फ्लैटों की सूची (Excel से पेस्ट)।',
+    h2h: 'जॉइन कोड भेजें', h2p: 'सोसायटी के WhatsApp ग्रुप पर कोड भेजें। सदस्य ऐप इंस्टॉल करके जुड़ते हैं।',
+    h3h: 'वसूली ऐप से', h3p: 'सदस्य UPI से भरते हैं, आप मंज़ूर करते हैं। सूचना, चंदा, शिकायतें सब यहीं।',
+    ph: 'आसान कीमत', ps: 'पूरी सोसायटी के लिए एक कीमत। सदस्य कितने भी हों।',
+    b1: '30 दिन फ्री', b1s: 'सभी सुविधाएँ, कोई बंधन नहीं', b2: '₹0 कमीशन', b2s: 'सदस्यों का पैसा सीधे सोसायटी के खाते में',
+    ptag: 'पहला महीना फ्री', pper: ' / महीना', pnote: 'प्रति सोसायटी, सभी फ्लैटों के लिए',
+    p1: 'सभी सदस्य फ्री इस्तेमाल करते हैं', p2: 'वसूली, सूचना, चंदा, फ़ाइलें, शिकायतें', p3: 'मराठी, हिंदी, English', p4: 'फ़ोन पर मदद और ट्रेनिंग',
+    qh: 'अक्सर पूछे जाने वाले सवाल',
+    q1: 'सदस्यों का पैसा कहाँ जाता है?', a1: 'सीधे आपकी सोसायटी की UPI आईडी / बैंक खाते में। Sachiv पैसे नहीं संभालता और कोई कमीशन नहीं लेता।',
+    q2: 'क्या सदस्यों को पैसे देने होंगे?', a2: 'नहीं। ₹300 प्रति माह सिर्फ़ सोसायटी देती है। सभी सदस्य ऐप फ्री इस्तेमाल करते हैं।',
+    q3: 'कितने फ्लैट चलेंगे?', a3: '10 से 500+ फ्लैट। विंग और फ्लैट नंबर आपके तरीके से।',
+    q4: 'क्या हमारा डेटा सुरक्षित है?', a4: 'हाँ। डेटा Google Firebase पर सुरक्षित रहता है। हर सोसायटी का डेटा सिर्फ़ उसी सोसायटी के सदस्यों को दिखता है, और सदस्य को सिर्फ़ अपने फ्लैट का हिसाब दिखता है।',
+    q5: 'पुराना बकाया कैसे भरें?', a5: 'फ्लैट सूची भरते समय हर फ्लैट का पुराना बकाया लिखें। Excel से सीधे पेस्ट कर सकते हैं।',
+    q6: 'ऐप कैसे मिलेगा?', a6: 'अभी Android ऐप इस पेज से डाउनलोड करें। जल्द ही Google Play Store पर। WhatsApp करें, हम सेटअप में मदद करेंगे।',
+    eh: 'आपकी सोसायटी के लिए फ्री डेमो', es: 'WhatsApp करें। 15 मिनट में आपकी सोसायटी ऐप पर शुरू कर देंगे।',
+    priv: 'गोपनीयता नीति', del: 'खाता हटाएँ', wa: 'नमस्ते, मुझे हमारी सोसायटी के लिए Sachiv ऐप का फ्री डेमो चाहिए। सोसायटी का नाम: '
+  },
+  en: {
+    navcta: 'Free demo', kick: 'For housing societies', h1: 'Society collections, notices and accounts, <em>in one app.</em>',
+    lead: 'Hours of secretary and treasurer work, done in minutes. Maintenance goes straight to the society\'s UPI account, and dues reminders go out on WhatsApp in one tap.',
+    cta1: 'Start 30 days free', cta2: 'Download the app (Android)', note: 'No card, no commission. Completely free for residents.',
+    s1: 'Money goes straight to the society', s2: 'मराठी · हिंदी · English', s3: 'Every society\'s data is private', s4: 'Set up in 5 minutes',
+    fh: 'Everyday committee work, made simple', fs: 'No more juggling Excel, registers and WhatsApp groups. Everything in one place.',
+    f1h: 'Maintenance & UPI', f1p: 'Dues for every flat, calculated automatically. Residents pay by UPI straight into the society account; the committee approves in one tap.',
+    f2h: 'WhatsApp reminders', f2p: 'Ready messages with name and amount for every flat with dues, sent on WhatsApp in one tap.',
+    f3h: 'Notices & minutes', f3p: 'Water cut, meeting, repairs: ready drafts, printed on your society letterhead and shared on WhatsApp.',
+    f4h: 'Fund collections', f4p: 'Ganeshotsav, Diwali, repair funds. Who paid and how much was collected, visible to everyone.',
+    f5h: 'Announcements', f5p: 'Important messages pinned in every resident\'s app. Nothing gets lost in the WhatsApp group.',
+    f6h: 'Files & records', f6p: 'Bye-laws, audit reports, bills and minutes, in folders, with a "committee only" option.',
+    f7h: 'Committee & contacts', f7p: '12 committee members, watchman, plumber, electrician and emergency numbers. Tap to call.',
+    f8h: 'Complaints', f8p: 'Residents raise complaints in the app; the committee marks them resolved. Everything is on record.',
+    f9h: 'Dashboard & Excel', f9p: 'Collections, dues and bank balance at a glance. Download the full ledger in Excel.',
+    gh: 'See the app', gs: 'Simple and clean for both the committee and residents.',
+    g1: 'Committee dashboard', g2: 'Resident home', g3: 'Announcements', g4: 'Committee', g5: 'Fund collection', g6: 'Files',
+    hh: 'Start in three steps', hs: 'No technical knowledge needed.',
+    h1h: 'Register your society', h1p: 'Name, monthly charge, UPI ID and your flat list (paste from Excel).',
+    h2h: 'Share the join code', h2p: 'Send the code on your society WhatsApp group. Residents install the app and join.',
+    h3h: 'Collect in the app', h3p: 'Residents pay by UPI, you approve. Notices, collections and complaints all in one place.',
+    ph: 'Simple pricing', ps: 'One price for the whole society, however many residents.',
+    b1: '30 days free', b1s: 'Every feature, no commitment', b2: '₹0 commission', b2s: 'Residents\' money goes straight to the society',
+    ptag: 'First month free', pper: ' / month', pnote: 'Per society, all flats included',
+    p1: 'All residents use it free', p2: 'Collections, notices, funds, files, complaints', p3: 'Marathi, Hindi, English', p4: 'Help and training by phone',
+    qh: 'Common questions',
+    q1: 'Where does residents\' money go?', a1: 'Straight to your society\'s UPI ID / bank account. Sachiv never handles the money and takes no commission.',
+    q2: 'Do residents have to pay?', a2: 'No. Only the society pays ₹300 a month. All residents use the app free.',
+    q3: 'How many flats does it support?', a3: 'From 10 to 500+ flats, with wings and flat numbers your way.',
+    q4: 'Is our data safe?', a4: 'Yes. Data is stored securely on Google Firebase. Each society\'s data is visible only to its own members, and a resident sees only their own flat\'s account.',
+    q5: 'How do we add old dues?', a5: 'Enter each flat\'s old dues when you add the flat list. You can paste straight from Excel.',
+    q6: 'How do we get the app?', a6: 'Download the Android app from this page today; it is coming to Google Play soon. Message us on WhatsApp and we\'ll help you set up.',
+    eh: 'Free demo for your society', es: 'Message us on WhatsApp. We\'ll get your society running on the app in 15 minutes.',
+    priv: 'Privacy policy', del: 'Delete account', wa: 'Hello, I\'d like a free demo of the Sachiv app for our society. Society name: '
+  }
+};
+let L = 'mr';
+try { const s = localStorage.getItem('sachiv-site-lang'); if (T[s]) L = s; else if (/^hi/i.test(navigator.language)) L = 'hi'; } catch (e) {}
+function apply() {
+  const d = T[L];
+  document.documentElement.lang = L;
+  document.querySelectorAll('[data-t]').forEach(el => { const v = d[el.dataset.t]; if (v != null) el.innerHTML = v; });
+  document.querySelectorAll('[data-l]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === L)));
+  const href = 'https://wa.me/' + PHONE + '?text=' + encodeURIComponent(d.wa);
+  document.querySelectorAll('[data-wa]').forEach(a => { a.href = href; a.target = '_blank'; a.rel = 'noopener'; });
+}
+document.querySelectorAll('[data-l]').forEach(b => b.addEventListener('click', () => { L = b.dataset.l; try { localStorage.setItem('sachiv-site-lang', L); } catch (e) {} apply(); }));
+apply();
+</script>
+</body>
+</html>
