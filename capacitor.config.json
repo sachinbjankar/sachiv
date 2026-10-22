@@ -2,5 +2,5 @@
   "appId": "in.sachiv.app",
   "appName": "Sachiv",
   "webDir": "dist",
-  "android": { "backgroundColor": "#0A0A0B" }
+  "android": { "backgroundColor": "#FFFFFF" }
 }

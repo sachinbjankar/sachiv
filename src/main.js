@@ -4,6 +4,14 @@ import '@fontsource/hind/devanagari-700.css';
 import '@fontsource/hind/400.css';
 import '@fontsource/hind/600.css';
 import '@fontsource/hind/700.css';
+import '@fontsource/mukta/devanagari-400.css';
+import '@fontsource/mukta/devanagari-600.css';
+import '@fontsource/mukta/devanagari-700.css';
+import '@fontsource/mukta/devanagari-800.css';
+import '@fontsource/mukta/latin-400.css';
+import '@fontsource/mukta/latin-600.css';
+import '@fontsource/mukta/latin-700.css';
+import '@fontsource/mukta/latin-800.css';
 import '@fontsource/tiro-devanagari-marathi/devanagari-400.css';
 import '@fontsource/tiro-devanagari-marathi/400.css';
 import './style.css';
@@ -67,6 +75,8 @@ const IC = {
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
   down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',
+  bank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   rupee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12M6 9h12M9 4c3 0 5 1.6 5 5s-2 5-5 5H6l8 7"/></svg>'
 };
@@ -195,14 +205,14 @@ function render() {
   if (S.member.status !== 'active') { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = viewPending(sname); return; }
   head.innerHTML = topBar(S.society.name);
   const TABS = isAdmin()
-    ? [['home', T('डॅशबोर्ड'), IC.home], ['ledger', T('खाते'), IC.ledger], ['messages', T('संदेश'), IC.mega], ['files', T('फाइल्स'), IC.folder], ['more', T('अधिक'), IC.grid]]
-    : [['home', T('मुख्य'), IC.home], ['messages', T('संदेश'), IC.mega], ['files', T('फाइल्स'), IC.folder], ['more', T('अधिक'), IC.grid]];
-  if (!TABS.some(t => t[0] === S.tab) && !SUBPAGES[S.tab]) S.tab = 'home';
+    ? [['home', T('मुख्य'), IC.home], ['ledger', T('खाते'), IC.ledger], ['+'], ['messages', T('संदेश'), IC.mega], ['more', T('अधिक'), IC.grid]]
+    : [['home', T('मुख्य'), IC.home], ['messages', T('संदेश'), IC.mega], ['+'], ['files', T('फाइल्स'), IC.folder], ['more', T('अधिक'), IC.grid]];
+  if (!TABS.some(t => t[0] === S.tab) && !SUBPAGES[S.tab] && S.tab !== 'files') S.tab = 'home';
   if (S.tab === 'members' && !isAdmin()) S.tab = 'more';
   if (S.tab === 'messages') LS.set(seenKey(), String(Date.now()));
   const navOn = SUBPAGES[S.tab] ? 'more' : S.tab;
   const badge = k => (k === 'home' && isAdmin() && pendingCount()) || (k === 'messages' && unreadCount()) ? `<i class="dot" aria-label="${T('नवीन')}"></i>` : '';
-  tabs.innerHTML = `<nav aria-label="${T('मुख्य मेनू')}" style="grid-template-columns:repeat(${TABS.length},minmax(0,1fr))">${TABS.map(([k, l, ic]) => `<button type="button" data-tab="${k}" ${k === navOn ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${badge(k)}</button>`).join('')}</nav>`;
+  tabs.innerHTML = `<nav aria-label="${T('मुख्य मेनू')}" style="grid-template-columns:repeat(${TABS.length},minmax(0,1fr))">${TABS.map(([k, l, ic]) => k === '+' ? `<button class="fab" type="button" data-act="quick" aria-label="${T('झटपट कामे')}"><span class="fabi">${IC.plus}</span></button>` : `<button type="button" data-tab="${k}" ${k === navOn ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${badge(k)}</button>`).join('')}</nav>`;
   const views = isAdmin()
     ? { home: aHome, ledger: aLedger, messages: vMessages, files: vFiles, more: vMore, committee: vCommittee, contacts: vContacts, funds: vFunds, complaints: vComplaints, members: aMembers, me: vMe }
     : { home: rHome, messages: vMessages, files: vFiles, more: vMore, committee: vCommittee, contacts: vContacts, funds: vFunds, complaints: vComplaints, me: vMe };
@@ -210,7 +220,7 @@ function render() {
   v.innerHTML = SUBPAGES[S.tab] ? `<button class="backbtn" type="button" data-tab="more">${IC.back}<span>${T('अधिक')}</span></button>${pageTitle(SUBPAGES[S.tab])}${body}` : body;
 }
 const pendingCount = () => S.claims.filter(c => c.status === 'pending').length + S.members.filter(m => m.status === 'pending').length;
-const topBar = name => `<div class="topbar"><span class="mark" aria-hidden="true">स</span>${name ? `<button class="socbtn" type="button" data-act="switch"><span>${esc(name)}</span>${IC.down}</button>` : '<b class="brandname">Sachiv</b>'}${S.member && S.member.status === 'active' ? `<span class="rolechip">${isAdmin() ? T('समिती') : esc(S.member.flatId || T('सभासद'))}</span>` : ''}</div>`;
+const topBar = name => `<div class="topbar">${name ? `<button class="socbtn" type="button" data-act="switch"><span class="mark" aria-hidden="true">स</span><span class="sn">${esc(name)}</span>${IC.down}</button>` : `<span class="mark" aria-hidden="true">स</span><b class="brandname">Sachiv</b>`}${S.member && S.member.status === 'active' ? `<button class="avt" type="button" data-tab="me" aria-label="${T('माझे खाते')}">${esc(initials(S.user && S.user.name))}</button>` : ''}</div>`;
 const pageTitle = (t, kicker) => `<div class="ptitle">${kicker ? `<div class="kicker">${kicker}</div>` : ''}<h1>${t}</h1></div>`;
 const loading = () => `<div class="card empty muted">${T('माहिती आणत आहे…')}</div>`;
 const initials = n => String(n || '?').replace(/^(श्री|सौ|कु|डॉ|Mr|Mrs|Ms|Dr)\.?\s*/i, '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
@@ -273,7 +283,7 @@ const TILE_DEFS = {
   agm: { label: T('वार्षिक सभा') },
   files: { label: T('फाइल्स') }
 };
-const DEFAULT_TILES = ['collection', 'actions', 'dues', 'balance', 'funds', 'complaints', 'members', 'announce', 'agm', 'files'];
+const DEFAULT_TILES = ['collection', 'dues', 'balance', 'funds', 'complaints', 'members', 'announce', 'committee', 'agm', 'files', 'actions'];
 const dashCfg = () => (S.society && S.society.dashboard) || {};
 const dashTiles = () => Array.isArray(dashCfg().tiles) ? dashCfg().tiles.filter(k => TILE_DEFS[k]) : DEFAULT_TILES;
 const fundCollected = f => Object.values(f.paid || {}).reduce((a, p) => a + (Number(p.amount) || 0), 0);
@@ -282,20 +292,17 @@ function tile(k) {
   const s = monthSummary(thisMonth), n = flats().length;
   switch (k) {
     case 'collection': {
-      const pct = n ? Math.round(s.clear / n * 100) : 0;
-      return `<button class="card tile-card wide btnlike" type="button" data-tab-go="ledger"><div class="row g16">
-        <div class="ringwrap">${ring(pct)}<b class="ringnum num">${pct}<small>%</small></b></div>
-        <div class="grow"><span class="kicker">${MONTHS[now.getMonth()]} · ${T('वसुली')}</span><b class="num xl good">${rs(s.collected)}</b><span class="small muted">${s.clear} / ${n} ${T('सदनिका थकबाकीमुक्त')}</span></div></div></button>`;
+      const pendFlats = new Set(S.claims.filter(c => c.status === 'pending' && !c.fundId).map(c => c.flatId));
+      const paid = s.clear, pend = flats().filter(f => pendFlats.has(f.id) && dueFor(f.id, thisMonth) > 0).length, left = Math.max(0, s.dueFlats - pend);
+      const exp = s.collected + s.dueTotal;
+      return `<button class="card tile-card hero-tile wide btnlike" type="button" data-tab-go="ledger">
+        <span class="kicker">${T('या महिन्याची वसुली')}</span><b class="num xl">${rs(s.collected)}</b><span class="small muted">${T('एकूण अपेक्षित {0} पैकी', rs(exp))}</span>
+        <span class="segbar"><i style="flex:${paid || 0.0001};background:var(--butter)"></i><i style="flex:${pend || 0.0001};background:var(--mint)"></i><i style="flex:${left || 0.0001};background:rgba(255,255,255,.2)"></i></span>
+        <span class="legend"><span><span class="d" style="background:var(--butter)"></span>${T('भरले')} <b>${paid}</b></span><span><span class="d" style="background:var(--mint)"></span>${T('मंजुरी')} <b>${pend}</b></span><span><span class="d" style="background:rgba(255,255,255,.45)"></span>${T('बाकी')} <b>${left}</b></span></span></button>`;
     }
-    case 'actions': return `<div class="card wide"><span class="kicker">${T('झटपट कामे')}</span><div class="actions">
-        <button type="button" data-act="newmsg">${IC.mega}<span>${T('घोषणा')}</span></button>
-        <button type="button" data-act="newnotice">${IC.doc}<span>${T('सूचना')}</span></button>
-        <button type="button" data-act="newminutes">${IC.doc}<span>${T('इतिवृत्त')}</span></button>
-        <button type="button" data-act="reminders">${IC.wa}<span>${T('आठवण')}</span></button>
-        <button type="button" data-act="newfund">${IC.coins}<span>${T('वर्गणी')}</span></button>
-        <button type="button" data-act="upload">${IC.folder}<span>${T('फाइल')}</span></button></div></div>`;
-    case 'dues': return `<button class="card tile-card btnlike" type="button" data-tab-go="ledger"><span class="kicker">${T('एकूण थकबाकी')}</span><b class="num lg bad">${rs(s.dueTotal)}</b><span class="small muted">${T('{0} सदनिका', s.dueFlats)}</span></button>`;
-    case 'balance': { const d = dashCfg(); return `<button class="card tile-card btnlike" type="button" data-act="dashcfg"><span class="kicker">${T('बँक शिल्लक')}</span>${d.bank != null && d.bank !== '' ? `<b class="num lg">${rs(d.bank)}</b><span class="small muted">${d.fd ? `${T('मुदत ठेव')} ` + rs(d.fd) + ' · ' : ''}${d.asOf ? fmtDate(d.asOf) : ''}</span>` : `<b class="lg dim">—</b><span class="small gold">${T('शिल्लक भरा')} ›</span>`}</button>`; }
+    case 'actions': return `<div class="card wide"><span class="kicker">${T('झटपट कामे')}</span>${quickGrid()}</div>`;
+    case 'dues': return `<button class="card tile-card btnlike" type="button" data-tab-go="ledger"><span class="kicker">${IC.alert}${T('थकबाकी')}</span><b class="num lg bad">${rs(s.dueTotal)}</b><span class="small muted">${T('{0} सदनिका', s.dueFlats)}</span></button>`;
+    case 'balance': { const d = dashCfg(); return `<button class="card tile-card gold btnlike" type="button" data-act="dashcfg"><span class="kicker">${IC.bank}${T('बँक शिल्लक')}</span>${d.bank != null && d.bank !== '' ? `<b class="num lg">${rs(d.bank)}</b><span class="small muted">${d.fd ? `${T('मुदत ठेव')} ` + rs(d.fd) + ' · ' : ''}${d.asOf ? fmtDate(d.asOf) : ''}</span>` : `<b class="lg dim">—</b><span class="small gold">${T('शिल्लक भरा')} ›</span>`}</button>`; }
     case 'funds': {
       const open = S.funds.filter(f => f.status !== 'closed');
       if (!open.length) return `<button class="card tile-card wide btnlike row between" type="button" data-act="newfund"><span><span class="kicker">${T('वर्गणी')}</span><b>${T('सध्या कोणतीही वर्गणी सुरू नाही')}</b></span><span class="gold small">+ ${T('नवीन')}</span></button>`;
@@ -313,7 +320,7 @@ function tile(k) {
 function aHome() {
   const pc = S.claims.filter(c => c.status === 'pending'), pm = S.members.filter(m => m.status === 'pending');
   return `
-    ${pageTitle(T('डॅशबोर्ड'), `${T('नमस्कार')}, ` + esc((S.user.name || '').split(' ')[0]))}
+    ${pageTitle(T('डॅशबोर्ड'), `${T('समिती')} · ${MONTHS[now.getMonth()]} ${now.getFullYear()}`)}
     ${planBanner(false)}
     ${!flats().length ? `<div class="card accent stack"><b>${T('पहिली पायरी: सदनिकांची यादी भरा')}</b><span class="small">${T('खाते आणि आठवणी सुरू करण्यासाठी सदनिका जोडा.')}</span><button class="btn primary" type="button" data-act="setup">${T('सदनिका जोडा')}</button></div>` : ''}
     ${pc.length ? `<h2>${T('मंजुरीसाठी भरणा')} · ${pc.length}</h2><ul class="list">${pc.map(c => `<li><span class="flat">${esc(c.flatId)}</span><span class="grow"><b class="num">${rs(c.amount)}</b><span class="tiny muted">${esc(c.name || '')} · ${c.fundId ? `${T('वर्गणी')}: ` + esc(c.fundTitle || '') : monthName(c.month)}${c.ref ? ' · UTR ' + esc(c.ref) : ''}</span></span><span class="row g6"><button class="btn small good" type="button" data-claim-ok="${c.id}">${T('मंजूर')}</button><button class="btn small ghost" type="button" data-claim-no="${c.id}" aria-label="${T('नाकारा')}">✕</button></span></li>`).join('')}</ul>` : ''}
@@ -367,7 +374,7 @@ const fundRow = f => {
   const mine = S.member && S.member.flatId && (f.paid || {})[S.member.flatId];
   return `<button class="fundrow btnlike" type="button" data-fund="${f.id}"><span class="row between"><b>${esc(f.title)}</b><span class="num small">${rs(got)}${tgt ? ` <span class="muted">/ ${rs(tgt)}</span>` : ''}</span></span>
     <span class="bar"><i style="width:${pct}%"></i></span>
-    <span class="row between tiny muted"><span>${T('{0} सदनिकांनी भरली', cnt)}${f.perFlat ? ` · ${T('{0} प्रति सदनिका', rs(f.perFlat))}` : ''}</span>${!isAdmin() && S.member.flatId ? (mine ? `<span class="good">✓ ${T('तुम्ही भरली')}</span>` : `<span class="gold">${T('भरा')} ›</span>`) : (f.due ? `<span>${T('{0} पर्यंत', fmtDate(f.due))}</span>` : '')}</span></button>`;
+    <span class="row between tiny muted"><span>${T('{0} सदनिकांनी भरली', cnt)}${f.perFlat ? ` · ${T('{0} प्रति सदनिका', rs(f.perFlat))}` : ''}</span>${!isAdmin() && S.member.flatId ? (mine ? `<span class="good">✓ ${T('तुम्ही भरली')}</span>` : `<span class="pill go">${f.perFlat ? T('{0} भरा', rs(f.perFlat)) : T('भरा')}</span>`) : (f.due ? `<span>${T('{0} पर्यंत', fmtDate(f.due))}</span>` : '')}</span></button>`;
 };
 function rHome() {
   const f = flats().find(x => x.id === S.member.flatId);
@@ -375,11 +382,8 @@ function rHome() {
   const imp = S.messages.find(m => m.pinned) || S.messages.find(m => m.important);
   const extra = `
     ${imp ? `<button class="card msg ${imp.important ? 'important' : ''} btnlike" type="button" data-tab-go="messages"><span class="kicker">${imp.pinned ? IC.pin + ' ' : ''}${imp.important ? T('महत्त्वाची घोषणा') : T('घोषणा')} · ${ago(imp.createdAt)}</span><span class="clamp">${esc(imp.text)}</span></button>` : ''}
-    ${openFunds.length ? `<div class="card stack"><span class="kicker">${T('वर्गणी')}</span>${openFunds.map(fundRow).join('')}</div>` : ''}
-    <div class="grid2">
-      <button class="card tile-card btnlike" type="button" data-tab-go="committee">${IC.badge}<b>${T('समिती')}</b><span class="small muted">${T('{0} सदस्य', committeeList().length)}</span></button>
-      <button class="card tile-card btnlike" type="button" data-tab-go="contacts">${IC.phone}<b>${T('संपर्क')}</b><span class="small muted">${T('महत्त्वाचे क्रमांक')}</span></button>
-    </div>`;
+    <div class="actions"><button type="button" data-tab-go="committee">${IC.badge}<span>${T('समिती')}</span></button><button type="button" data-tab-go="contacts">${IC.phone}<span>${T('संपर्क')}</span></button><button type="button" data-act="newcomplaint">${IC.chat}<span>${T('तक्रार')}</span></button><button type="button" data-tab-go="funds">${IC.coins}<span>${T('वर्गणी')}</span></button></div>
+    ${openFunds.length ? `<h2>${T('वर्गणी')}</h2><div class="card stack">${openFunds.map(fundRow).join('')}</div>` : ''}`;
   if (!f) return `${pageTitle(`${T('नमस्कार')}, ` + esc((S.user.name || '').split(' ')[0]))}<div class="card stack"><b>${T('सदनिका जोडलेली नाही')}</b><span class="small muted">${T('समितीने तुमची सदनिका यादीत जोडल्यावर तुमची थकबाकी इथे दिसेल.')}</span></div>${extra}`;
   const P = (S.myAccount && S.myAccount.payments) || {}, due = dueFor(f.id, thisMonth, P), n = monthsDue(due);
   const pending = S.claims.filter(c => c.status === 'pending' && !c.fundId);
@@ -392,8 +396,7 @@ function rHome() {
       <span class="kicker">${T('देखभाल शुल्क')}</span>
       ${due > 0 ? `<b class="num huge">${rs(due)}</b><span class="small muted">${T('थकबाकी')}${n > 1 ? ` · ${n} ${T('महिने')}` : ''} · ${rs(monthly())} ${T('दरमहा')}</span>` : `<b class="huge good">${T('सर्व भरलेले')} ✓</b><span class="small muted">${T('{0} पर्यंत कोणतीही थकबाकी नाही', MONTHS[now.getMonth()])}</span>`}
       ${pendSum ? `<span class="pill wait">${T('{0} समितीच्या मंजुरीसाठी', rs(pendSum))}</span>` : ''}
-      ${S.society.upi ? `<button class="btn primary block" type="button" data-act="pay" data-amt="${payable || monthly()}">${payable > 0 ? T('{0} भरा', rs(payable)) : T('पुढील महिन्याचे {0} आगाऊ भरा', rs(monthly()))}</button>
-        <button class="link" type="button" data-act="ipaid">${T('आधीच भरले? नोंद करा')}</button>` : `<span class="small muted">${T('समितीने अजून UPI आयडी जोडलेला नाही. समितीकडे थेट भरा.')}</span>`}
+      ${S.society.upi ? `<div class="hbtns"><button class="btn primary" type="button" data-act="pay" data-amt="${payable || monthly()}">${payable > 0 ? T('UPI ने भरा') : T('आगाऊ भरा')}</button><button class="btn ghost" type="button" data-act="ipaid">${T('भरले? नोंद करा')}</button></div>` : `<span class="small muted">${T('समितीने अजून UPI आयडी जोडलेला नाही. समितीकडे थेट भरा.')}</span>`}
     </div>
     ${S.claims.filter(c => c.status !== 'pending').slice(0, 2).map(c => `<div class="card small row between"><span>${c.fundId ? esc(c.fundTitle || T('वर्गणी')) : monthName(c.month)} · ${rs(c.amount)}</span><span class="pill ${c.status === 'approved' ? 'ok' : 'due'}">${c.status === 'approved' ? T('मंजूर') : T('नाकारले')}</span></div>`).join('')}
     ${extra}
@@ -462,6 +465,22 @@ function vContacts() {
     ${CONTACT_CATS.map(cat => { const l = list.filter(c => canon(c.cat || 'सेवा') === cat); return l.length ? `<h2>${T(cat)}</h2><ul class="list">${l.map(c => `<li><span class="grow"><b>${esc(T(c.label))}</b><span class="tiny muted">${esc([c.name, c.phone].filter(Boolean).join(' · '))}</span></span>${telBtn(c.phone, c.label)}</li>`).join('')}</ul>` : ''; }).join('')}`;
 }
 
+/* ---------- quick actions (centre + button) ---------- */
+const QUICK_ADMIN = [['act:newmsg', 'mega', 'घोषणा'], ['act:newnotice', 'doc', 'सूचना'], ['act:newminutes', 'doc', 'इतिवृत्त'], ['act:reminders', 'wa', 'आठवण'],
+  ['act:newfund', 'coins', 'वर्गणी'], ['act:upload', 'folder', 'फाइल'], ['tab:committee', 'badge', 'समिती'], ['tab:contacts', 'phone', 'संपर्क']];
+const QUICK_RES = [['act:pay', 'rupee', 'देखभाल भरा'], ['act:ipaid', 'ledger', 'भरले? नोंद करा'], ['act:newcomplaint', 'chat', 'तक्रार नोंदवा'], ['tab:funds', 'coins', 'वर्गणी'],
+  ['tab:contacts', 'phone', 'संपर्क'], ['tab:committee', 'badge', 'समिती'], ['tab:files', 'folder', 'फाइल्स'], ['tab:messages', 'mega', 'संदेश']];
+const quickGrid = () => `<div class="actions">${(isAdmin() ? QUICK_ADMIN : QUICK_RES).map(([k, ic, l]) => { const [t, v] = k.split(':'); return `<button type="button" ${t === 'act' ? `data-act="${v}"` : `data-tab-go="${v}"`}>${IC[ic]}<span>${T(l)}</span></button>`; }).join('')}</div>`;
+function sheetQuick() {
+  openSheet(`${sheetHead(T('झटपट कामे'))}${quickGrid()}`, el => {
+    el.querySelector('.actions').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      closeSheet();
+      const proxy = document.createElement('button'); Object.assign(proxy.dataset, b.dataset); proxy.hidden = true; document.body.append(proxy); proxy.click(); proxy.remove();
+    });
+  });
+}
+
 /* ---------- funds (वर्गणी) ---------- */
 function vFunds() {
   const open = S.funds.filter(f => f.status !== 'closed'), closed = S.funds.filter(f => f.status === 'closed');
@@ -505,6 +524,7 @@ function vMore() {
     ['contacts', IC.phone, T('महत्त्वाचे संपर्क'), `${contactsList().length} ${T('क्रमांक')}`],
     ['funds', IC.coins, T('वर्गणी'), `${S.funds.filter(f => f.status !== 'closed').length} ${T('सुरू')}`],
     ['complaints', IC.chat, T('तक्रारी'), `${S.complaints.filter(c => c.status !== 'closed').length} ${T('उघड्या')}`],
+    ...(isAdmin() ? [['files', IC.folder, T('फाइल्स'), T('नोंदी आणि कागदपत्रे')]] : []),
     ...(isAdmin() ? [['members', IC.people, T('सभासद व मंजुरी'), `${S.members.filter(m => m.status === 'pending').length} ${T('प्रलंबित')}`]] : []),
     ['me', IC.user, T('माझे खाते'), esc(S.user.email)]
   ];
@@ -1077,6 +1097,7 @@ document.addEventListener('click', async e => {
     else if (d.act === 'reminders') sheetReminders();
     else if (d.act === 'newcomplaint') sheetComplaint();
     else if (d.act === 'newmsg') sheetMessage();
+    else if (d.act === 'quick') sheetQuick();
     else if (d.act === 'editcommittee') sheetCommittee();
     else if (d.act === 'editcontacts') sheetContacts();
     else if (d.act === 'dashcfg') sheetDashboard();

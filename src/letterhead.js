@@ -31,14 +31,14 @@ export async function drawLetterhead(soc, d) {
   const h = Math.max(1754, 480 + blocks.reduce((s, b) => s + b.lines.length * LH + 22, 0) + 280);
   c.width = W; c.height = h;
   ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, h);
-  ctx.fillStyle = '#0E4D64'; ctx.fillRect(0, 0, W, 16); ctx.fillRect(0, h - 16, W, 16);
-  ctx.textAlign = 'center'; ctx.fillStyle = '#0E4D64';
+  ctx.fillStyle = '#0B5D4B'; ctx.fillRect(0, 0, W, 16); ctx.fillRect(0, h - 16, W, 16);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#0B5D4B';
   let y = 120;
   ctx.font = F(52, 700); for (const l of wrapLines(ctx, soc.name, inner)) { ctx.fillText(l, W / 2, y); y += 64; }
   ctx.font = F(26); ctx.fillStyle = '#4A5A62';
   const sub = [soc.address, soc.regNo ? (en ? 'Reg. No. ' : hi ? 'पंजीकरण क्र. ' : 'नोंदणी क्र. ') + soc.regNo : ''].filter(Boolean).join(' · ');
   if (sub) { for (const l of wrapLines(ctx, sub, inner)) { ctx.fillText(l, W / 2, y - 8); y += 34; } }
-  ctx.strokeStyle = '#0E4D64'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(M, y); ctx.lineTo(W - M, y); ctx.stroke();
+  ctx.strokeStyle = '#0B5D4B'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(M, y); ctx.lineTo(W - M, y); ctx.stroke();
   y += 80;
   ctx.fillStyle = isMin ? '#14232B' : '#B3261E'; ctx.font = F(isMin ? 42 : 56, 700);
   for (const l of wrapLines(ctx, d.heading, inner)) { ctx.fillText(l, W / 2, y); y += isMin ? 54 : 66; }

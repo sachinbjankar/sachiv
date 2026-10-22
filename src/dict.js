@@ -415,6 +415,12 @@ export const DICT = {
   '{0} सदनिका': ['{0} फ्लैट', '{0} flats'],
   '{0} सदस्य': ['{0} सदस्य', '{0} members'],
   'इतर सदस्य': ['अन्य सदस्य', 'Other members'],
+  'एकूण अपेक्षित {0} पैकी': ['कुल अपेक्षित {0} में से', 'of {0} expected'],
+  'मंजुरी': ['मंज़ूरी', 'Approval'],
+  'आगाऊ भरा': ['पहले से भरें', 'Pay in advance'],
+  'भरले? नोंद करा': ['भर दिया? दर्ज करें', 'Paid? Report it'],
+  'देखभाल भरा': ['मेंटेनेंस भरें', 'Pay maintenance'],
+  'तक्रार नोंदवा': ['शिकायत दर्ज करें', 'Raise complaint'],
   // stored values shown in the chosen language
   'अध्यक्ष': ['अध्यक्ष', 'Chairman'],
   'उपाध्यक्ष': ['उपाध्यक्ष', 'Vice Chairman'],
