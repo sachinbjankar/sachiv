@@ -292,3 +292,5 @@ body[data-screen="splash"] #head, body[data-screen="splash"] #tabs { display: no
 .upiqr { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .upiqr canvas { width: 230px !important; height: 230px !important; border-radius: 16px; border: 1px solid var(--edge2, #E2E8F0); background: #fff; }
 .upisteps { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.orline { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.orline::before, .orline::after { content: ''; flex: 1; height: 1px; background: var(--edge2, #E2E8F0); }

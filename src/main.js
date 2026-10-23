@@ -836,10 +836,13 @@ function sheetPayChoice() {
 function sheetUpiPay(amount, note, onDone) {
   const link = upiLink({ upi: S.society.upi, name: S.society.nameEn || S.society.name, amount, note });
   openSheet(`${sheetHead(T('{0} भरा', rs(amount)))}
+    <button class="btn primary block" type="button" id="uqOpen">${T('UPI ॲपने भरा')}</button>
+    ${S.society.upiBiz ? '' : `<p class="tiny muted m0">${T('GPay मध्ये "बँक मर्यादा" संदेश आल्यास PhonePe / Paytm / BHIM निवडा, किंवा खालील QR / UPI आयडी वापरा.')}</p>`}
+    <div class="orline small muted">${T('किंवा QR ने भरा')}</div>
     <div class="upiqr"><canvas id="uqC" width="560" height="560" aria-label="UPI QR"></canvas><span class="small muted">${esc(S.society.name)}</span></div>
     <ol class="small upisteps"><li>${T('खालील बटणाने QR गॅलरीत सेव्ह करा.')}</li><li>${T('GPay / PhonePe / Paytm उघडा → Scan → गॅलरीमधून हा QR निवडा.')}</li><li>${T('रक्कम आधीच भरलेली असेल. पैसे पाठवा.')}</li></ol>
+    <button class="btn block" type="button" id="uqSave">${IC.share} ${T('QR सेव्ह / शेअर')}</button>
     <p class="tiny muted m0">${T('किंवा UPI आयडी कॉपी करा → UPI ॲपमध्ये "UPI ID ने पाठवा" → पेस्ट करा → रक्कम टाका.')}</p>
-    ${S.society.upiBiz ? `<div class="grid2"><button class="btn primary" type="button" id="uqOpen">${T('UPI ॲप उघडा')}</button><button class="btn" type="button" id="uqSave">${IC.share} ${T('QR सेव्ह / शेअर')}</button></div>` : `<button class="btn primary block" type="button" id="uqSave">${IC.share} ${T('QR सेव्ह / शेअर')}</button>`}
     <div class="card stack small"><div class="row between"><span class="muted">${T('UPI आयडी')}</span><span class="row g6"><b>${esc(S.society.upi)}</b><button class="iconbtn" type="button" id="uqCopy" aria-label="${T('कॉपी करा')}">${IC.copy}</button></span></div>
       <div class="row between"><span class="muted">${T('रक्कम')}</span><span class="row g6"><b class="num">${rs(amount)}</b><button class="iconbtn" type="button" id="uqCopyA" aria-label="${T('कॉपी करा')}">${IC.copy}</button></span></div></div>
     <button class="btn good block" type="button" id="uqDone">✓ ${T('पैसे पाठवले, नोंद करा')}</button>`, async el => {
