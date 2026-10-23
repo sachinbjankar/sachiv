@@ -238,3 +238,9 @@ nav .dot { position: absolute; top: 5px; left: calc(50% + 7px); width: 8px; heig
 .reqctl { display: flex; gap: 8px; align-items: center; }
 .reqctl select.sm { flex: 1; min-width: 0; min-height: 44px; }
 .reqctl .btn.small { min-height: 44px; }
+
+/* pay several months at once */
+.periods { display: flex; flex-direction: column; gap: 8px; }
+.period { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px 16px; border-radius: 16px; border: 1.5px solid var(--edge2); background: #fff; font: inherit; color: inherit; cursor: pointer; }
+.period[aria-pressed="true"] { border-color: var(--green); background: var(--green-soft); box-shadow: 0 0 0 3px rgba(11, 93, 75, .1); }
+.period .num { font-size: 18px; }

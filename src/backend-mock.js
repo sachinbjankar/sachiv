@@ -84,6 +84,7 @@ export const backend = {
   async updateSociety(sid, data) { store['societies/' + sid] = { ...store['societies/' + sid], ...data }; notify(); },
   async updateMember(sid, uid, data) { const k = `societies/${sid}/members/${uid}`; store[k] = { ...store[k], ...data }; notify(); },
   async removeMember(sid, uid) { delete store[`societies/${sid}/members/${uid}`]; notify(); },
+  async setPayments(sid, flatId, map) { const k = `societies/${sid}/accounts/${flatId}`; store[k] = deepMerge(store[k], { payments: map }); notify(); },
   async setPayment(sid, flatId, month, rec) { const k = `societies/${sid}/accounts/${flatId}`; store[k] = deepMerge(store[k], { payments: { [month]: rec || '__DEL__' } }); notify(); },
   async addClaim(sid, c) { store[`societies/${sid}/claims/${newId()}`] = c; notify(); },
   async updateClaim(sid, id, data) { const k = `societies/${sid}/claims/${id}`; store[k] = { ...store[k], ...data }; notify(); },

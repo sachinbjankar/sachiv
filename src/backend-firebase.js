@@ -142,6 +142,7 @@ export const backend = {
   },
   updateMember: (sid, uid, data) => updateDoc(doc(db, 'societies', sid, 'members', uid), data),
   removeMember: (sid, uid) => deleteDoc(doc(db, 'societies', sid, 'members', uid)),
+  setPayments: (sid, flatId, map) => setDoc(doc(db, 'societies', sid, 'accounts', flatId), { payments: map }, { merge: true }),
   async setPayment(sid, flatId, month, rec) {
     await setDoc(doc(db, 'societies', sid, 'accounts', flatId), { payments: { [month]: rec ? rec : deleteField() } }, { merge: true });
   },

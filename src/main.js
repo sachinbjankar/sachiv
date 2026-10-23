@@ -136,6 +136,27 @@ function monthSummary(m) {
   return { collected, dueTotal, dueFlats, clear: flats().length - dueFlats, paidCount };
 }
 const monthsDue = due => monthly() ? Math.ceil(due / monthly()) : 0;
+// several months at once: pick the oldest months not yet fully paid, then spread the amount over them
+const PERIODS = [1, 2, 3, 6, 12];
+const monthsFrom = (start, n) => Array.from({ length: n }, (_, i) => addMonth(start, i));
+function nextUnpaid(flatId, n, P) {
+  P = P || (S.accounts[flatId] || {}).payments || {};
+  const out = []; let k = S.society.startMonth || thisMonth, guard = 0;
+  while (out.length < n && guard++ < 600) { if ((Number((P[k] || {}).amount) || 0) < monthly()) out.push(k); k = addMonth(k, 1); }
+  return out;
+}
+const rangeLabel = ms => !ms || !ms.length ? '' : ms.length === 1 ? monthName(ms[0]) : `${monthName(ms[0])} – ${monthName(ms[ms.length - 1])} (${T('{0} महिने', ms.length)})`;
+function allocate(flatId, months, total, base) {
+  const P = (S.accounts[flatId] || {}).payments || {}, map = {};
+  let left = Number(total) || 0;
+  months.forEach((m, i) => {
+    const prev = Number((P[m] || {}).amount) || 0;
+    const add = i === months.length - 1 ? left : Math.min(left, Math.max(0, monthly() - prev));
+    left -= add;
+    map[m] = { ...base, amount: prev + add, ...(months.length > 1 ? { grp: months, grpTotal: Number(total) || 0 } : {}) };
+  });
+  return map;
+}
 function reminderText(f, due) {
   const n = monthsDue(due);
   return [T('नमस्कार {0},', f.owner || ''), S.society.name, T('सदनिका {0} ची देखभाल थकबाकी {1} आहे.', f.id, rs(due) + (n > 1 ? ` (${n} ${T('महिने')})` : '')),
@@ -325,7 +346,7 @@ function aHome() {
     ${pageTitle(T('डॅशबोर्ड'), `${T('समिती')} · ${MONTHS[now.getMonth()]} ${now.getFullYear()}`)}
     ${planBanner(false)}
     ${!flats().length ? `<div class="card accent stack"><b>${T('पहिली पायरी: सदनिकांची यादी भरा')}</b><span class="small">${T('खाते आणि आठवणी सुरू करण्यासाठी सदनिका जोडा.')}</span><button class="btn primary" type="button" data-act="setup">${T('सदनिका जोडा')}</button></div>` : ''}
-    ${pc.length ? `<h2>${T('मंजुरीसाठी भरणा')} · ${pc.length}</h2><ul class="list">${pc.map(c => `<li><span class="flat">${esc(c.flatId)}</span><span class="grow"><b class="num">${rs(c.amount)}</b><span class="tiny muted">${esc(c.name || '')} · ${c.fundId ? `${T('वर्गणी')}: ` + esc(c.fundTitle || '') : monthName(c.month)}${c.ref ? ' · UTR ' + esc(c.ref) : ''}</span></span><span class="row g6"><button class="btn small good" type="button" data-claim-ok="${c.id}">${T('मंजूर')}</button><button class="btn small ghost" type="button" data-claim-no="${c.id}" aria-label="${T('नाकारा')}">✕</button></span></li>`).join('')}</ul>` : ''}
+    ${pc.length ? `<h2>${T('मंजुरीसाठी भरणा')} · ${pc.length}</h2><ul class="list">${pc.map(c => `<li><span class="flat">${esc(c.flatId)}</span><span class="grow"><b class="num">${rs(c.amount)}</b><span class="tiny muted">${esc(c.name || '')} · ${c.fundId ? `${T('वर्गणी')}: ` + esc(c.fundTitle || '') : esc(rangeLabel(c.months || [c.month]))}${c.ref ? ' · UTR ' + esc(c.ref) : ''}</span></span><span class="row g6"><button class="btn small good" type="button" data-claim-ok="${c.id}">${T('मंजूर')}</button><button class="btn small ghost" type="button" data-claim-no="${c.id}" aria-label="${T('नाकारा')}">✕</button></span></li>`).join('')}</ul>` : ''}
     ${pm.length ? `<button class="card accent row between btnlike" type="button" data-tab-go="members"><b>${pm.length} ${T('नवीन सभासद विनंत्या')}</b><span class="gold">${T('पाहा')} ›</span></button>` : ''}
     <div class="dash">${dashTiles().map(tile).join('')}</div>
     <button class="btn ghost block" type="button" data-act="dashcfg">${IC.edit} ${T('डॅशबोर्ड बदला')}</button>`;
@@ -401,7 +422,7 @@ function rHome() {
       ${pendSum ? `<span class="pill wait">${T('{0} समितीच्या मंजुरीसाठी', rs(pendSum))}</span>` : ''}
       ${S.society.upi ? `<div class="hbtns"><button class="btn primary" type="button" data-act="pay" data-amt="${payable || monthly()}">${payable > 0 ? T('UPI ने भरा') : T('आगाऊ भरा')}</button><button class="btn ghost" type="button" data-act="ipaid">${T('भरले? नोंद करा')}</button></div>` : `<span class="small muted">${T('समितीने अजून UPI आयडी जोडलेला नाही. समितीकडे थेट भरा.')}</span>`}
     </div>
-    ${S.claims.filter(c => c.status !== 'pending').slice(0, 2).map(c => `<div class="card small row between"><span>${c.fundId ? esc(c.fundTitle || T('वर्गणी')) : monthName(c.month)} · ${rs(c.amount)}</span><span class="pill ${c.status === 'approved' ? 'ok' : 'due'}">${c.status === 'approved' ? T('मंजूर') : T('नाकारले')}</span></div>`).join('')}
+    ${S.claims.filter(c => c.status !== 'pending').slice(0, 2).map(c => `<div class="card small row between"><span>${c.fundId ? esc(c.fundTitle || T('वर्गणी')) : esc(rangeLabel(c.months || [c.month]))} · ${rs(c.amount)}</span><span class="pill ${c.status === 'approved' ? 'ok' : 'due'}">${c.status === 'approved' ? T('मंजूर') : T('नाकारले')}</span></div>`).join('')}
     ${extra}
     <h2>${T('भरणा इतिहास')}</h2>
     ${hist.length ? `<ul class="list">${hist.map(([m, p]) => `<li><span class="grow"><b>${monthName(m)}</b><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(T(p.mode))}</span></span><span class="num b6">${rs(p.amount)}</span><button class="iconbtn" type="button" data-rcpt="${m}" aria-label="${T('पावती')}">${IC.receipt}</button></li>`).join('')}</ul>` : `<div class="card empty muted small">${T('अजून नोंद नाही.')}</div>`}`;
@@ -589,15 +610,22 @@ function sheetPay(flatId) {
     <form id="payForm" class="stack">
       <div class="grid2"><div class="field"><label for="pAmt">${T('रक्कम (₹)')}</label><input type="number" id="pAmt" min="0" inputmode="numeric" required value="${esc(pay ? pay.amount : (due || monthly()))}"></div>
       <div class="field"><label for="pDate">${T('दिनांक')}</label><input type="date" id="pDate" required value="${esc(pay ? pay.date : today)}"></div></div>
+      ${pay ? '' : `<div class="field"><label for="pN">${T('किती महिने')}</label><select id="pN">${PERIODS.map(n => `<option value="${n}">${n === 12 ? T('1 वर्ष') : n === 1 ? T('1 महिना') : T('{0} महिने', n)}</option>`).join('')}</select><span class="tiny muted" id="pRange">${esc(rangeLabel([m]))}</span></div>`}
       <div class="grid2"><div class="field"><label for="pMode">${T('कसे भरले')}</label><select id="pMode">${['UPI', 'रोख', 'चेक', 'बँक ट्रान्सफर'].map(x => `<option value="${x}" ${pay && canon(pay.mode) === x ? 'selected' : ''}>${T(x)}</option>`).join('')}</select></div>
       <div class="field"><label for="pRef">${T('संदर्भ क्र.')} <span class="hint">(${T('ऐच्छिक')})</span></label><input type="text" id="pRef" value="${esc(pay && pay.ref || '')}"></div></div>
       <button class="btn primary block" type="submit">${T('जमा नोंदवा')}</button>
       ${pay ? `<button class="btn block danger" type="button" id="pDel">${T('ही नोंद काढा')}</button>` : ''}
     </form>`, el => {
+    const pN = el.querySelector('#pN');
+    if (pN) pN.addEventListener('change', () => { const n = +pN.value; el.querySelector('#pRange').textContent = rangeLabel(monthsFrom(m, n)); el.querySelector('#pAmt').value = n === 1 ? (due || monthly()) : n * monthly(); });
     el.querySelector('#payForm').addEventListener('submit', async e => {
       e.preventDefault();
       const rec = { amount: Number(el.querySelector('#pAmt').value) || 0, date: el.querySelector('#pDate').value, mode: el.querySelector('#pMode').value, ref: el.querySelector('#pRef').value.trim(), at: Date.now(), by: S.user.name };
-      try { await B.setPayment(S.sid, flatId, m, rec); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); openReceipt(maintReceipt(flatId, m, rec)); } catch (er) { fail(er); }
+      const n = pN ? +pN.value : 1;
+      try {
+        if (n > 1) { const ms = monthsFrom(m, n), map = allocate(flatId, ms, rec.amount, { date: rec.date, mode: rec.mode, ref: rec.ref, at: rec.at, by: rec.by }); await B.setPayments(S.sid, flatId, map); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); openReceipt(maintReceipt(flatId, ms[0], map[ms[0]])); }
+        else { await B.setPayment(S.sid, flatId, m, rec); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); openReceipt(maintReceipt(flatId, m, rec)); }
+      } catch (er) { fail(er); }
     });
     const del = el.querySelector('#pDel');
     if (del) del.addEventListener('click', async () => { try { await B.setPayment(S.sid, flatId, m, null); closeSheet(); toast(T('नोंद काढली.')); } catch (er) { fail(er); } });
@@ -615,17 +643,49 @@ function sheetReminders() {
   });
 }
 
-function sheetIPaid(defaultAmt, fund) {
+function sheetPayChoice() {
+  const flatId = S.member.flatId; if (!flatId || !S.society.upi) { toast(T('समितीने अजून UPI आयडी जोडलेला नाही. समितीकडे थेट भरा.')); return; }
+  const P = (S.accounts[flatId] || {}).payments || {}, due = dueFor(flatId, thisMonth, P);
+  const pendSum = S.claims.filter(c => c.status === 'pending' && !c.fundId).reduce((a, c) => a + Number(c.amount || 0), 0);
+  const opts = [];
+  const payable = Math.max(0, due - pendSum);
+  if (payable > 0) { const ms = nextUnpaid(flatId, Math.max(1, monthsDue(payable)), P).filter(m => m <= thisMonth); opts.push({ key: 'due', label: T('संपूर्ण थकबाकी'), months: ms.length ? ms : [thisMonth], amount: payable }); }
+  for (const n of PERIODS) { const ms = nextUnpaid(flatId, n, P); opts.push({ key: String(n), label: n === 12 ? T('1 वर्ष') : n === 1 ? T('1 महिना') : T('{0} महिने', n), months: ms, amount: n * monthly() }); }
+  let sel = opts[0];
+  openSheet(`${sheetHead(T('किती महिन्यांचे भरायचे?'))}
+    <div class="periods">${opts.map((o, i) => `<button type="button" class="period" data-opt="${i}" aria-pressed="${i === 0}"><span class="grow"><b>${o.label}</b><span class="tiny muted">${esc(rangeLabel(o.months))}</span></span><b class="num">${rs(o.amount)}</b></button>`).join('')}</div>
+    <button class="btn primary block" type="button" id="pcPay"></button>
+    <button class="link" type="button" id="pcDone">${T('आधीच भरले? नोंद करा')}</button>`, el => {
+    const btn = el.querySelector('#pcPay');
+    const upd = () => { btn.textContent = T('{0} UPI ने भरा', rs(sel.amount)); };
+    upd();
+    el.querySelectorAll('[data-opt]').forEach(b => b.addEventListener('click', () => { sel = opts[+b.dataset.opt]; el.querySelectorAll('[data-opt]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); upd(); }));
+    btn.addEventListener('click', async () => {
+      const ok = await openExternal(upiLink({ upi: S.society.upi, name: S.society.name, amount: sel.amount, note: `Maint ${flatId} ${sel.months[0] || thisMonth}${sel.months.length > 1 ? ' +' + (sel.months.length - 1) : ''}` }));
+      if (!ok) toast(`${T('UPI ॲप उघडले नाही. UPI आयडी')}: ` + S.society.upi);
+      setTimeout(() => sheetIPaid(sel.amount, null, sel.months), 600);
+    });
+    el.querySelector('#pcDone').addEventListener('click', () => sheetIPaid(sel.amount, null, sel.months));
+  });
+}
+
+function sheetIPaid(defaultAmt, fund, months) {
   openSheet(`${sheetHead(fund ? T('वर्गणी भरणा नोंदवा') : T('भरणा नोंदवा'))}
     <p class="small muted m0">${T('UPI ॲपमध्ये भरल्यानंतर इथे नोंद करा. समिती तपासून मंजूर करेल.')}</p>
     <form id="ipForm" class="stack">
       <div class="grid2"><div class="field"><label for="iAmt">${T('रक्कम (₹)')}</label><input type="number" id="iAmt" min="1" inputmode="numeric" required value="${esc(defaultAmt || monthly())}"></div>
-      ${fund ? `<div class="field"><label>${T('वर्गणी')}</label><input value="${esc(fund.title)}" disabled></div>` : `<div class="field"><label for="iMonth">${T('कोणत्या महिन्याचे')}</label><input type="month" id="iMonth" required value="${thisMonth}"></div>`}</div>
+      ${fund ? `<div class="field"><label>${T('वर्गणी')}</label><input value="${esc(fund.title)}" disabled></div>` : `<div class="field"><label for="iN">${T('किती महिने')}</label><select id="iN">${PERIODS.map(n => `<option value="${n}" ${months && months.length === n ? 'selected' : ''}>${n === 12 ? T('1 वर्ष') : n === 1 ? T('1 महिना') : T('{0} महिने', n)}</option>`).join('')}${months && !PERIODS.includes(months.length) ? `<option value="${months.length}" selected>${T('{0} महिने', months.length)}</option>` : ''}</select></div>`}</div>
+      ${fund ? '' : `<div class="field"><label for="iMonth">${T('पासून')}</label><input type="month" id="iMonth" required value="${(months && months[0]) || nextUnpaid(S.member.flatId, 1)[0] || thisMonth}"><span class="tiny muted" id="iRange"></span></div>`}
       <div class="field"><label for="iRef">${T('UPI संदर्भ क्र. (UTR)')} <span class="hint">(${T('UPI ॲपमधील १२ अंकी क्रमांक')})</span></label><input type="text" id="iRef" inputmode="numeric" maxlength="22"></div>
       <button class="btn primary block" type="submit">${T('नोंद पाठवा')}</button></form>`, el => {
+    const nSel = el.querySelector('#iN'), mIn = el.querySelector('#iMonth'), aIn = el.querySelector('#iAmt'), rng = el.querySelector('#iRange');
+    const chosen = () => monthsFrom(mIn.value || thisMonth, +nSel.value);
+    const showRange = () => { if (rng) rng.textContent = rangeLabel(chosen()); };
+    if (nSel) { nSel.addEventListener('change', () => { aIn.value = (+nSel.value) * monthly(); showRange(); }); mIn.addEventListener('change', showRange); showRange(); }
     el.querySelector('#ipForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const c = { flatId: S.member.flatId, month: fund ? thisMonth : el.querySelector('#iMonth').value, ...(fund ? { fundId: fund.id, fundTitle: fund.title } : {}), amount: Number(el.querySelector('#iAmt').value) || 0, ref: el.querySelector('#iRef').value.trim(), date: today, uid: S.user.uid, name: S.user.name, status: 'pending', createdAt: Date.now() };
+      const ms = fund ? null : chosen();
+      const c = { flatId: S.member.flatId, month: fund ? thisMonth : ms[0], ...(ms && ms.length > 1 ? { months: ms } : {}), ...(fund ? { fundId: fund.id, fundTitle: fund.title } : {}), amount: Number(el.querySelector('#iAmt').value) || 0, ref: el.querySelector('#iRef').value.trim(), date: today, uid: S.user.uid, name: S.user.name, status: 'pending', createdAt: Date.now() };
       try { await B.addClaim(S.sid, c); closeSheet(); toast(T('नोंद पाठवली. समिती मंजूर केल्यावर थकबाकी अपडेट होईल.')); } catch (er) { fail(er); }
     });
   });
@@ -989,7 +1049,7 @@ async function openFile(id) {
 /* ---------- receipts (पावती) ---------- */
 const flatOwner = id => (flats().find(f => f.id === id) || {}).owner || '';
 const rcptDate = rec => rec.at ? `${fmtTs(rec.at)} ${new Date(rec.at).toTimeString().slice(0, 5)}` : fmtDate(rec.date);
-const maintReceipt = (flatId, month, rec) => ({ no: `${S.society.code}-${month.replace('-', '')}-${flatId}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), purpose: `${T('देखभाल शुल्क')} · ${monthName(month)}`, amount: Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '' });
+const maintReceipt = (flatId, month, rec) => { const g = Array.isArray(rec.grp) && rec.grp.length > 1 ? rec.grp : null; return { no: `${S.society.code}-${(g ? g[0] : month).replace('-', '')}-${flatId}${g ? '-' + g.length + 'M' : ''}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), purpose: `${T('देखभाल शुल्क')} · ${rangeLabel(g || [month])}`, amount: g ? Number(rec.grpTotal) || 0 : Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '' }; };
 const fundReceipt = (f, flatId, rec) => ({ no: `${S.society.code}-V${String(f.id).slice(0, 4).toUpperCase()}-${flatId}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), purpose: `${T('वर्गणी')} · ${f.title}`, amount: Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '' });
 function openReceipt(r) {
   openSheet(`${sheetHead(T('पावती'))}<img class="docprev" id="rcImg" alt="${T('पावती')}">
@@ -1039,7 +1099,7 @@ async function exportLedger() {
   }
   // 5 UPI payment reports from residents, with status
   const claims = [[T('दिनांक'), T('वेळ'), T('सदनिका'), T('भरणारे'), T('कशासाठी'), T('रक्कम (₹)'), T('संदर्भ क्र. / UTR'), T('स्थिती')]];
-  for (const c of S.claims) claims.push([dmy(c.createdAt), hhmm(c.createdAt), c.flatId, c.name || '', c.fundId ? `${T('वर्गणी')} · ${c.fundTitle || ''}` : monthName(c.month), Number(c.amount) || 0, c.ref || '', c.status === 'approved' ? T('मंजूर') : c.status === 'rejected' ? T('नाकारले') : T('प्रलंबित')]);
+  for (const c of S.claims) claims.push([dmy(c.createdAt), hhmm(c.createdAt), c.flatId, c.name || '', c.fundId ? `${T('वर्गणी')} · ${c.fundTitle || ''}` : rangeLabel(c.months || [c.month]), Number(c.amount) || 0, c.ref || '', c.status === 'approved' ? T('मंजूर') : c.status === 'rejected' ? T('नाकारले') : T('प्रलंबित')]);
   // 6 app members
   const mem = [[T('नाव'), T('ईमेल'), T('सदनिका'), T('भूमिका'), T('स्थिती'), T('जोडल्याचा दिनांक')]];
   for (const m of S.members) mem.push([m.name || '', m.email || '', m.flatId || '', m.role === 'admin' ? T('समिती') : T('सभासद'), m.status === 'active' ? T('सक्रिय') : T('मंजुरी बाकी'), dmy(m.createdAt)]);
@@ -1178,12 +1238,7 @@ document.addEventListener('click', async e => {
       const txt = `${S.society.name}\n${T('आपल्या सोसायटीचे देखभाल शुल्क, सूचना आणि तक्रारी आता Sachiv ॲपमध्ये.')}\n${T('1. Sachiv ॲप उघडा आणि नवीन खाते तयार करा.')}\n${T('2. जॉइन कोड टाका')}: ${S.society.code}\n${T('3. तुमची सदनिका निवडा.')}\n${T('धन्यवाद')},\n${T('सचिव')}`;
       openExternal(waLink('', txt));
     }
-    else if (d.act === 'pay') {
-      const amt = Number(d.amt) || monthly();
-      const ok = await openExternal(upiLink({ upi: S.society.upi, name: S.society.name, amount: amt, note: `Maint ${S.member.flatId} ${thisMonth}` }));
-      if (!ok) toast(`${T('UPI ॲप उघडले नाही. UPI आयडी')}: ` + S.society.upi);
-      setTimeout(() => sheetIPaid(amt), 600);
-    }
+    else if (d.act === 'pay') sheetPayChoice();
     else if (d.act === 'ipaid') sheetIPaid();
     else if (d.month) { ledgerMonth = addMonth(ledgerMonth, +d.month); if (ledgerMonth > thisMonth) ledgerMonth = thisMonth; render(); }
     else if (d.lf) { ledgerFilter = d.lf; render(); }
@@ -1203,8 +1258,10 @@ document.addEventListener('click', async e => {
         toast(`${c.flatId}: ${rs(c.amount)} ${T('वर्गणी मंजूर.')}`); if (fund) openReceipt(fundReceipt(fund, c.flatId, recF)); return;
       }
       const prev = ((S.accounts[c.flatId] || {}).payments || {})[c.month];
-      const recM = { amount: (prev ? Number(prev.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '', at: Date.now(), by: S.user.name, payer: c.name || '' };
-      await B.setPayment(S.sid, c.flatId, c.month, recM);
+      const ms = Array.isArray(c.months) && c.months.length ? c.months : [c.month];
+      const map = allocate(c.flatId, ms, ms.length > 1 ? Number(c.amount) : (prev ? Number(prev.amount) : 0) + Number(c.amount) - (prev ? Number(prev.amount) : 0), { date: c.date, mode: 'UPI', ref: c.ref || '', at: Date.now(), by: S.user.name, payer: c.name || '' });
+      const recM = map[ms[0]];
+      await B.setPayments(S.sid, c.flatId, map);
       await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid, decidedAt: Date.now() });
       toast(`${c.flatId}: ${rs(c.amount)} ${T('मंजूर करून खात्यात जमा केले.')}`); openReceipt(maintReceipt(c.flatId, c.month, recM));
     }
