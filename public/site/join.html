@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="mr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sachiv · सोसायटीत सामील व्हा</title>
+<meta name="theme-color" content="#0B5D4B">
+<meta name="robots" content="noindex">
+<link rel="icon" href="img/icon-180.png">
+<style>
+@font-face { font-family: Mukta; font-weight: 400; font-display: swap; src: url(fonts/mukta-devanagari-400-normal.woff2) format("woff2"); unicode-range: U+0900-097F, U+200C-200D, U+20B9, U+25CC; }
+@font-face { font-family: Mukta; font-weight: 800; font-display: swap; src: url(fonts/mukta-devanagari-800-normal.woff2) format("woff2"); unicode-range: U+0900-097F, U+200C-200D, U+20B9, U+25CC; }
+@font-face { font-family: Mukta; font-weight: 400; font-display: swap; src: url(fonts/mukta-latin-400-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: Mukta; font-weight: 800; font-display: swap; src: url(fonts/mukta-latin-800-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+:root { --green: #0B5D4B; --green2: #08473A; --butter: #FFD27A; --ink: #0F172A; --muted: #64748B; --edge: #E2E8F0; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #fff; color: var(--ink); font: 400 17px/1.55 Mukta, system-ui, sans-serif; }
+.top { background: radial-gradient(120% 90% at 100% 0%, #13806A 0%, var(--green) 55%, var(--green2) 100%); color: #fff; padding: 22px 20px 70px; }
+.bar { display: flex; align-items: center; gap: 10px; max-width: 520px; margin: 0 auto; }
+.bar img { width: 36px; height: 36px; border-radius: 10px; }
+.bar b { font-size: 20px; }
+.langs { margin-left: auto; display: flex; background: rgba(255,255,255,.14); border-radius: 12px; padding: 3px; }
+.langs button { border: 0; background: none; color: #fff; font: 600 14px Mukta, sans-serif; padding: 6px 10px; border-radius: 9px; min-height: 36px; cursor: pointer; }
+.langs button[aria-pressed="true"] { background: #fff; color: var(--green); }
+.top h1 { max-width: 520px; margin: 26px auto 0; font-size: 32px; line-height: 1.15; font-weight: 800; }
+main { max-width: 520px; margin: -46px auto 0; padding: 0 20px 40px; display: flex; flex-direction: column; gap: 14px; }
+.card { background: #fff; border: 1px solid var(--edge); border-radius: 22px; padding: 20px; box-shadow: 0 10px 30px rgba(15,23,42,.08); }
+.code { text-align: center; }
+.code span { display: block; color: var(--muted); font-weight: 600; font-size: 15px; }
+.code b { display: block; font-size: 46px; letter-spacing: .18em; color: var(--green); font-weight: 800; margin: 4px 0 6px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border-radius: 16px; font: 800 18px Mukta, sans-serif; text-decoration: none; border: 0; cursor: pointer; width: 100%; padding: 10px 16px; text-align: center; }
+.btn.g { background: var(--green); color: #fff; }
+.btn.y { background: var(--butter); color: #3D2A00; }
+.btn.l { background: #fff; color: var(--green); border: 1.5px solid var(--edge); }
+.small { font-size: 15px; color: var(--muted); margin: 0; }
+ol { margin: 0; padding-left: 22px; } ol li { margin: 6px 0; }
+.hint { display: none; background: #FFF8E8; border: 1px solid #F8E7BD; color: #7A5300; border-radius: 14px; padding: 12px 14px; font-size: 15px; }
+.hint.on { display: block; }
+</style>
+</head>
+<body>
+<div class="top"><div class="bar"><img src="img/icon-180.png" alt=""><b>Sachiv</b>
+  <div class="langs" role="group" aria-label="Language"><button type="button" data-l="mr" aria-pressed="true">मराठी</button><button type="button" data-l="hi" aria-pressed="false">हिंदी</button><button type="button" data-l="en" aria-pressed="false">English</button></div></div>
+  <h1 data-t="h1"></h1>
+</div>
+<main>
+  <div class="card code"><span data-t="codeL"></span><b id="code">——</b><button class="btn l" type="button" id="copy" data-t="copy"></button></div>
+  <a class="btn g" id="open" href="#" data-t="open"></a>
+  <div class="hint" id="hint" data-t="hint"></div>
+  <a class="btn y" href="https://github.com/sachinbjankar/sachiv/releases/latest/download/Sachiv.apk" data-t="dl"></a>
+  <a class="btn l" id="web" href="../" data-t="web"></a>
+  <div class="card"><b data-t="howT"></b><ol><li data-t="s1"></li><li data-t="s2"></li><li data-t="s3"></li><li data-t="s4"></li></ol></div>
+  <p class="small" style="text-align:center"><a href="./" data-t="about" style="color:var(--green);font-weight:600"></a></p>
+</main>
+<script>
+const T = {
+  mr: { h1: 'तुमच्या सोसायटीच्या ॲपमध्ये सामील व्हा', codeL: 'तुमच्या सोसायटीचा जॉइन कोड', copy: 'कोड कॉपी करा', copied: 'कॉपी झाला ✓', open: 'Sachiv ॲप उघडा', hint: 'ॲप उघडले नाही? आधी खालील बटणाने ॲप डाउनलोड करा, मग ॲपमध्ये वरील कोड टाका.', dl: 'ॲप डाउनलोड करा (Android)', web: 'iPhone / ब्राउझरमध्ये उघडा', howT: 'कसे सामील व्हायचे', s1: 'Sachiv ॲप उघडा किंवा डाउनलोड करा.', s2: 'नवीन खाते तयार करा (ईमेल आणि पासवर्ड).', s3: 'जॉइन कोड टाका आणि तुमची सदनिका निवडा.', s4: 'समितीने मंजुरी दिल्यावर तुमची थकबाकी, सूचना आणि पावत्या दिसतील.', about: 'Sachiv बद्दल अधिक', none: 'कोड सापडला नाही. सोसायटीचा QR पुन्हा स्कॅन करा.' },
+  hi: { h1: 'अपनी सोसायटी के ऐप से जुड़ें', codeL: 'आपकी सोसायटी का जॉइन कोड', copy: 'कोड कॉपी करें', copied: 'कॉपी हो गया ✓', open: 'Sachiv ऐप खोलें', hint: 'ऐप नहीं खुला? पहले नीचे के बटन से ऐप डाउनलोड करें, फिर ऐप में ऊपर का कोड डालें।', dl: 'ऐप डाउनलोड करें (Android)', web: 'iPhone / ब्राउज़र में खोलें', howT: 'कैसे जुड़ें', s1: 'Sachiv ऐप खोलें या डाउनलोड करें।', s2: 'नया खाता बनाएँ (ईमेल और पासवर्ड)।', s3: 'जॉइन कोड डालें और अपना फ्लैट चुनें।', s4: 'समिति की मंज़ूरी के बाद आपका बकाया, सूचनाएँ और रसीदें दिखेंगी।', about: 'Sachiv के बारे में', none: 'कोड नहीं मिला। सोसायटी का QR फिर से स्कैन करें।' },
+  en: { h1: 'Join your society on Sachiv', codeL: 'Your society join code', copy: 'Copy code', copied: 'Copied ✓', open: 'Open the Sachiv app', hint: 'App didn\'t open? Download it with the button below, then enter the code above in the app.', dl: 'Download the app (Android)', web: 'Open on iPhone / in browser', howT: 'How to join', s1: 'Open or download the Sachiv app.', s2: 'Create an account (email and password).', s3: 'Enter the join code and choose your flat.', s4: 'Once the committee approves you, your dues, notices and receipts appear.', about: 'More about Sachiv', none: 'No code found. Please scan the society QR again.' }
+};
+const m = location.search.match(/[?&]c=([A-Za-z0-9]{6})/);
+const CODE = m ? m[1].toUpperCase() : '';
+let L = 'mr';
+try { const s = localStorage.getItem('sachiv-site-lang'); if (T[s]) L = s; else if (/^hi/i.test(navigator.language)) L = 'hi'; else if (/^en/i.test(navigator.language) && !/IN$/i.test(navigator.language)) L = 'en'; } catch (e) {}
+function apply() {
+  const d = T[L]; document.documentElement.lang = L;
+  document.querySelectorAll('[data-t]').forEach(el => { const v = d[el.dataset.t]; if (v != null) el.textContent = v; });
+  document.querySelectorAll('[data-l]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === L)));
+  document.getElementById('code').textContent = CODE || '——';
+  if (!CODE) document.getElementById('hint').textContent = d.none, document.getElementById('hint').classList.add('on');
+}
+document.querySelectorAll('[data-l]').forEach(b => b.addEventListener('click', () => { L = b.dataset.l; try { localStorage.setItem('sachiv-site-lang', L); } catch (e) {} apply(); }));
+document.getElementById('open').href = 'sachiv://join?c=' + CODE;
+document.getElementById('web').href = '../?join=' + CODE;
+document.getElementById('open').addEventListener('click', () => setTimeout(() => { if (!document.hidden) document.getElementById('hint').classList.add('on'); }, 1600));
+document.getElementById('copy').addEventListener('click', async e => {
+  try { await navigator.clipboard.writeText(CODE); } catch (er) { const t = document.createElement('textarea'); t.value = CODE; document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); }
+  e.target.textContent = T[L].copied; setTimeout(apply, 1500);
+});
+apply();
+</script>
+</body>
+</html>

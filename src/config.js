@@ -17,3 +17,6 @@ export const OWNER_EMAIL = 'sachin.bjankar@gmail.com';
 // Shown to committees when their free trial or plan ends.
 export const SUPPORT_EMAIL = 'sachin.bjankar@gmail.com';
 export const TRIAL_DAYS = 30;
+
+// Public website (GitHub Pages). The society QR poster points to SITE_URL/site/join.html?c=CODE
+export const SITE_URL = 'https://sachinbjankar.github.io/sachiv';

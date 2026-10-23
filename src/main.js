@@ -20,7 +20,9 @@ import { NOTICE_TEMPLATES, MINUTES_TYPES, RESOLUTION_PHRASES } from './templates
 import { drawLetterhead } from './letterhead.js';
 import { drawReceipt } from './receipt.js';
 import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative } from './platform.js';
-import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS } from './config.js';
+import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS, SITE_URL } from './config.js';
+import { drawPoster, canvasToBlob, posterPdf } from './poster.js';
+import { App as CapApp } from '@capacitor/app';
 import { T, canon, LANG, LANGS, setLang } from './i18n.js';
 
 /* ---------- helpers ---------- */
@@ -79,6 +81,7 @@ const IC = {
   alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',
   bank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/></svg>',
   receipt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+  qr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h3v-3"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   rupee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12M6 9h12M9 4c3 0 5 1.6 5 5s-2 5-5 5H6l8 7"/></svg>'
 };
@@ -163,11 +166,28 @@ function reminderText(f, due) {
     S.society.upi ? T('कृपया Sachiv ॲपमधून किंवा थेट UPI {0} वर भरा.', S.society.upi) : T('कृपया Sachiv ॲपमधून UPI द्वारे भरा.'), T('धन्यवाद,'), T('सचिव')].join('\n');
 }
 
+/* ---------- join links (QR poster) ---------- */
+const PJ = 'sachiv-pending-join';
+const joinUrl = code => `${SITE_URL}/site/join.html?c=${encodeURIComponent(code)}`;
+function takeJoinCode(str) {
+  const m = String(str || '').match(/[?&](?:c|join)=([A-Za-z0-9]{6})/); if (!m) return;
+  LS.set(PJ, m[1].toUpperCase());
+  setTimeout(() => { if (S.user && S.userDoc) handlePendingJoin(); else render(); }, 0);
+}
+takeJoinCode(location.search);
+if (isNative) { try { CapApp.addListener('appUrlOpen', ev => takeJoinCode(ev && ev.url)); } catch (e) {} }
+let joinBusy = false;
+async function handlePendingJoin() {
+  const code = LS.get(PJ); if (!code || joinBusy || !S.user || !S.userDoc) return;
+  joinBusy = true; LS.set(PJ, null);
+  try { await startJoin(code); } finally { joinBusy = false; }
+}
+
 /* ---------- auth + society wiring ---------- */
 B.onAuth(u => {
   S.user = u; S.userDoc = null; S.member = undefined; unsubAll();
   if (userSub) { userSub(); userSub = null; } if (memberSub) { memberSub(); memberSub = null; }
-  if (u) userSub = B.watchUser(u.uid, d => { S.userDoc = d; pickSociety(); render(); }, fail);
+  if (u) userSub = B.watchUser(u.uid, d => { const first = !S.userDoc; S.userDoc = d; pickSociety(); render(); if (first) setTimeout(handlePendingJoin, 300); }, fail);
   render();
 });
 
@@ -262,6 +282,7 @@ function viewAuth() {
     <h1>${T('तुमच्या सोसायटीचा')}<br><em>${T('डिजिटल सचिव.')}</em></h1>
     <p>${T('देखभाल शुल्क, वर्गणी, सूचना, फाइल्स आणि समिती. सगळे एका ठिकाणी.')}</p>
   </section>
+  ${LS.get(PJ) ? `<div class="card accent small">${T('सोसायटीत सामील होण्यासाठी आधी लॉगिन करा किंवा नवीन खाते तयार करा. जॉइन कोड: {0}', `<b class="code">${esc(LS.get(PJ))}</b>`)}</div>` : ''}
   <form class="card stack" id="authForm">
     <div class="seg" role="group" aria-label="${T('लॉगिन किंवा नोंदणी')}"><button type="button" class="chip" data-auth="login" aria-pressed="${!su}">${T('लॉगिन')}</button><button type="button" class="chip" data-auth="signup" aria-pressed="${su}">${T('नवीन खाते')}</button></div>
     ${su ? `<div class="field"><label for="aName">${T('तुमचे नाव')}</label><input id="aName" type="text" required autocomplete="name"></div>` : ''}
@@ -380,7 +401,7 @@ function aMembers() {
   return `
     <div class="card stack"><div class="row between wrap"><span>${T('जॉइन कोड')}</span><b class="code big">${esc(S.society.code)}</b></div>
       <span class="small muted">${T('सभासदांनी Sachiv ॲपमध्ये नवीन खाते तयार करून हा कोड टाकावा. नंतर तुम्ही खाली मंजुरी द्या.')}</span>
-      <button class="btn block" type="button" data-act="invite">${IC.share} ${T('WhatsApp वर आमंत्रण पाठवा')}</button></div>
+      <div class="grid2"><button class="btn" type="button" data-act="invite">${IC.share} ${T('WhatsApp आमंत्रण')}</button><button class="btn primary" type="button" data-act="poster">${IC.qr} ${T('QR पोस्टर')}</button></div></div>
     ${pend.length ? `<h2>${T('नवीन विनंत्या')} · ${pend.length}</h2><ul class="list">${pend.map(m => `<li class="req"><span class="grow"><b>${esc(m.name)}</b><span class="tiny muted ellip">${esc(m.email)}</span><span class="small">${T('सांगितलेली सदनिका')}: <b>${esc(m.flatId || '—')}</b></span></span>
         <span class="reqctl"><select class="sm" data-mflat="${m.id}" aria-label="${T('सदनिका')}">${flatOpts(flats().some(f => f.id === m.flatId) ? m.flatId : '')}</select><button class="btn small good" type="button" data-mok="${m.id}">${T('मंजूर')}</button><button class="btn small" type="button" data-mno="${m.id}" aria-label="${T('नाकारा')}">✕</button></span></li>`).join('')}</ul>` : ''}
     <h2>${T('सदस्य')} · ${act.length}</h2>
@@ -554,6 +575,7 @@ function vMore() {
   ];
   const langRow = `<div class="card stack"><span class="kicker">${T('भाषा')} · Language</span>${langChips()}</div>`;
   return `${pageTitle(T('अधिक'))}<div class="morelist">${items.map(([k, ic, t, sub]) => `<button class="card morerow btnlike" type="button" data-tab="${k}"><span class="mi">${ic}</span><span class="grow"><b>${t}</b><span class="tiny muted ellip">${sub}</span></span>${IC.chev}</button>`).join('')}
+    ${isAdmin() ? `<button class="card morerow btnlike" type="button" data-act="poster"><span class="mi">${IC.qr}</span><span class="grow"><b>${T('सोसायटी QR पोस्टर')}</b><span class="tiny muted">${T('छापून सूचना फलकावर लावा')}</span></span>${IC.chev}</button>` : ''}
     ${isAdmin() ? `<button class="card morerow btnlike" type="button" data-act="setup"><span class="mi">${IC.gear}</span><span class="grow"><b>${T('सोसायटी माहिती व सदनिका')}</b><span class="tiny muted">${T('{0} सदनिका', flats().length)} · ${rs(monthly())} ${T('दरमहा')}</span></span>${IC.chev}</button>` : ''}</div>${langRow}`;
 }
 
@@ -1046,6 +1068,22 @@ async function openFile(id) {
     } catch (er) { el.querySelector('#foStat').textContent = errMsg(er); }
   });
 }
+/* ---------- society QR poster ---------- */
+function sheetPoster() {
+  const url = joinUrl(S.society.code);
+  openSheet(`${sheetHead(T('सोसायटी QR पोस्टर'))}
+    <p class="small muted m0">${T('हे पोस्टर A4 वर छापून सूचना फलकावर, लिफ्टमध्ये किंवा प्रवेशद्वारावर लावा. सभासद QR स्कॅन करून थेट तुमच्या सोसायटीत सामील होतील.')}</p>
+    <img class="docprev" id="psImg" alt="${T('सोसायटी QR पोस्टर')}">
+    <div class="grid2"><button class="btn primary" type="button" id="psPdf">${IC.doc} ${T('PDF (छपाईसाठी)')}</button><button class="btn" type="button" id="psPng">${IC.share} ${T('चित्र / WhatsApp')}</button></div>
+    <button class="btn ghost block" type="button" id="psLink">${IC.copy} ${T('जॉइन लिंक कॉपी करा')}</button>`, async el => {
+    const canvas = await drawPoster(S.society, url, k => T(k));
+    const img = el.querySelector('#psImg'); if (img) img.src = canvas.toDataURL('image/png');
+    el.querySelector('#psPng').addEventListener('click', async () => { const r = await shareImage(await canvasToBlob(canvas), `Sachiv-QR-${S.society.code}.png`, `${S.society.name}: ${url}`); if (r === 'downloaded') toast(T('चित्र डाउनलोड झाले.')); });
+    el.querySelector('#psPdf').addEventListener('click', async () => { const r = await shareFile(await posterPdf(canvas), `Sachiv-QR-${S.society.code}.pdf`, S.society.name); if (r === 'downloaded') toast(T('PDF डाउनलोड झाली.')); });
+    el.querySelector('#psLink').addEventListener('click', async () => toast(await copyText(url) ? T('लिंक कॉपी झाली.') : T('कॉपी होऊ शकले नाही.')));
+  });
+}
+
 /* ---------- receipts (पावती) ---------- */
 const flatOwner = id => (flats().find(f => f.id === id) || {}).owner || '';
 const rcptDate = rec => rec.at ? `${fmtTs(rec.at)} ${new Date(rec.at).toTimeString().slice(0, 5)}` : fmtDate(rec.date);
@@ -1221,6 +1259,7 @@ document.addEventListener('click', async e => {
     else if (d.act === 'newcomplaint') sheetComplaint();
     else if (d.act === 'newmsg') sheetMessage();
     else if (d.act === 'quick') sheetQuick();
+    else if (d.act === 'poster') sheetPoster();
     else if (d.act === 'editcommittee') sheetCommittee();
     else if (d.act === 'editcontacts') sheetContacts();
     else if (d.act === 'dashcfg') sheetDashboard();
@@ -1236,7 +1275,7 @@ document.addEventListener('click', async e => {
     else if (d.msgdel) { if (t.dataset.sure !== '1') { t.dataset.sure = '1'; t.textContent = T('नक्की?'); return; } await B.deleteMessage(S.sid, d.msgdel); toast(T('घोषणा हटवली.')); }
     else if (d.act === 'invite') {
       const txt = `${S.society.name}\n${T('आपल्या सोसायटीचे देखभाल शुल्क, सूचना आणि तक्रारी आता Sachiv ॲपमध्ये.')}\n${T('1. Sachiv ॲप उघडा आणि नवीन खाते तयार करा.')}\n${T('2. जॉइन कोड टाका')}: ${S.society.code}\n${T('3. तुमची सदनिका निवडा.')}\n${T('धन्यवाद')},\n${T('सचिव')}`;
-      openExternal(waLink('', txt));
+      openExternal(waLink('', `${txt}\n\n${T('थेट जॉइन लिंक')}: ${joinUrl(S.society.code)}`));
     }
     else if (d.act === 'pay') sheetPayChoice();
     else if (d.act === 'ipaid') sheetIPaid();
