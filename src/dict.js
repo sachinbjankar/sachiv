@@ -556,5 +556,18 @@ export const DICT = {
   'इतर महिने': ['अन्य महीने', 'Other months'],
   'कमी': ['कम', 'Less'],
   'जास्त': ['ज़्यादा', 'More'],
-  'सर्व सूचना': ['सभी सूचनाएँ', 'Notifications']
+  'सर्व सूचना': ['सभी सूचनाएँ', 'Notifications'],
+  'खालील बटणाने QR गॅलरीत सेव्ह करा.': ['नीचे के बटन से QR गैलरी में सेव करें।', 'Save the QR to your gallery with the button below.'],
+  'GPay / PhonePe / Paytm उघडा → Scan → गॅलरीमधून हा QR निवडा.': ['GPay / PhonePe / Paytm खोलें → Scan → गैलरी से यह QR चुनें।', 'Open GPay / PhonePe / Paytm → Scan → pick this QR from your gallery.'],
+  'रक्कम आधीच भरलेली असेल. पैसे पाठवा.': ['राशि पहले से भरी होगी। पैसे भेजें।', 'The amount is already filled in. Send the money.'],
+  'QR सेव्ह / शेअर': ['QR सेव / शेयर', 'Save / share QR'],
+  'UPI ॲप उघडा': ['UPI ऐप खोलें', 'Open UPI app'],
+  'UPI आयडी': ['UPI आईडी', 'UPI ID'],
+  'कॉपी करा': ['कॉपी करें', 'Copy'],
+  'पैसे पाठवले, नोंद करा': ['पैसे भेज दिए, दर्ज करें', 'I have paid, record it'],
+  'QR डाउनलोड झाला.': ['QR डाउनलोड हो गया।', 'QR downloaded.'],
+  'UPI ॲप उघडले नाही. QR वापरा.': ['UPI ऐप नहीं खुला। QR इस्तेमाल करें।', 'UPI app did not open. Use the QR.'],
+  'UPI आयडी कॉपी झाला.': ['UPI आईडी कॉपी हो गई।', 'UPI ID copied.'],
+  'रक्कम कॉपी झाली.': ['राशि कॉपी हो गई।', 'Amount copied.'],
+  'टीप: बिझनेस UPI (GPay for Business, PhonePe Business, Paytm Business) वापरल्यास सभासद ॲपमधून थेट भरू शकतात. वैयक्तिक UPI आयडीवर QR स्कॅन करून भरावे लागते.': ['टिप: बिज़नेस UPI (GPay for Business, PhonePe Business, Paytm Business) इस्तेमाल करने पर सदस्य ऐप से सीधे भुगतान कर सकते हैं। निजी UPI आईडी पर QR स्कैन करके भरना होगा।', 'Tip: with a business UPI (GPay for Business, PhonePe Business, Paytm Business) members can pay directly from the app. With a personal UPI ID they pay by scanning the QR.']
 };

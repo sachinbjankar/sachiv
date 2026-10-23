@@ -685,7 +685,7 @@ function sheetSetup(isNew) {
         <div class="grid2"><div class="field"><label for="sContact">${T('ईमेल / फोन')}</label><input type="text" id="sContact" value="${esc(p.contact || '')}" autocapitalize="off"></div>
         <div class="field"><label for="sPrefix">${T('पावती क्रमांकाची सुरुवात')}</label><input type="text" id="sPrefix" maxlength="8" value="${esc(p.rcptPrefix || '')}" placeholder="${T('उदा. KKR')}" autocapitalize="characters"></div></div>
       </div></details>
-      <div class="field"><label for="sUpi">${T('संस्थेचा UPI आयडी')} <span class="hint">(${T('सभासद यावर थेट भरतील')})</span></label><input type="text" id="sUpi" value="${esc(p.upi || '')}" placeholder="${T('उदा. societyname')}@okaxis" autocapitalize="off"></div>
+      <div class="field"><label for="sUpi">${T('संस्थेचा UPI आयडी')} <span class="hint">(${T('सभासद यावर थेट भरतील')})</span><span class="tiny muted" style="display:block">${T('टीप: बिझनेस UPI (GPay for Business, PhonePe Business, Paytm Business) वापरल्यास सभासद ॲपमधून थेट भरू शकतात. वैयक्तिक UPI आयडीवर QR स्कॅन करून भरावे लागते.')}</span></label><input type="text" id="sUpi" value="${esc(p.upi || '')}" placeholder="${T('उदा. societyname')}@okaxis" autocapitalize="off"></div>
       <div class="grid2"><div class="field"><label for="sStart">${T('खाते कोणत्या महिन्यापासून')}</label><input type="month" id="sStart" value="${esc(p.startMonth || thisMonth)}"></div>
       ${isNew ? `<div class="field"><label for="sMy">${T('तुमची सदनिका')}</label><input type="text" id="sMy" placeholder="${T('उदा. A-101')}"></div>` : '<div></div>'}</div>
       <div class="field"><label for="sFlats">${T('सदनिका यादी')} <span class="hint">(${T('एका ओळीत एक: सदनिका, मालकाचे नाव, फोन, जुनी थकबाकी. Excel मधून पेस्ट करू शकता.')})</span></label>
@@ -809,12 +809,37 @@ function sheetPayChoice() {
       custom.months = nextUnpaid(flatId, cn, P); custom.amount = cn * monthly();
       el.querySelector('#cmN').textContent = cn; el.querySelector('#cmA').textContent = rs(custom.amount); el.querySelector('#cmR').textContent = rangeLabel(custom.months);
     }));
-    btn.addEventListener('click', async () => {
-      const ok = await openExternal(upiLink({ upi: S.society.upi, name: S.society.name, amount: sel.amount, note: `Maint ${flatId} ${sel.months[0] || thisMonth}${sel.months.length > 1 ? ' +' + (sel.months.length - 1) : ''}` }));
-      if (!ok) toast(`${T('UPI ॲप उघडले नाही. UPI आयडी')}: ` + S.society.upi);
-      setTimeout(() => sheetIPaid(sel.amount, null, sel.months), 600);
+    btn.addEventListener('click', () => {
+      const m = sel;
+      sheetUpiPay(m.amount, `Maint ${flatId} ${m.months[0] || thisMonth}${m.months.length > 1 ? ' +' + (m.months.length - 1) : ''}`, () => sheetIPaid(m.amount, null, m.months));
     });
     el.querySelector('#pcDone').addEventListener('click', () => sheetIPaid(sel.amount, null, sel.months));
+  });
+}
+
+// Paying the society by UPI. Many UPI apps block app-opened payments to a personal UPI ID
+// ("bank limit exceeded"), so the QR code and copy buttons are the main way; the direct button
+// works best when the society uses a business/merchant UPI ID.
+function sheetUpiPay(amount, note, onDone) {
+  const link = upiLink({ upi: S.society.upi, name: S.society.nameEn || S.society.name, amount, note });
+  openSheet(`${sheetHead(T('{0} भरा', rs(amount)))}
+    <div class="upiqr"><canvas id="uqC" width="560" height="560" aria-label="UPI QR"></canvas><span class="small muted">${esc(S.society.name)}</span></div>
+    <ol class="small upisteps"><li>${T('खालील बटणाने QR गॅलरीत सेव्ह करा.')}</li><li>${T('GPay / PhonePe / Paytm उघडा → Scan → गॅलरीमधून हा QR निवडा.')}</li><li>${T('रक्कम आधीच भरलेली असेल. पैसे पाठवा.')}</li></ol>
+    <div class="grid2"><button class="btn primary" type="button" id="uqSave">${IC.share} ${T('QR सेव्ह / शेअर')}</button><button class="btn" type="button" id="uqOpen">${T('UPI ॲप उघडा')}</button></div>
+    <div class="card stack small"><div class="row between"><span class="muted">${T('UPI आयडी')}</span><span class="row g6"><b>${esc(S.society.upi)}</b><button class="iconbtn" type="button" id="uqCopy" aria-label="${T('कॉपी करा')}">${IC.copy}</button></span></div>
+      <div class="row between"><span class="muted">${T('रक्कम')}</span><span class="row g6"><b class="num">${rs(amount)}</b><button class="iconbtn" type="button" id="uqCopyA" aria-label="${T('कॉपी करा')}">${IC.copy}</button></span></div></div>
+    <button class="btn good block" type="button" id="uqDone">✓ ${T('पैसे पाठवले, नोंद करा')}</button>`, async el => {
+    const cv = el.querySelector('#uqC');
+    try { const QR = await import('qrcode'); await QR.toCanvas(cv, link, { width: 560, margin: 2, errorCorrectionLevel: 'M', color: { dark: '#0F172A', light: '#FFFFFF' } }); } catch (e) {}
+    el.querySelector('#uqSave').addEventListener('click', async () => {
+      const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+      const res = await shareImage(blob, `UPI-${S.society.code}-${Math.round(amount)}.png`, `${S.society.name} · ${rs(amount)}`);
+      if (res === 'downloaded') toast(T('QR डाउनलोड झाला.')); if (res === 'failed') toast(T('शेअर होऊ शकले नाही.'));
+    });
+    el.querySelector('#uqOpen').addEventListener('click', async () => { const ok = await openExternal(link); if (!ok) toast(T('UPI ॲप उघडले नाही. QR वापरा.')); });
+    el.querySelector('#uqCopy').addEventListener('click', async () => toast(await copyText(S.society.upi) ? T('UPI आयडी कॉपी झाला.') : T('कॉपी होऊ शकला नाही.')));
+    el.querySelector('#uqCopyA').addEventListener('click', async () => toast(await copyText(String(Math.round(amount))) ? T('रक्कम कॉपी झाली.') : T('कॉपी होऊ शकला नाही.')));
+    el.querySelector('#uqDone').addEventListener('click', onDone);
   });
 }
 
@@ -1107,9 +1132,7 @@ function sheetFund(id) {
     const g = q => el.querySelector(q);
     if (g('#fPay')) g('#fPay').addEventListener('click', async () => {
       const amt = Number(g('#fAmt').value) || 0; if (!amt) { toast(T('रक्कम टाका.')); return; }
-      const ok = await openExternal(upiLink({ upi: S.society.upi, name: S.society.name, amount: amt, note: `${f.title} ${my}` }));
-      if (!ok) toast(`${T('UPI ॲप उघडले नाही. UPI आयडी')}: ` + S.society.upi);
-      setTimeout(() => sheetIPaid(amt, f), 600);
+      sheetUpiPay(amt, `${f.title} ${my}`, () => sheetIPaid(amt, f));
     });
     if (g('#fIPaid')) g('#fIPaid').addEventListener('click', () => sheetIPaid(Number(g('#fAmt').value) || f.perFlat, f));
     if (g('#fEdit')) g('#fEdit').addEventListener('click', () => sheetFundEdit(f));
