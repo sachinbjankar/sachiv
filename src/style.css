@@ -232,3 +232,9 @@ nav .dot { position: absolute; top: 5px; left: calc(50% + 7px); width: 8px; heig
 @media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 @media (max-width: 360px) { .grid2, .dash { grid-template-columns: 1fr; } .huge { font-size: 36px; } .ptitle h1 { font-size: 26px; } }
 .card > span.tiny, .card > span.small { display: block; }
+
+/* join requests: details on top, controls below */
+.list li.req { flex-direction: column; align-items: stretch; gap: 10px; }
+.reqctl { display: flex; gap: 8px; align-items: center; }
+.reqctl select.sm { flex: 1; min-width: 0; min-height: 44px; }
+.reqctl .btn.small { min-height: 44px; }

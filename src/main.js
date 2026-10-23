@@ -18,6 +18,7 @@ import './style.css';
 import { backend as B } from './backend.js';
 import { NOTICE_TEMPLATES, MINUTES_TYPES, RESOLUTION_PHRASES } from './templates.js';
 import { drawLetterhead } from './letterhead.js';
+import { drawReceipt } from './receipt.js';
 import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative } from './platform.js';
 import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS } from './config.js';
 import { T, canon, LANG, LANGS, setLang } from './i18n.js';
@@ -51,7 +52,7 @@ const errMsg = e => {
     'auth/network-request-failed': T('इंटरनेट कनेक्शन तपासा.'), 'auth/api-key-not-valid.-please-pass-a-valid-api-key.': T('ॲप अजून Firebase शी जोडलेले नाही (src/config.js भरा).'), 'auth/operation-not-allowed': T('Firebase मध्ये Email/Password लॉगिन चालू करा.'), 'auth/too-many-requests': T('खूप प्रयत्न झाले. थोड्या वेळाने पुन्हा करा.'), 'auth/requires-recent-login': T('पुन्हा लॉगिन करून प्रयत्न करा.'), 'auth/missing-password': T('पासवर्ड टाका.'), 'permission-denied': T('हे करण्याची परवानगी नाही.'), 'unavailable': T('इंटरनेट कनेक्शन तपासा.')
   })[c] || T('काहीतरी चुकले. पुन्हा प्रयत्न करा.');
 };
-const fail = e => { console.error(e); toast(errMsg(e)); };
+const fail = e => { console.error(e); toast(e && e.code === 'permission-denied' && isAdmin() ? T('परवानगी नाही. Firebase मधील नियम (Rules) नवीनतम आहेत का तपासा.') : errMsg(e)); };
 const IC = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>',
   ledger: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12M6 9h12M9 4c3 0 5 1.6 5 5s-2 5-5 5H6l8 7"/></svg>',
@@ -77,6 +78,7 @@ const IC = {
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
   alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',
   bank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/></svg>',
+  receipt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   rupee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12M6 9h12M9 4c3 0 5 1.6 5 5s-2 5-5 5H6l8 7"/></svg>'
 };
@@ -345,9 +347,10 @@ function aLedger() {
       <span class="flat">${esc(f.id)}</span>
       <span class="grow"><span>${esc(f.owner || '')}</span><span class="tiny muted">${pay ? `${T('भरले')} ${rs(pay.amount)} · ${esc(fmtDate(pay.date))} · ${esc(T(pay.mode))}` : due > 0 ? `${monthsDue(due)} ${plural(monthsDue(due))} ${T('बाकी')}` : T('थकबाकी नाही')}</span></span>
       ${due > 0 ? `<span class="pill due num">${rs(due)}</span>` : `<span class="pill ok">✓</span>`}
-      <button class="btn small" type="button" data-pay="${esc(f.id)}">${pay ? T('बदला') : T('जमा')}</button></li>`).join('')}</ul>`
+      ${pay ? `<button class="iconbtn" type="button" data-rcpt="${ledgerMonth}" data-rflat="${esc(f.id)}" aria-label="${T('पावती')}">${IC.receipt}</button>` : ''}<button class="btn small" type="button" data-pay="${esc(f.id)}">${pay ? T('बदला') : T('जमा')}</button></li>`).join('')}</ul>`
       : `<div class="card empty muted">${flats().length ? (ledgerFilter === 'due' ? T('कोणाचीही थकबाकी नाही.') : T('काही नोंदी नाहीत.')) : T('आधी सदस्य टॅबमधून सदनिका जोडा.')}</div>`}
-    ${s.dueFlats ? `<button class="btn primary block" type="button" data-act="reminders">${IC.wa} ${T('{0} जणांना आठवण पाठवा', s.dueFlats)}</button>` : ''}`;
+    ${s.dueFlats ? `<button class="btn primary block" type="button" data-act="reminders">${IC.wa} ${T('{0} जणांना आठवण पाठवा', s.dueFlats)}</button>` : ''}
+    <button class="btn ghost block" type="button" data-act="exportcsv">${IC.ledger} ${T('संपूर्ण हिशोब Excel मध्ये')}</button>`;
 }
 
 function aMembers() {
@@ -357,8 +360,8 @@ function aMembers() {
     <div class="card stack"><div class="row between wrap"><span>${T('जॉइन कोड')}</span><b class="code big">${esc(S.society.code)}</b></div>
       <span class="small muted">${T('सभासदांनी Sachiv ॲपमध्ये नवीन खाते तयार करून हा कोड टाकावा. नंतर तुम्ही खाली मंजुरी द्या.')}</span>
       <button class="btn block" type="button" data-act="invite">${IC.share} ${T('WhatsApp वर आमंत्रण पाठवा')}</button></div>
-    ${pend.length ? `<h2>${T('नवीन विनंत्या')} · ${pend.length}</h2><ul class="list">${pend.map(m => `<li class="wrap"><span class="grow"><b>${esc(m.name)}</b><span class="tiny muted">${esc(m.email)} · ${T('सांगितलेली सदनिका')}: ${esc(m.flatId || '—')}</span></span>
-        <span class="row g6 wrap"><select class="sm" data-mflat="${m.id}" aria-label="${T('सदनिका')}">${flatOpts(flats().some(f => f.id === m.flatId) ? m.flatId : '')}</select><button class="btn small good" type="button" data-mok="${m.id}">${T('मंजूर')}</button><button class="btn small" type="button" data-mno="${m.id}" aria-label="${T('नाकारा')}">✕</button></span></li>`).join('')}</ul>` : ''}
+    ${pend.length ? `<h2>${T('नवीन विनंत्या')} · ${pend.length}</h2><ul class="list">${pend.map(m => `<li class="req"><span class="grow"><b>${esc(m.name)}</b><span class="tiny muted ellip">${esc(m.email)}</span><span class="small">${T('सांगितलेली सदनिका')}: <b>${esc(m.flatId || '—')}</b></span></span>
+        <span class="reqctl"><select class="sm" data-mflat="${m.id}" aria-label="${T('सदनिका')}">${flatOpts(flats().some(f => f.id === m.flatId) ? m.flatId : '')}</select><button class="btn small good" type="button" data-mok="${m.id}">${T('मंजूर')}</button><button class="btn small" type="button" data-mno="${m.id}" aria-label="${T('नाकारा')}">✕</button></span></li>`).join('')}</ul>` : ''}
     <h2>${T('सदस्य')} · ${act.length}</h2>
     <ul class="list">${act.map(m => `<li><span class="grow"><b>${esc(m.name)}${m.id === S.user.uid ? ` (${T('तुम्ही')})` : ''}</b><span class="tiny muted">${m.role === 'admin' ? T('समिती') : T('सभासद')} · ${T('सदनिका')} ${esc(m.flatId || '—')}</span></span>
       ${m.id === S.user.uid ? '' : `<button class="btn small" type="button" data-medit="${m.id}">${T('बदला')}</button>`}</li>`).join('')}</ul>
@@ -401,7 +404,7 @@ function rHome() {
     ${S.claims.filter(c => c.status !== 'pending').slice(0, 2).map(c => `<div class="card small row between"><span>${c.fundId ? esc(c.fundTitle || T('वर्गणी')) : monthName(c.month)} · ${rs(c.amount)}</span><span class="pill ${c.status === 'approved' ? 'ok' : 'due'}">${c.status === 'approved' ? T('मंजूर') : T('नाकारले')}</span></div>`).join('')}
     ${extra}
     <h2>${T('भरणा इतिहास')}</h2>
-    ${hist.length ? `<ul class="list">${hist.map(([m, p]) => `<li><span class="grow"><b>${monthName(m)}</b><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(T(p.mode))}</span></span><span class="num b6">${rs(p.amount)}</span></li>`).join('')}</ul>` : `<div class="card empty muted small">${T('अजून नोंद नाही.')}</div>`}`;
+    ${hist.length ? `<ul class="list">${hist.map(([m, p]) => `<li><span class="grow"><b>${monthName(m)}</b><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(T(p.mode))}</span></span><span class="num b6">${rs(p.amount)}</span><button class="iconbtn" type="button" data-rcpt="${m}" aria-label="${T('पावती')}">${IC.receipt}</button></li>`).join('')}</ul>` : `<div class="card empty muted small">${T('अजून नोंद नाही.')}</div>`}`;
 }
 const latestNotice = () => { const n = S.notices[0]; return n ? `<button class="card btnlike stack" type="button" data-opennotice="${n.id}"><span class="tiny muted">${T('नवीन')} ${n.kind === 'minutes' ? T('इतिवृत्त') : T('सूचना')}</span><b>${esc(n.heading)}</b><span class="small clamp">${esc(n.body)}</span></button>` : ''; };
 function vMe() {
@@ -593,8 +596,8 @@ function sheetPay(flatId) {
     </form>`, el => {
     el.querySelector('#payForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const rec = { amount: Number(el.querySelector('#pAmt').value) || 0, date: el.querySelector('#pDate').value, mode: el.querySelector('#pMode').value, ref: el.querySelector('#pRef').value.trim() };
-      try { await B.setPayment(S.sid, flatId, m, rec); closeSheet(); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); } catch (er) { fail(er); }
+      const rec = { amount: Number(el.querySelector('#pAmt').value) || 0, date: el.querySelector('#pDate').value, mode: el.querySelector('#pMode').value, ref: el.querySelector('#pRef').value.trim(), at: Date.now(), by: S.user.name };
+      try { await B.setPayment(S.sid, flatId, m, rec); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); openReceipt(maintReceipt(flatId, m, rec)); } catch (er) { fail(er); }
     });
     const del = el.querySelector('#pDel');
     if (del) del.addEventListener('click', async () => { try { await B.setPayment(S.sid, flatId, m, null); closeSheet(); toast(T('नोंद काढली.')); } catch (er) { fail(er); } });
@@ -889,7 +892,7 @@ function sheetFund(id) {
     ${!isAdmin() && my && f.status !== 'closed' ? (mine ? `<div class="card accent small">${T('तुम्ही')} ${rs(mine.amount)} ${T('भरले')} ✓</div>` : pendMine ? `<div class="pill wait">${rs(pendMine.amount)} ${T('समितीच्या मंजुरीसाठी')}</div>` : S.society.upi ? `<div class="field"><label for="fAmt">${T('रक्कम (₹)')}</label><input id="fAmt" type="number" inputmode="numeric" min="1" value="${esc(f.perFlat || '')}"></div><button class="btn primary block" type="button" id="fPay">${T('UPI ने भरा')}</button><button class="link" type="button" id="fIPaid">${T('आधीच भरले? नोंद करा')}</button>` : '') : ''}
     ${isAdmin() ? `<div class="grid2"><button class="btn ghost" type="button" id="fEdit">${IC.edit} ${T('बदला')}</button><button class="btn ghost" type="button" id="fWa">${IC.wa} ${T('आठवण')}</button></div>` : ''}
     <span class="kicker">${T('भरलेल्या सदनिका')} · ${Object.keys(paid).length}</span>
-    ${Object.keys(paid).length ? `<ul class="list">${Object.entries(paid).sort((a, b) => a[0].localeCompare(b[0])).map(([fl, p]) => `<li><span class="flat">${esc(fl)}</span><span class="grow"><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(T(p.mode || ''))}</span></span><b class="num">${rs(p.amount)}</b>${isAdmin() ? `<button class="iconbtn" type="button" data-fundunpay="${esc(fl)}" aria-label="${T('नोंद काढा')}">✕</button>` : ''}</li>`).join('')}</ul>` : `<p class="small muted m0">${T('अजून कोणी भरली नाही.')}</p>`}
+    ${Object.keys(paid).length ? `<ul class="list">${Object.entries(paid).sort((a, b) => a[0].localeCompare(b[0])).map(([fl, p]) => `<li><span class="flat">${esc(fl)}</span><span class="grow"><span class="tiny muted">${esc(fmtDate(p.date))} · ${esc(T(p.mode || ''))}</span></span><b class="num">${rs(p.amount)}</b>${isAdmin() || fl === my ? `<button class="iconbtn" type="button" data-frcpt="${esc(fl)}" aria-label="${T('पावती')}">${IC.receipt}</button>` : ''}${isAdmin() ? `<button class="iconbtn" type="button" data-fundunpay="${esc(fl)}" aria-label="${T('नोंद काढा')}">✕</button>` : ''}</li>`).join('')}</ul>` : `<p class="small muted m0">${T('अजून कोणी भरली नाही.')}</p>`}
     ${isAdmin() && unpaid.length ? `<span class="kicker">${T('बाकी')} · ${unpaid.length}</span><ul class="list">${unpaid.map(x => `<li><span class="flat">${esc(x.id)}</span><span class="grow small">${esc(x.owner || '')}</span><button class="btn small ghost" type="button" data-fundcash="${esc(x.id)}">${T('जमा')}</button></li>`).join('')}</ul>` : ''}
     ${isAdmin() ? `<div class="grid2"><button class="btn ghost" type="button" id="fClose">${f.status === 'closed' ? T('पुन्हा सुरू करा') : T('वर्गणी बंद करा')}</button><button class="btn ghost danger" type="button" id="fDel">${T('हटवा')}</button></div>` : ''}`, el => {
     const g = q => el.querySelector(q);
@@ -905,6 +908,7 @@ function sheetFund(id) {
     if (g('#fClose')) g('#fClose').addEventListener('click', async () => { if (locked()) { toast(LOCK_MSG); return; } try { await B.saveFund(S.sid, { id: f.id, status: f.status === 'closed' ? 'open' : 'closed' }); closeSheet(); toast(T('बदल जतन झाला.')); } catch (er) { fail(er); } });
     if (g('#fDel')) g('#fDel').addEventListener('click', async e => { const b = e.currentTarget; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = T('नक्की हटवायचे?'); return; } try { await B.deleteFund(S.sid, f.id); closeSheet(); toast(T('वर्गणी हटवली.')); } catch (er) { fail(er); } });
     el.addEventListener('click', async e => {
+      const rb = e.target.closest('[data-frcpt]'); if (rb) { openReceipt(fundReceipt(f, rb.dataset.frcpt, paid[rb.dataset.frcpt])); return; }
       const c = e.target.closest('[data-fundcash]'), u = e.target.closest('[data-fundunpay]');
       if ((c || u) && locked()) { toast(LOCK_MSG); return; }
       if (c) sheetFundCash(f, c.dataset.fundcash);
@@ -921,7 +925,8 @@ function sheetFundCash(f, flatId) {
     el.querySelector('#fcBack').addEventListener('click', () => sheetFund(f.id));
     el.querySelector('#fcForm').addEventListener('submit', async e => {
       e.preventDefault(); const amt = Number(el.querySelector('#fcAmt').value) || 0; if (!amt) return;
-      try { await B.setFundPaid(S.sid, f.id, flatId, { amount: amt, date: today, mode: el.querySelector('#fcMode').value }); toast(`${flatId}: ${rs(amt)} ${T('जमा.')}`); sheetFundSoon(f.id); } catch (er) { fail(er); }
+      const rec = { amount: amt, date: today, mode: el.querySelector('#fcMode').value, at: Date.now(), by: S.user.name };
+      try { await B.setFundPaid(S.sid, f.id, flatId, rec); toast(`${flatId}: ${rs(amt)} ${T('जमा.')}`); openReceipt(fundReceipt(f, flatId, rec)); } catch (er) { fail(er); }
     });
   });
 }
@@ -981,17 +986,75 @@ async function openFile(id) {
     } catch (er) { el.querySelector('#foStat').textContent = errMsg(er); }
   });
 }
+/* ---------- receipts (पावती) ---------- */
+const flatOwner = id => (flats().find(f => f.id === id) || {}).owner || '';
+const rcptDate = rec => rec.at ? `${fmtTs(rec.at)} ${new Date(rec.at).toTimeString().slice(0, 5)}` : fmtDate(rec.date);
+const maintReceipt = (flatId, month, rec) => ({ no: `${S.society.code}-${month.replace('-', '')}-${flatId}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), purpose: `${T('देखभाल शुल्क')} · ${monthName(month)}`, amount: Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '' });
+const fundReceipt = (f, flatId, rec) => ({ no: `${S.society.code}-V${String(f.id).slice(0, 4).toUpperCase()}-${flatId}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), purpose: `${T('वर्गणी')} · ${f.title}`, amount: Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '' });
+function openReceipt(r) {
+  openSheet(`${sheetHead(T('पावती'))}<img class="docprev" id="rcImg" alt="${T('पावती')}">
+    <div class="grid2"><button class="btn primary" type="button" id="rcShare">${IC.share} ${T('WhatsApp / शेअर')}</button><button class="btn ghost" type="button" id="rcClose">${T('बंद')}</button></div>`, async el => {
+    el.querySelector('#rcClose').addEventListener('click', closeSheet);
+    const blob = await drawReceipt(S.society, r, k => T(k));
+    const img = el.querySelector('#rcImg'); if (img) img.src = URL.createObjectURL(blob);
+    el.querySelector('#rcShare').addEventListener('click', async () => {
+      const res = await shareImage(blob, `pavati-${r.no}.png`, `${S.society.name} · ${T('पावती')} ${r.no} · ₹${r.amount}`);
+      if (res === 'downloaded') toast(T('पावती डाउनलोड झाली.')); if (res === 'failed') toast(T('शेअर होऊ शकले नाही.'));
+    });
+  });
+}
+
+/* ---------- full ledger export to Excel (.xlsx with several sheets) ---------- */
 async function exportLedger() {
+  toast(T('Excel तयार करत आहे…'));
+  const XLSX = await import('xlsx');
   const months = monthsBetween(S.society.startMonth || thisMonth, thisMonth);
-  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const rows = [[T('सदनिका'), T('मालक'), T('फोन'), ...months.map(monthName), T('एकूण भरले'), T('थकबाकी')].map(q).join(',')];
+  const hhmm = ts => ts ? new Date(ts).toTimeString().slice(0, 5) : '';
+  const dmy = ts => ts ? isoDay(ts) : '';
+  const memberOf = id => S.members.filter(m => m.flatId === id);
+  // 1 summary per flat
+  const summary = [[T('सदनिका'), T('मालक'), T('फोन'), T('ॲपवरील सभासद'), T('ॲप स्थिती'), T('एकूण भरले'), T('थकबाकी'), T('शेवटचा भरणा')]];
+  // 2 every transaction
+  const tx = [[T('दिनांक'), T('वेळ'), T('सदनिका'), T('मालक'), T('भरणारे'), T('प्रकार'), T('कशासाठी'), T('रक्कम (₹)'), T('कसे भरले'), T('संदर्भ क्र. / UTR'), T('पावती क्र.'), T('नोंद करणारे')]];
+  // 3 month grid
+  const grid = [[T('सदनिका'), T('मालक'), ...months.map(monthName), T('एकूण भरले'), T('थकबाकी')]];
   for (const f of flats()) {
     const P = (S.accounts[f.id] || {}).payments || {};
-    const vals = months.map(m => P[m] ? Number(P[m].amount) || 0 : '');
-    rows.push([f.id, f.owner, f.phone, ...vals, vals.reduce((a, v) => a + (Number(v) || 0), 0), dueFor(f.id, thisMonth)].map(q).join(','));
+    const mem = memberOf(f.id);
+    let paid = 0, last = '';
+    const vals = months.map(m => { const p = P[m]; if (!p) return ''; paid += Number(p.amount) || 0; if ((p.date || '') > last) last = p.date || ''; return Number(p.amount) || 0; });
+    Object.entries(P).forEach(([m, p]) => {
+      const r = maintReceipt(f.id, m, p);
+      tx.push([p.date || dmy(p.at), hhmm(p.at), f.id, f.owner || '', p.payer || '', T('देखभाल शुल्क'), monthName(m), Number(p.amount) || 0, T(p.mode || ''), p.ref || '', r.no, p.by || '']);
+    });
+    summary.push([f.id, f.owner || '', f.phone || '', mem.map(m => m.name).join(', '), mem.some(m => m.status === 'active') ? T('ॲपवर आहे') : mem.length ? T('मंजुरी बाकी') : T('ॲपवर नाही'), paid, dueFor(f.id, thisMonth), last]);
+    grid.push([f.id, f.owner || '', ...vals, paid, dueFor(f.id, thisMonth)]);
   }
-  const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv' });
-  const r = await shareFile(blob, `hishob-${today}.csv`, `${S.society.name} ${T('हिशोब')}`);
+  // 4 collections
+  const fundRows = [[T('वर्गणी'), T('सदनिका'), T('मालक'), T('रक्कम (₹)'), T('दिनांक'), T('वेळ'), T('कसे भरले'), T('संदर्भ क्र. / UTR'), T('पावती क्र.'), T('नोंद करणारे')]];
+  for (const fd of S.funds) for (const [fl, p] of Object.entries(fd.paid || {})) {
+    const r = fundReceipt(fd, fl, p);
+    fundRows.push([fd.title, fl, flatOwner(fl), Number(p.amount) || 0, p.date || dmy(p.at), hhmm(p.at), T(p.mode || ''), p.ref || '', r.no, p.by || '']);
+    tx.push([p.date || dmy(p.at), hhmm(p.at), fl, flatOwner(fl), p.payer || '', T('वर्गणी'), fd.title, Number(p.amount) || 0, T(p.mode || ''), p.ref || '', r.no, p.by || '']);
+  }
+  // 5 UPI payment reports from residents, with status
+  const claims = [[T('दिनांक'), T('वेळ'), T('सदनिका'), T('भरणारे'), T('कशासाठी'), T('रक्कम (₹)'), T('संदर्भ क्र. / UTR'), T('स्थिती')]];
+  for (const c of S.claims) claims.push([dmy(c.createdAt), hhmm(c.createdAt), c.flatId, c.name || '', c.fundId ? `${T('वर्गणी')} · ${c.fundTitle || ''}` : monthName(c.month), Number(c.amount) || 0, c.ref || '', c.status === 'approved' ? T('मंजूर') : c.status === 'rejected' ? T('नाकारले') : T('प्रलंबित')]);
+  // 6 app members
+  const mem = [[T('नाव'), T('ईमेल'), T('सदनिका'), T('भूमिका'), T('स्थिती'), T('जोडल्याचा दिनांक')]];
+  for (const m of S.members) mem.push([m.name || '', m.email || '', m.flatId || '', m.role === 'admin' ? T('समिती') : T('सभासद'), m.status === 'active' ? T('सक्रिय') : T('मंजुरी बाकी'), dmy(m.createdAt)]);
+  tx.splice(1, tx.length - 1, ...tx.slice(1).sort((a, b) => String(b[0] + b[1]).localeCompare(String(a[0] + a[1]))));
+  const wb = XLSX.utils.book_new();
+  const add = (rows, name, widths) => { const ws = XLSX.utils.aoa_to_sheet(rows); ws['!cols'] = widths.map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31)); };
+  add(summary, T('सारांश'), [10, 24, 14, 24, 14, 12, 12, 12]);
+  add(tx, T('सर्व व्यवहार'), [12, 7, 9, 22, 18, 14, 24, 11, 14, 18, 22, 16]);
+  add(grid, T('महिनावार'), [10, 24, ...months.map(() => 12), 12, 12]);
+  add(fundRows, T('वर्गणी'), [22, 9, 22, 11, 12, 7, 14, 18, 22, 16]);
+  add(claims, T('UPI नोंदी'), [12, 7, 9, 18, 24, 11, 18, 12]);
+  if (isAdmin()) add(mem, T('ॲप सभासद'), [20, 28, 9, 10, 12, 12]);
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const r = await shareFile(blob, `Sachiv-hishob-${today}.xlsx`, `${S.society.name} ${T('हिशोब')}`);
   if (r === 'downloaded') toast(T('हिशोब डाउनलोड झाला (Excel मध्ये उघडा).'));
 }
 
@@ -1125,21 +1188,27 @@ document.addEventListener('click', async e => {
     else if (d.month) { ledgerMonth = addMonth(ledgerMonth, +d.month); if (ledgerMonth > thisMonth) ledgerMonth = thisMonth; render(); }
     else if (d.lf) { ledgerFilter = d.lf; render(); }
     else if (d.cf) { complaintFilter = d.cf; render(); }
+    else if (d.rcpt) {
+      const flatId = d.rflat || S.member.flatId, p = ((S.accounts[flatId] || {}).payments || {})[d.rcpt];
+      if (p) openReceipt(maintReceipt(flatId, d.rcpt, p));
+    }
     else if (d.pay) sheetPay(d.pay);
     else if (d.claimOk) {
       const c = S.claims.find(x => x.id === d.claimOk); if (!c) return;
       if (c.fundId) {
         const fund = S.funds.find(x => x.id === c.fundId), prevF = fund && (fund.paid || {})[c.flatId];
-        await B.setFundPaid(S.sid, c.fundId, c.flatId, { amount: (prevF ? Number(prevF.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '' });
-        await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid });
-        toast(`${c.flatId}: ${rs(c.amount)} ${T('वर्गणी मंजूर.')}`); return;
+        const recF = { amount: (prevF ? Number(prevF.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '', at: Date.now(), by: S.user.name, payer: c.name || '' };
+        await B.setFundPaid(S.sid, c.fundId, c.flatId, recF);
+        await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid, decidedAt: Date.now() });
+        toast(`${c.flatId}: ${rs(c.amount)} ${T('वर्गणी मंजूर.')}`); if (fund) openReceipt(fundReceipt(fund, c.flatId, recF)); return;
       }
       const prev = ((S.accounts[c.flatId] || {}).payments || {})[c.month];
-      await B.setPayment(S.sid, c.flatId, c.month, { amount: (prev ? Number(prev.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '' });
-      await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid });
-      toast(`${c.flatId}: ${rs(c.amount)} ${T('मंजूर करून खात्यात जमा केले.')}`);
+      const recM = { amount: (prev ? Number(prev.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '', at: Date.now(), by: S.user.name, payer: c.name || '' };
+      await B.setPayment(S.sid, c.flatId, c.month, recM);
+      await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid, decidedAt: Date.now() });
+      toast(`${c.flatId}: ${rs(c.amount)} ${T('मंजूर करून खात्यात जमा केले.')}`); openReceipt(maintReceipt(c.flatId, c.month, recM));
     }
-    else if (d.claimNo) { await B.updateClaim(S.sid, d.claimNo, { status: 'rejected', decidedBy: S.user.uid }); toast(T('भरणा नाकारला.')); }
+    else if (d.claimNo) { await B.updateClaim(S.sid, d.claimNo, { status: 'rejected', decidedBy: S.user.uid, decidedAt: Date.now() }); toast(T('भरणा नाकारला.')); }
     else if (d.mok) { const sel = document.querySelector(`[data-mflat="${d.mok}"]`); const flatId = sel ? sel.value : ''; if (!flatId) { toast(T('आधी सदनिका निवडा.')); return; } await B.updateMember(S.sid, d.mok, { status: 'active', flatId }); toast(T('सभासद मंजूर केला.')); }
     else if (d.mno) { await B.removeMember(S.sid, d.mno); toast(T('विनंती नाकारली.')); }
     else if (d.medit) sheetEditMember(d.medit);
