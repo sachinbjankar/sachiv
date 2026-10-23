@@ -512,7 +512,7 @@ function vContacts() {
 
 /* ---------- quick actions (centre + button) ---------- */
 const QUICK_ADMIN = [['act:newmsg', 'mega', 'घोषणा'], ['act:newnotice', 'doc', 'सूचना'], ['act:newminutes', 'doc', 'इतिवृत्त'], ['act:reminders', 'wa', 'आठवण'],
-  ['act:newfund', 'coins', 'वर्गणी'], ['act:upload', 'folder', 'फाइल'], ['tab:committee', 'badge', 'समिती'], ['tab:contacts', 'phone', 'संपर्क']];
+  ['act:newfund', 'coins', 'वर्गणी'], ['act:upload', 'folder', 'फाइल'], ['tab:committee', 'badge', 'समिती'], ['act:poster', 'qr', 'QR पोस्टर']];
 const QUICK_RES = [['act:pay', 'rupee', 'देखभाल भरा'], ['act:ipaid', 'ledger', 'भरले? नोंद करा'], ['act:newcomplaint', 'chat', 'तक्रार नोंदवा'], ['tab:funds', 'coins', 'वर्गणी'],
   ['tab:contacts', 'phone', 'संपर्क'], ['tab:committee', 'badge', 'समिती'], ['tab:files', 'folder', 'फाइल्स'], ['tab:messages', 'mega', 'संदेश']];
 const quickGrid = () => `<div class="actions">${(isAdmin() ? QUICK_ADMIN : QUICK_RES).map(([k, ic, l]) => { const [t, v] = k.split(':'); return `<button type="button" ${t === 'act' ? `data-act="${v}"` : `data-tab-go="${v}"`}>${IC[ic]}<span>${T(l)}</span></button>`; }).join('')}</div>`;
