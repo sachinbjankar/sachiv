@@ -36,6 +36,8 @@ export const backend = {
   kind: 'firebase',
   onAuth(cb) { authCb = cb; return onAuthStateChanged(auth, u => cb(toUser(u))); },
   sendVerification: () => sendEmailVerification(auth.currentUser),
+  // For the background check that shows phone notifications while the app is closed.
+  bgAuth: () => auth.currentUser ? { refreshToken: auth.currentUser.refreshToken, apiKey: firebaseConfig.apiKey, project: firebaseConfig.projectId } : null,
   async refreshUser() { await auth.currentUser.reload(); await auth.currentUser.getIdToken(true); if (authCb) authCb(toUser(auth.currentUser)); return auth.currentUser.emailVerified; },
   async deleteAccount(password, sids) {
     const u = auth.currentUser;

@@ -30,6 +30,7 @@ export const backend = {
     const u = users[email.toLowerCase()]; if (!u || u.password !== password) throw { code: 'auth/invalid-credential' };
     current = u; authNotify();
   },
+  bgAuth: () => null,
   async signOut() { current = null; authNotify(); },
   async resetPassword() {},
   async sendVerification() { if (current) current.verified = true; save(); },

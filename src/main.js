@@ -20,7 +20,7 @@ import { NOTICE_TEMPLATES, MINUTES_TYPES, RESOLUTION_PHRASES } from './templates
 import { drawLetterhead } from './letterhead.js';
 import { drawReceipt, receiptPng, receiptPdf } from './receipt.js';
 import { DICT } from './dict.js';
-import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative, notifyLocal, askNotifyPermission, onNotifyTap } from './platform.js';
+import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative, notifyLocal, askNotifyPermission, onNotifyTap, bgConfig } from './platform.js';
 import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS, SITE_URL, PLANS, priceFor } from './config.js';
 import { drawPoster, canvasToBlob, posterPdf } from './poster.js';
 import { App as CapApp } from '@capacitor/app';
@@ -309,11 +309,24 @@ async function notifyNew() {
   try { for (const x of fresh) await notifyLocal(`${x.title} · ${S.society.name}`, x.body); } finally { notifyBusy = false; }
 }
 if (isNative) { askNotifyPermission(); onNotifyTap(() => { if (S.society) sheetInbox(); }); }
+// Keep the background checker in step with the signed-in user, society and what was already notified.
+let bgSent = '';
+function syncBg() {
+  if (!isNative) return;
+  if (!S.user) { if (bgSent !== 'none') { bgSent = 'none'; bgConfig(null); } return; }
+  if (!S.society || !S.member || S.member.status !== 'active') return;
+  const a = B.bgAuth && B.bgAuth(); if (!a) return;
+  const last = Number(LS.get(notifKey()) || Date.now());
+  const sig = [S.user.uid, S.sid, S.member.role, S.member.flatId, last, a.refreshToken.slice(-8), LANG].join('|');
+  if (sig === bgSent) return; bgSent = sig;
+  bgConfig({ ...a, uid: S.user.uid, sid: S.sid, sname: S.society.name, role: S.member.role, flatId: S.member.flatId || '', last,
+    labels: { announce: T('नवीन घोषणा'), important: T('महत्त्वाची घोषणा'), notice: T('नवीन सूचना पत्र'), claim: T('नवीन भरणा नोंद'), join: T('नवीन सभासद विनंती'), complaint: T('नवीन तक्रार'), reminder: T('थकबाकी आठवण'), reminderBody: T('{0} थकबाकी आहे. कृपया लवकर भरा.'), approved: T('भरणा मंजूर ✓'), rejected: T('भरणा नाकारला') } });
+}
 function render() {
   const head = $('#head'), v = $('#view'), tabs = $('#tabs');
   if (S.user === undefined || (S.user && booting())) { document.body.dataset.screen = 'splash'; head.innerHTML = ''; tabs.innerHTML = ''; if (!$('.splash')) v.innerHTML = splash(); return; }
   document.body.dataset.screen = S.user ? 'app' : 'auth';
-  if (!S.user) { head.innerHTML = ''; tabs.innerHTML = ''; v.innerHTML = viewAuth(); return; }
+  if (!S.user) { head.innerHTML = ''; tabs.innerHTML = ''; v.innerHTML = viewAuth(); syncBg(); return; }
   if (!S.userDoc) { head.innerHTML = topBar(''); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
   const socs = (S.userDoc && S.userDoc.societies) || {};
   if (!S.sid) { head.innerHTML = topBar(''); tabs.innerHTML = ''; v.innerHTML = `${pageTitle(T('तुमची सोसायटी जोडा'), `${T('नमस्कार')}, ` + esc(S.user.name))}` + viewOnboard(); return; }
@@ -329,7 +342,7 @@ function render() {
   if (!TABS.some(t => t[0] === S.tab) && !SUBPAGES[S.tab] && S.tab !== 'files') S.tab = 'home';
   if (S.tab === 'members' && !isAdmin()) S.tab = 'more';
   if (S.tab === 'messages') LS.set(seenKey(), String(Date.now()));
-  setTimeout(notifyNew, 0);
+  setTimeout(() => { notifyNew().finally(syncBg); }, 0);
   const navOn = SUBPAGES[S.tab] ? 'more' : S.tab;
   const badge = k => (k === 'home' && isAdmin() && pendingCount()) || (k === 'messages' && unreadCount()) ? `<i class="dot" aria-label="${T('नवीन')}"></i>` : '';
   tabs.innerHTML = `<nav aria-label="${T('मुख्य मेनू')}" style="grid-template-columns:repeat(${TABS.length},minmax(0,1fr))">${TABS.map(([k, l, ic]) => k === '+' ? `<button class="fab" type="button" data-act="quick" aria-label="${T('झटपट कामे')}"><span class="fabi">${IC.plus}</span></button>` : `<button type="button" data-tab="${k}" ${k === navOn ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${badge(k)}</button>`).join('')}</nav>`;
@@ -685,7 +698,7 @@ function sheetSetup(isNew) {
         <div class="grid2"><div class="field"><label for="sContact">${T('ईमेल / फोन')}</label><input type="text" id="sContact" value="${esc(p.contact || '')}" autocapitalize="off"></div>
         <div class="field"><label for="sPrefix">${T('पावती क्रमांकाची सुरुवात')}</label><input type="text" id="sPrefix" maxlength="8" value="${esc(p.rcptPrefix || '')}" placeholder="${T('उदा. KKR')}" autocapitalize="characters"></div></div>
       </div></details>
-      <div class="field"><label for="sUpi">${T('संस्थेचा UPI आयडी')} <span class="hint">(${T('सभासद यावर थेट भरतील')})</span><span class="tiny muted" style="display:block">${T('टीप: बिझनेस UPI (GPay for Business, PhonePe Business, Paytm Business) वापरल्यास सभासद ॲपमधून थेट भरू शकतात. वैयक्तिक UPI आयडीवर QR स्कॅन करून भरावे लागते.')}</span></label><input type="text" id="sUpi" value="${esc(p.upi || '')}" placeholder="${T('उदा. societyname')}@okaxis" autocapitalize="off"></div>
+      <div class="field"><label for="sUpi">${T('संस्थेचा UPI आयडी')} <span class="hint">(${T('सभासद यावर थेट भरतील')})</span><span class="tiny muted" style="display:block">${T('टीप: बिझनेस UPI (GPay for Business, PhonePe Business, Paytm Business) वापरल्यास सभासद ॲपमधून थेट भरू शकतात. वैयक्तिक UPI आयडीवर QR स्कॅन करून भरावे लागते.')}</span></label><input type="text" id="sUpi" value="${esc(p.upi || '')}" placeholder="${T('उदा. societyname')}@okaxis" autocapitalize="off"><label class="row g10 small" style="margin-top:6px"><input type="checkbox" id="sUpiBiz" ${p.upiBiz ? 'checked' : ''}> ${T('हा बिझनेस / मर्चंट UPI आहे (ॲपमधून थेट भरणा चालू करा)')}</label></div>
       <div class="grid2"><div class="field"><label for="sStart">${T('खाते कोणत्या महिन्यापासून')}</label><input type="month" id="sStart" value="${esc(p.startMonth || thisMonth)}"></div>
       ${isNew ? `<div class="field"><label for="sMy">${T('तुमची सदनिका')}</label><input type="text" id="sMy" placeholder="${T('उदा. A-101')}"></div>` : '<div></div>'}</div>
       <div class="field"><label for="sFlats">${T('सदनिका यादी')} <span class="hint">(${T('एका ओळीत एक: सदनिका, मालकाचे नाव, फोन, जुनी थकबाकी. Excel मधून पेस्ट करू शकता.')})</span></label>
@@ -699,7 +712,7 @@ function sheetSetup(isNew) {
         .map(a => ({ id: a[0].replace(/[\/\s]+/g, '-').toUpperCase(), owner: a[1] || '', phone: a[2] || '', opening: Number(String(a[3] || '').replace(/[^\d.]/g, '')) || 0 }));
       const seen = new Set(), dup = fl.find(f => seen.has(f.id) || !seen.add(f.id));
       if (dup) { toast(T('सदनिका {0} दोनदा आहे.', dup.id)); btn.disabled = false; return; }
-      const data = { name: el.querySelector('#sName').value.trim(), address: el.querySelector('#sAddr').value.trim(), regNo: el.querySelector('#sReg').value.trim(), monthly: Number(el.querySelector('#sMonthly').value) || 0, upi: el.querySelector('#sUpi').value.trim(), nameEn: el.querySelector('#sNameEn').value.trim(), contact: el.querySelector('#sContact').value.trim(), rcptPrefix: el.querySelector('#sPrefix').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, ''), startMonth: el.querySelector('#sStart').value || thisMonth, flats: fl };
+      const data = { name: el.querySelector('#sName').value.trim(), address: el.querySelector('#sAddr').value.trim(), regNo: el.querySelector('#sReg').value.trim(), monthly: Number(el.querySelector('#sMonthly').value) || 0, upi: el.querySelector('#sUpi').value.trim(), upiBiz: el.querySelector('#sUpiBiz').checked, nameEn: el.querySelector('#sNameEn').value.trim(), contact: el.querySelector('#sContact').value.trim(), rcptPrefix: el.querySelector('#sPrefix').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, ''), startMonth: el.querySelector('#sStart').value || thisMonth, flats: fl };
       try {
         if (isNew) { data.myFlat = (el.querySelector('#sMy').value || '').trim().toUpperCase(); const sid = await B.createSociety(S.user, data); closeSheet(); selectSociety(sid); toast(T('सोसायटी तयार झाली. आता जॉइन कोड सभासदांना पाठवा.')); }
         else { await B.updateSociety(S.sid, data); closeSheet(); toast(T('माहिती जतन झाली.')); }
@@ -825,7 +838,8 @@ function sheetUpiPay(amount, note, onDone) {
   openSheet(`${sheetHead(T('{0} भरा', rs(amount)))}
     <div class="upiqr"><canvas id="uqC" width="560" height="560" aria-label="UPI QR"></canvas><span class="small muted">${esc(S.society.name)}</span></div>
     <ol class="small upisteps"><li>${T('खालील बटणाने QR गॅलरीत सेव्ह करा.')}</li><li>${T('GPay / PhonePe / Paytm उघडा → Scan → गॅलरीमधून हा QR निवडा.')}</li><li>${T('रक्कम आधीच भरलेली असेल. पैसे पाठवा.')}</li></ol>
-    <div class="grid2"><button class="btn primary" type="button" id="uqSave">${IC.share} ${T('QR सेव्ह / शेअर')}</button><button class="btn" type="button" id="uqOpen">${T('UPI ॲप उघडा')}</button></div>
+    <p class="tiny muted m0">${T('किंवा UPI आयडी कॉपी करा → UPI ॲपमध्ये "UPI ID ने पाठवा" → पेस्ट करा → रक्कम टाका.')}</p>
+    ${S.society.upiBiz ? `<div class="grid2"><button class="btn primary" type="button" id="uqOpen">${T('UPI ॲप उघडा')}</button><button class="btn" type="button" id="uqSave">${IC.share} ${T('QR सेव्ह / शेअर')}</button></div>` : `<button class="btn primary block" type="button" id="uqSave">${IC.share} ${T('QR सेव्ह / शेअर')}</button>`}
     <div class="card stack small"><div class="row between"><span class="muted">${T('UPI आयडी')}</span><span class="row g6"><b>${esc(S.society.upi)}</b><button class="iconbtn" type="button" id="uqCopy" aria-label="${T('कॉपी करा')}">${IC.copy}</button></span></div>
       <div class="row between"><span class="muted">${T('रक्कम')}</span><span class="row g6"><b class="num">${rs(amount)}</b><button class="iconbtn" type="button" id="uqCopyA" aria-label="${T('कॉपी करा')}">${IC.copy}</button></span></div></div>
     <button class="btn good block" type="button" id="uqDone">✓ ${T('पैसे पाठवले, नोंद करा')}</button>`, async el => {
@@ -836,7 +850,7 @@ function sheetUpiPay(amount, note, onDone) {
       const res = await shareImage(blob, `UPI-${S.society.code}-${Math.round(amount)}.png`, `${S.society.name} · ${rs(amount)}`);
       if (res === 'downloaded') toast(T('QR डाउनलोड झाला.')); if (res === 'failed') toast(T('शेअर होऊ शकले नाही.'));
     });
-    el.querySelector('#uqOpen').addEventListener('click', async () => { const ok = await openExternal(link); if (!ok) toast(T('UPI ॲप उघडले नाही. QR वापरा.')); });
+    if (el.querySelector('#uqOpen')) el.querySelector('#uqOpen').addEventListener('click', async () => { const ok = await openExternal(link); if (!ok) toast(T('UPI ॲप उघडले नाही. QR वापरा.')); });
     el.querySelector('#uqCopy').addEventListener('click', async () => toast(await copyText(S.society.upi) ? T('UPI आयडी कॉपी झाला.') : T('कॉपी होऊ शकला नाही.')));
     el.querySelector('#uqCopyA').addEventListener('click', async () => toast(await copyText(String(Math.round(amount))) ? T('रक्कम कॉपी झाली.') : T('कॉपी होऊ शकला नाही.')));
     el.querySelector('#uqDone').addEventListener('click', onDone);

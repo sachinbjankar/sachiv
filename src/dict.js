@@ -569,5 +569,7 @@ export const DICT = {
   'UPI ॲप उघडले नाही. QR वापरा.': ['UPI ऐप नहीं खुला। QR इस्तेमाल करें।', 'UPI app did not open. Use the QR.'],
   'UPI आयडी कॉपी झाला.': ['UPI आईडी कॉपी हो गई।', 'UPI ID copied.'],
   'रक्कम कॉपी झाली.': ['राशि कॉपी हो गई।', 'Amount copied.'],
-  'टीप: बिझनेस UPI (GPay for Business, PhonePe Business, Paytm Business) वापरल्यास सभासद ॲपमधून थेट भरू शकतात. वैयक्तिक UPI आयडीवर QR स्कॅन करून भरावे लागते.': ['टिप: बिज़नेस UPI (GPay for Business, PhonePe Business, Paytm Business) इस्तेमाल करने पर सदस्य ऐप से सीधे भुगतान कर सकते हैं। निजी UPI आईडी पर QR स्कैन करके भरना होगा।', 'Tip: with a business UPI (GPay for Business, PhonePe Business, Paytm Business) members can pay directly from the app. With a personal UPI ID they pay by scanning the QR.']
+  'टीप: बिझनेस UPI (GPay for Business, PhonePe Business, Paytm Business) वापरल्यास सभासद ॲपमधून थेट भरू शकतात. वैयक्तिक UPI आयडीवर QR स्कॅन करून भरावे लागते.': ['टिप: बिज़नेस UPI (GPay for Business, PhonePe Business, Paytm Business) इस्तेमाल करने पर सदस्य ऐप से सीधे भुगतान कर सकते हैं। निजी UPI आईडी पर QR स्कैन करके भरना होगा।', 'Tip: with a business UPI (GPay for Business, PhonePe Business, Paytm Business) members can pay directly from the app. With a personal UPI ID they pay by scanning the QR.'],
+  'किंवा UPI आयडी कॉपी करा → UPI ॲपमध्ये "UPI ID ने पाठवा" → पेस्ट करा → रक्कम टाका.': ['या UPI आईडी कॉपी करें → UPI ऐप में "UPI ID से भेजें" → पेस्ट करें → राशि डालें।', 'Or copy the UPI ID → in your UPI app choose "Pay UPI ID" → paste → enter the amount.'],
+  'हा बिझनेस / मर्चंट UPI आहे (ॲपमधून थेट भरणा चालू करा)': ['यह बिज़नेस / मर्चेंट UPI है (ऐप से सीधा भुगतान चालू करें)', 'This is a business / merchant UPI (turn on direct payment from the app)']
 };

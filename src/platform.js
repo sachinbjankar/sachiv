@@ -79,3 +79,9 @@ export async function notifyLocal(title, body) {
 export async function onNotifyTap(cb) {
   try { const L = await ln(); if (L) L.addListener('localNotificationActionPerformed', () => cb()); } catch (e) {}
 }
+
+// Hand the background checker (runs ~every 15 min while the app is closed) what it needs.
+export async function bgConfig(cfg) {
+  if (!isNative) return;
+  try { const { BackgroundRunner } = await import('@capacitor/background-runner'); await BackgroundRunner.dispatchEvent({ label: 'in.sachiv.app.check', event: 'saveConfig', details: { cfg } }); } catch (e) {}
+}

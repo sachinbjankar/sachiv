@@ -2,5 +2,21 @@
   "appId": "in.sachiv.app",
   "appName": "Sachiv",
   "webDir": "dist",
-  "android": { "backgroundColor": "#FFFFFF" }
+  "android": {
+    "backgroundColor": "#FFFFFF"
+  },
+  "plugins": {
+    "BackgroundRunner": {
+      "label": "in.sachiv.app.check",
+      "src": "runners/sachiv-bg.js",
+      "event": "check",
+      "repeat": true,
+      "interval": 15,
+      "autoStart": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_sachiv",
+      "iconColor": "#0B5D4B"
+    }
+  }
 }
