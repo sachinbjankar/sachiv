@@ -96,6 +96,9 @@ h2 { font-size: clamp(28px, 3.8vw, 40px); line-height: 1.15; letter-spacing: -.5
 .pcard li { display: flex; gap: 10px; align-items: flex-start; font-size: 16.5px; }
 .pcard li svg { width: 20px; height: 20px; color: var(--green); flex: none; margin-top: 3px; }
 .pcard .btn { width: 100%; }
+.tiers { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 16.5px; }
+.tiers td { padding: 9px 0; border-bottom: 1px solid var(--edge, #E2E8F0); }
+.tiers td:last-child { text-align: right; font-weight: 800; color: var(--green); }
 .bigs { display: grid; gap: 18px; }
 .bigs b { display: block; font-size: 40px; font-weight: 800; letter-spacing: -1px; color: var(--butter); line-height: 1.1; }
 .bigs span { color: #CFEDE3; font-size: 17px; }
@@ -184,7 +187,9 @@ footer a { color: var(--green); font-weight: 600; text-decoration: none; }
   </div>
   <div class="pcard">
     <span class="tag" data-t="ptag"></span>
-    <div class="amt">₹300<small data-t="pper"></small></div>
+    <div class="amt">₹699<small data-t="pper"></small></div>
+    <div style="color:var(--muted);margin-bottom:6px" data-t="pfrom"></div>
+    <table class="tiers"><tr><td data-t="t1"></td><td>₹699</td></tr><tr><td data-t="t2"></td><td>₹1,499</td></tr><tr><td data-t="t3"></td><td>₹1,999</td></tr></table>
     <div style="color:var(--muted)" data-t="pnote"></div>
     <ul>
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg><span data-t="p1"></span></li>
@@ -242,13 +247,13 @@ const T = {
     h1h: 'सोसायटी नोंदवा', h1p: 'नाव, मासिक शुल्क, UPI आयडी आणि सदनिकांची यादी (Excel मधून पेस्ट).',
     h2h: 'जॉइन कोड पाठवा', h2p: 'सोसायटीच्या WhatsApp ग्रुपवर कोड पाठवा. सभासद ॲप इन्स्टॉल करून जॉइन होतात.',
     h3h: 'वसुली ॲपमधून', h3p: 'सभासद UPI ने भरतात, तुम्ही मंजूर करता. सूचना, वर्गणी, तक्रारी सगळं इथेच.',
-    ph: 'सोपी किंमत', ps: 'संपूर्ण सोसायटीसाठी एक किंमत. सभासद कितीही असोत.',
+    ph: 'सोपी किंमत', ps: 'संपूर्ण सोसायटीसाठी एक मासिक किंमत, सदनिकांच्या संख्येनुसार. सभासद कितीही असोत.',
     b1: '30 दिवस मोफत', b1s: 'सर्व सुविधा, कोणतेही बंधन नाही', b2: '₹0 कमिशन', b2s: 'सभासदांचे पैसे थेट सोसायटीच्या खात्यात',
-    ptag: 'पहिला महिना मोफत', pper: ' / महिना', pnote: 'प्रति सोसायटी, सर्व सदनिकांसाठी',
+    ptag: 'पहिला महिना मोफत', pper: ' / महिना', pnote: 'प्रति सोसायटी, सर्व सदनिकांसाठी', pfrom: 'पासून सुरू. सदनिकांच्या संख्येनुसार:', t1: '50 पर्यंत सदनिका', t2: '51–150 सदनिका', t3: '150 पेक्षा जास्त सदनिका',
     p1: 'सर्व सभासद मोफत वापरतात', p2: 'वसुली, सूचना, वर्गणी, फाइल्स, तक्रारी', p3: 'मराठी, हिंदी, English', p4: 'फोनवर मदत आणि प्रशिक्षण',
     qh: 'नेहमीचे प्रश्न',
     q1: 'सभासदांचे पैसे कुठे जातात?', a1: 'थेट तुमच्या सोसायटीच्या UPI आयडी / बँक खात्यात. Sachiv पैसे हाताळत नाही आणि कोणतेही कमिशन घेत नाही.',
-    q2: 'सभासदांना पैसे द्यावे लागतात का?', a2: 'नाही. ₹300 दरमहा फक्त सोसायटी भरते. सर्व सभासद ॲप मोफत वापरतात.',
+    q2: 'सभासदांना पैसे द्यावे लागतात का?', a2: 'नाही. मासिक शुल्क (₹699 पासून) फक्त सोसायटी भरते. सर्व सभासद ॲप मोफत वापरतात.',
     q3: 'किती सदनिका चालतात?', a3: '10 पासून 500+ सदनिका. विंग्स आणि सदनिका क्रमांक तुमच्या पद्धतीने.',
     q4: 'आमची माहिती सुरक्षित आहे का?', a4: 'हो. माहिती Google Firebase वर सुरक्षित राहते. प्रत्येक सोसायटीची माहिती फक्त त्या सोसायटीच्या सदस्यांना दिसते, आणि सभासदाला फक्त स्वतःच्या सदनिकेचा हिशोब दिसतो.',
     q5: 'जुनी थकबाकी कशी भरायची?', a5: 'सदनिका यादी भरताना प्रत्येक सदनिकेची जुनी थकबाकी लिहा. Excel मधून थेट पेस्ट करता येते.',
@@ -277,13 +282,13 @@ const T = {
     h1h: 'सोसायटी रजिस्टर करें', h1p: 'नाम, मासिक शुल्क, UPI आईडी और फ्लैटों की सूची (Excel से पेस्ट)।',
     h2h: 'जॉइन कोड भेजें', h2p: 'सोसायटी के WhatsApp ग्रुप पर कोड भेजें। सदस्य ऐप इंस्टॉल करके जुड़ते हैं।',
     h3h: 'वसूली ऐप से', h3p: 'सदस्य UPI से भरते हैं, आप मंज़ूर करते हैं। सूचना, चंदा, शिकायतें सब यहीं।',
-    ph: 'आसान कीमत', ps: 'पूरी सोसायटी के लिए एक कीमत। सदस्य कितने भी हों।',
+    ph: 'आसान कीमत', ps: 'पूरी सोसायटी के लिए एक मासिक कीमत, फ्लैटों की संख्या के अनुसार। सदस्य कितने भी हों।',
     b1: '30 दिन फ्री', b1s: 'सभी सुविधाएँ, कोई बंधन नहीं', b2: '₹0 कमीशन', b2s: 'सदस्यों का पैसा सीधे सोसायटी के खाते में',
-    ptag: 'पहला महीना फ्री', pper: ' / महीना', pnote: 'प्रति सोसायटी, सभी फ्लैटों के लिए',
+    ptag: 'पहला महीना फ्री', pper: ' / महीना', pnote: 'प्रति सोसायटी, सभी फ्लैटों के लिए', pfrom: 'से शुरू। फ्लैटों की संख्या के अनुसार:', t1: '50 तक फ्लैट', t2: '51–150 फ्लैट', t3: '150 से अधिक फ्लैट',
     p1: 'सभी सदस्य फ्री इस्तेमाल करते हैं', p2: 'वसूली, सूचना, चंदा, फ़ाइलें, शिकायतें', p3: 'मराठी, हिंदी, English', p4: 'फ़ोन पर मदद और ट्रेनिंग',
     qh: 'अक्सर पूछे जाने वाले सवाल',
     q1: 'सदस्यों का पैसा कहाँ जाता है?', a1: 'सीधे आपकी सोसायटी की UPI आईडी / बैंक खाते में। Sachiv पैसे नहीं संभालता और कोई कमीशन नहीं लेता।',
-    q2: 'क्या सदस्यों को पैसे देने होंगे?', a2: 'नहीं। ₹300 प्रति माह सिर्फ़ सोसायटी देती है। सभी सदस्य ऐप फ्री इस्तेमाल करते हैं।',
+    q2: 'क्या सदस्यों को पैसे देने होंगे?', a2: 'नहीं। मासिक शुल्क (₹699 से) सिर्फ़ सोसायटी देती है। सभी सदस्य ऐप फ्री इस्तेमाल करते हैं।',
     q3: 'कितने फ्लैट चलेंगे?', a3: '10 से 500+ फ्लैट। विंग और फ्लैट नंबर आपके तरीके से।',
     q4: 'क्या हमारा डेटा सुरक्षित है?', a4: 'हाँ। डेटा Google Firebase पर सुरक्षित रहता है। हर सोसायटी का डेटा सिर्फ़ उसी सोसायटी के सदस्यों को दिखता है, और सदस्य को सिर्फ़ अपने फ्लैट का हिसाब दिखता है।',
     q5: 'पुराना बकाया कैसे भरें?', a5: 'फ्लैट सूची भरते समय हर फ्लैट का पुराना बकाया लिखें। Excel से सीधे पेस्ट कर सकते हैं।',
@@ -312,13 +317,13 @@ const T = {
     h1h: 'Register your society', h1p: 'Name, monthly charge, UPI ID and your flat list (paste from Excel).',
     h2h: 'Share the join code', h2p: 'Send the code on your society WhatsApp group. Residents install the app and join.',
     h3h: 'Collect in the app', h3p: 'Residents pay by UPI, you approve. Notices, collections and complaints all in one place.',
-    ph: 'Simple pricing', ps: 'One price for the whole society, however many residents.',
+    ph: 'Simple pricing', ps: 'One monthly price for the whole society, based on the number of flats.',
     b1: '30 days free', b1s: 'Every feature, no commitment', b2: '₹0 commission', b2s: 'Residents\' money goes straight to the society',
-    ptag: 'First month free', pper: ' / month', pnote: 'Per society, all flats included',
+    ptag: 'First month free', pper: ' / month', pnote: 'Per society, all flats included', pfrom: 'Starting price. By number of flats:', t1: 'Up to 50 flats', t2: '51–150 flats', t3: 'More than 150 flats',
     p1: 'All residents use it free', p2: 'Collections, notices, funds, files, complaints', p3: 'Marathi, Hindi, English', p4: 'Help and training by phone',
     qh: 'Common questions',
     q1: 'Where does residents\' money go?', a1: 'Straight to your society\'s UPI ID / bank account. Sachiv never handles the money and takes no commission.',
-    q2: 'Do residents have to pay?', a2: 'No. Only the society pays ₹300 a month. All residents use the app free.',
+    q2: 'Do residents have to pay?', a2: 'No. Only the society pays the monthly fee (from ₹699). All residents use the app free.',
     q3: 'How many flats does it support?', a3: 'From 10 to 500+ flats, with wings and flat numbers your way.',
     q4: 'Is our data safe?', a4: 'Yes. Data is stored securely on Google Firebase. Each society\'s data is visible only to its own members, and a resident sees only their own flat\'s account.',
     q5: 'How do we add old dues?', a5: 'Enter each flat\'s old dues when you add the flat list. You can paste straight from Excel.',

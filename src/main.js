@@ -21,7 +21,7 @@ import { drawLetterhead } from './letterhead.js';
 import { drawReceipt, receiptPng, receiptPdf } from './receipt.js';
 import { DICT } from './dict.js';
 import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative } from './platform.js';
-import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS, SITE_URL } from './config.js';
+import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS, SITE_URL, PLANS, priceFor } from './config.js';
 import { drawPoster, canvasToBlob, posterPdf } from './poster.js';
 import { App as CapApp } from '@capacitor/app';
 import { T, canon, LANG, LANGS, setLang } from './i18n.js';
@@ -110,14 +110,27 @@ function planState(s) {
 const locked = () => isAdmin() && S.society && planState(S.society).expired;
 const isOwnerUser = () => !!(S.user && S.user.email && S.user.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
 const LOCK_MSG = T('सदस्यत्व संपले आहे. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.');
+const socPrice = s => priceFor(((s && s.flats) || []).length);
+const inr = n => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
+const planTiers = () => PLANS.map((p, i) => `<li><span class="grow">${i === 0 ? T('{0} पर्यंत सदनिका', p.maxFlats) : p.maxFlats === Infinity ? T('{0} पेक्षा जास्त सदनिका', PLANS[i - 1].maxFlats) : T('{0}–{1} सदनिका', PLANS[i - 1].maxFlats + 1, p.maxFlats)}</span><b class="num">${inr(p.price)}</b></li>`).join('');
+const priceLine = s => `${T('तुमचा प्लॅन')}: <b class="num">${inr(socPrice(s))}</b> ${T('/ महिना')} <span class="muted">(${T('{0} सदनिका', ((s && s.flats) || []).length)})</span>`;
+function sheetPricing() {
+  openSheet(`${sheetHead(T('Sachiv किंमत'))}
+    <p class="small m0">${T('संपूर्ण सोसायटीसाठी एक मासिक किंमत, सदनिकांच्या संख्येनुसार. सर्व सभासद मोफत वापरतात. पहिले {0} दिवस मोफत.', TRIAL_DAYS)}</p>
+    <ul class="list">${planTiers()}</ul>
+    <div class="card tint small">${priceLine(S.society)}</div>
+    <p class="tiny muted m0">${T('भरणा थेट Sachiv ला UPI / बँकेद्वारे. ॲपमध्ये कोणतेही पैसे कापले जात नाहीत.')}</p>
+    <button class="btn primary block" type="button" data-act="support">${T('संपर्क')}: ${esc(SUPPORT_EMAIL)}</button>`);
+}
 function planBanner(always) {
   const p = planState(S.society);
   if (p.expired) return `<div class="card lock stack"><b>${T('सदस्यत्व संपले')} (${fmtTs(p.end)})</b>
     <span class="small">${T('भरणा नोंदी, सूचना आणि आठवणी सध्या बंद आहेत. सभासदांना त्यांची थकबाकी आणि जुन्या सूचना दिसत राहतील. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.')}</span>
+    <span class="small">${priceLine(S.society)}</span>
     <button class="btn" type="button" data-act="support">${T('संपर्क')}: ${esc(SUPPORT_EMAIL)}</button></div>`;
-  if (p.trial) return `<div class="card tint small row between wrap"><span>${T('मोफत कालावधी')}: <b class="num">${p.left} ${T('दिवस')}</b> ${T('बाकी')}</span><span class="tiny muted">${T('{0} पर्यंत', fmtTs(p.end))}</span></div>`;
+  if (p.trial) return `<button class="card tint small row between wrap btnlike" type="button" data-act="pricing"><span>${T('मोफत कालावधी')}: <b class="num">${p.left} ${T('दिवस')}</b> ${T('बाकी')}</span><span class="tiny muted">${T('नंतर {0} / महिना', inr(socPrice(S.society)))} ›</span></button>`;
   if (p.left <= 7) return `<div class="card tint small row between wrap"><span>${T('सदस्यत्व {0} ला संपेल', fmtTs(p.end))}</span><b class="bad num">${p.left} ${T('दिवस बाकी')}</b></div>`;
-  return always ? `<div class="card small row between wrap"><span>${T('सदस्यत्व')}</span><span class="muted">${T('{0} पर्यंत', fmtTs(p.end))}</span></div>` : '';
+  return always ? `<button class="card small row between wrap btnlike" type="button" data-act="pricing"><span>${T('सदस्यत्व')} · <b class="num">${inr(socPrice(S.society))}</b>${T('/ महिना')}</span><span class="muted">${T('{0} पर्यंत', fmtTs(p.end))} ›</span></button>` : '';
 }
 
 /* ---------- money ---------- */
@@ -1196,9 +1209,11 @@ function sheetOwner() {
     const draw = () => {
       const st = list.map(x => ({ x, p: planState(x) }));
       const paid = st.filter(o => !o.p.expired && !o.p.trial).length, trial = st.filter(o => o.p.trial).length, exp = st.filter(o => o.p.expired).length;
-      el.querySelector('#oStats').innerHTML = `<div class="card"><div class="tiny muted">${T('सशुल्क')}</div><b class="big good num">${paid}</b></div><div class="card"><div class="tiny muted">${T('मोफत / संपलेले')}</div><b class="big num">${trial} / <span class="bad">${exp}</span></b></div>`;
+      const mrr = st.filter(o => !o.p.expired && !o.p.trial).reduce((a, o) => a + socPrice(o.x), 0), pot = st.filter(o => o.p.trial).reduce((a, o) => a + socPrice(o.x), 0);
+      el.querySelector('#oStats').innerHTML = `<div class="card"><div class="tiny muted">${T('सशुल्क')}</div><b class="big good num">${paid}</b></div><div class="card"><div class="tiny muted">${T('मोफत / संपलेले')}</div><b class="big num">${trial} / <span class="bad">${exp}</span></b></div>
+        <div class="card"><div class="tiny muted">${T('मासिक उत्पन्न')}</div><b class="big good num">${inr(mrr)}</b><div class="tiny muted">${T('वार्षिक {0}', inr(mrr * 12))}</div></div><div class="card"><div class="tiny muted">${T('मोफत कालावधीतून शक्य')}</div><b class="big num">${inr(pot)}</b><div class="tiny muted">${T('/ महिना')}</div></div>`;
       const rows = st.filter(({ x }) => !q || (x.name || '').toLowerCase().includes(q) || (x.code || '').toLowerCase().includes(q));
-      el.querySelector('#oList').innerHTML = rows.length ? rows.map(({ x, p }) => `<li><span class="grow"><b>${esc(x.name)}</b><span class="tiny muted">${T('{0} सदनिका', (x.flats || []).length)} · ${esc(x.code || '')} · ${T('नोंद')} ${fmtTs(x.createdAt || Date.now())}</span></span>
+      el.querySelector('#oList').innerHTML = rows.length ? rows.map(({ x, p }) => `<li><span class="grow"><b>${esc(x.name)}</b><span class="tiny muted">${T('{0} सदनिका', (x.flats || []).length)} · ${inr(socPrice(x))}${T('/ महिना')} · ${esc(x.code || '')} · ${T('नोंद')} ${fmtTs(x.createdAt || Date.now())}</span></span>
         <span class="pill ${p.expired ? 'due' : p.trial ? 'wait' : 'ok'}">${p.expired ? T('संपले') : p.trial ? `${T('मोफत')} ${p.left}${T('दि')}` : fmtTs(p.end)}</span>
         <button class="btn small" type="button" data-plan="${x.id}">${T('बदला')}</button></li>`).join('') : `<li class="muted small">${T('काही नाही.')}</li>`;
     };
@@ -1212,13 +1227,14 @@ function sheetPlan(x) {
   const p = planState(x), base = Math.max(Date.now(), p.end);
   openSheet(`${sheetHead(esc(x.name))}
     <div class="small">${T('सध्या')}: <b>${p.expired ? T('संपले') : p.trial ? T('मोफत कालावधी') : T('सशुल्क')}</b> · ${T('{0} पर्यंत', fmtTs(p.end))}</div>
+    <div class="card tint small">${priceLine(x)} · <span id="plAmt"></span></div>
     <div class="chips">${[[1, `+${T('1 महिना')}`], [3, `+${T('3 महिने')}`], [6, `+${T('6 महिने')}`], [12, `+${T('1 वर्ष')}`]].map(([n, l]) => `<button class="chip" type="button" data-add="${n}">${l}</button>`).join('')}</div>
     <div class="field"><label for="plDate">${T('सदस्यत्व या दिवसापर्यंत')}</label><input type="date" id="plDate" value="${isoDay(base)}"></div>
     <button class="btn primary block" type="button" id="plSave">${T('जतन करा')}</button>
     <button class="btn block danger" type="button" id="plStop">${T('आताच बंद करा')}</button>
     <button class="btn block" type="button" id="plBack">‹ ${T('सर्व सोसायट्या')}</button>`, el => {
     const inp = el.querySelector('#plDate');
-    el.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => { inp.value = isoDay(addMonthsTs(base, +b.dataset.add)); el.querySelectorAll('[data-add]').forEach(c => c.setAttribute('aria-pressed', String(c === b))); }));
+    el.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => { inp.value = isoDay(addMonthsTs(base, +b.dataset.add)); el.querySelectorAll('[data-add]').forEach(c => c.setAttribute('aria-pressed', String(c === b))); el.querySelector('#plAmt').innerHTML = T('{0} महिने = {1}', b.dataset.add, `<b class="num">${inr(socPrice(x) * b.dataset.add)}</b>`); }));
     el.querySelector('#plSave').addEventListener('click', async () => {
       if (!inp.value) return;
       const until = new Date(inp.value + 'T23:59:59').getTime();
@@ -1290,6 +1306,7 @@ document.addEventListener('click', async e => {
     else if (d.act === 'newmsg') sheetMessage();
     else if (d.act === 'quick') sheetQuick();
     else if (d.act === 'poster') sheetPoster();
+    else if (d.act === 'pricing') sheetPricing();
     else if (d.act === 'editcommittee') sheetCommittee();
     else if (d.act === 'editcontacts') sheetContacts();
     else if (d.act === 'dashcfg') sheetDashboard();

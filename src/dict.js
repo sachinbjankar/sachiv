@@ -524,5 +524,18 @@ export const DICT = {
   'उदा. Krishnakunj Residency': ['उदा. Krishnakunj Residency', 'e.g. Krishnakunj Residency'],
   'ईमेल / फोन': ['ईमेल / फ़ोन', 'Email / phone'],
   'पावती क्रमांकाची सुरुवात': ['रसीद नंबर की शुरुआत', 'Receipt number prefix'],
-  'उदा. KKR': ['उदा. KKR', 'e.g. KKR']
+  'उदा. KKR': ['उदा. KKR', 'e.g. KKR'],
+  '{0} पर्यंत सदनिका': ['{0} तक फ्लैट', 'Up to {0} flats'],
+  '{0} पेक्षा जास्त सदनिका': ['{0} से अधिक फ्लैट', 'More than {0} flats'],
+  '{0}–{1} सदनिका': ['{0}–{1} फ्लैट', '{0}–{1} flats'],
+  'तुमचा प्लॅन': ['आपका प्लान', 'Your plan'],
+  '/ महिना': ['/ महीना', '/ month'],
+  'Sachiv किंमत': ['Sachiv कीमत', 'Sachiv pricing'],
+  'संपूर्ण सोसायटीसाठी एक मासिक किंमत, सदनिकांच्या संख्येनुसार. सर्व सभासद मोफत वापरतात. पहिले {0} दिवस मोफत.': ['पूरी सोसायटी के लिए एक मासिक कीमत, फ्लैटों की संख्या के अनुसार। सभी सदस्य फ्री इस्तेमाल करते हैं। पहले {0} दिन फ्री।', 'One monthly price for the whole society, based on the number of flats. All residents use it free. First {0} days free.'],
+  'भरणा थेट Sachiv ला UPI / बँकेद्वारे. ॲपमध्ये कोणतेही पैसे कापले जात नाहीत.': ['भुगतान सीधे Sachiv को UPI / बैंक से। ऐप में कोई पैसा नहीं कटता।', 'Pay Sachiv directly by UPI / bank. Nothing is charged inside the app.'],
+  'नंतर {0} / महिना': ['बाद में {0} / महीना', 'Then {0} / month'],
+  'मासिक उत्पन्न': ['मासिक आय', 'Monthly income'],
+  'वार्षिक {0}': ['वार्षिक {0}', '{0} a year'],
+  'मोफत कालावधीतून शक्य': ['फ्री अवधि से संभव', 'Possible from trials'],
+  '{0} महिने = {1}': ['{0} महीने = {1}', '{0} months = {1}']
 };
