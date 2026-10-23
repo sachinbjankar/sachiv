@@ -15,7 +15,7 @@ import {
   EmailAuthProvider, reauthenticateWithCredential, deleteUser
 } from 'firebase/auth';
 import {
-  getFirestore, doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, writeBatch, deleteField
+  getFirestore, doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, writeBatch, deleteField, runTransaction
 } from 'firebase/firestore';
 import { firebaseConfig } from './config.js';
 
@@ -142,6 +142,13 @@ export const backend = {
   },
   updateMember: (sid, uid, data) => updateDoc(doc(db, 'societies', sid, 'members', uid), data),
   removeMember: (sid, uid) => deleteDoc(doc(db, 'societies', sid, 'members', uid)),
+  // Serial receipt number per society and financial year (key like fy2627), reserved atomically.
+  nextReceiptNo: (sid, key) => runTransaction(db, async t => {
+    const ref = doc(db, 'societies', sid), snap = await t.get(ref);
+    const n = (Number(((snap.data() || {}).rcptSeq || {})[key]) || 0) + 1;
+    t.update(ref, { [`rcptSeq.${key}`]: n });
+    return n;
+  }),
   setPayments: (sid, flatId, map) => setDoc(doc(db, 'societies', sid, 'accounts', flatId), { payments: map }, { merge: true }),
   async setPayment(sid, flatId, month, rec) {
     await setDoc(doc(db, 'societies', sid, 'accounts', flatId), { payments: { [month]: rec ? rec : deleteField() } }, { merge: true });

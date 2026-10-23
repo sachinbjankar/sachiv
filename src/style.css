@@ -244,3 +244,8 @@ nav .dot { position: absolute; top: 5px; left: calc(50% + 7px); width: 8px; heig
 .period { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px 16px; border-radius: 16px; border: 1.5px solid var(--edge2); background: #fff; font: inherit; color: inherit; cursor: pointer; }
 .period[aria-pressed="true"] { border-color: var(--green); background: var(--green-soft); box-shadow: 0 0 0 3px rgba(11, 93, 75, .1); }
 .period .num { font-size: 18px; }
+.rcprev { aspect-ratio: 910 / 642; min-height: 0; border-radius: 8px; }
+.rcinfo summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 6px; min-height: 32px; }
+.rcinfo summary::-webkit-details-marker { display: none; }
+.rcinfo summary::after { content: '›'; margin-left: auto; font-size: 22px; color: var(--muted); transition: transform .2s; }
+.rcinfo[open] summary::after { transform: rotate(90deg); }

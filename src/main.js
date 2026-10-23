@@ -18,7 +18,8 @@ import './style.css';
 import { backend as B } from './backend.js';
 import { NOTICE_TEMPLATES, MINUTES_TYPES, RESOLUTION_PHRASES } from './templates.js';
 import { drawLetterhead } from './letterhead.js';
-import { drawReceipt } from './receipt.js';
+import { drawReceipt, receiptPng, receiptPdf } from './receipt.js';
+import { DICT } from './dict.js';
 import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative } from './platform.js';
 import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS, SITE_URL } from './config.js';
 import { drawPoster, canvasToBlob, posterPdf } from './poster.js';
@@ -602,6 +603,11 @@ function sheetSetup(isNew) {
       <div class="field"><label for="sAddr">${T('पत्ता')}</label><input type="text" id="sAddr" value="${esc(p.address || '')}" placeholder="${T('उदा. वडगाव बुद्रुक, पुणे')}"></div>
       <div class="grid2"><div class="field"><label for="sReg">${T('नोंदणी क्रमांक')}</label><input type="text" id="sReg" value="${esc(p.regNo || '')}"></div>
       <div class="field"><label for="sMonthly">${T('मासिक शुल्क (₹)')}</label><input type="number" id="sMonthly" min="0" inputmode="numeric" required value="${esc(p.monthly || '')}"></div></div>
+      <details class="card rcinfo"${p.nameEn || p.contact || p.rcptPrefix ? ' open' : ''}><summary><b>${T('पावतीवरील माहिती')}</b> <span class="hint">(${T('ऐच्छिक')})</span></summary><div class="stack" style="margin-top:10px">
+        <div class="field"><label for="sNameEn">${T('सोसायटीचे इंग्रजी नाव')}</label><input type="text" id="sNameEn" value="${esc(p.nameEn || '')}" placeholder="${T('उदा. Krishnakunj Residency')}"></div>
+        <div class="grid2"><div class="field"><label for="sContact">${T('ईमेल / फोन')}</label><input type="text" id="sContact" value="${esc(p.contact || '')}" autocapitalize="off"></div>
+        <div class="field"><label for="sPrefix">${T('पावती क्रमांकाची सुरुवात')}</label><input type="text" id="sPrefix" maxlength="8" value="${esc(p.rcptPrefix || '')}" placeholder="${T('उदा. KKR')}" autocapitalize="characters"></div></div>
+      </div></details>
       <div class="field"><label for="sUpi">${T('संस्थेचा UPI आयडी')} <span class="hint">(${T('सभासद यावर थेट भरतील')})</span></label><input type="text" id="sUpi" value="${esc(p.upi || '')}" placeholder="${T('उदा. societyname')}@okaxis" autocapitalize="off"></div>
       <div class="grid2"><div class="field"><label for="sStart">${T('खाते कोणत्या महिन्यापासून')}</label><input type="month" id="sStart" value="${esc(p.startMonth || thisMonth)}"></div>
       ${isNew ? `<div class="field"><label for="sMy">${T('तुमची सदनिका')}</label><input type="text" id="sMy" placeholder="${T('उदा. A-101')}"></div>` : '<div></div>'}</div>
@@ -616,7 +622,7 @@ function sheetSetup(isNew) {
         .map(a => ({ id: a[0].replace(/[\/\s]+/g, '-').toUpperCase(), owner: a[1] || '', phone: a[2] || '', opening: Number(String(a[3] || '').replace(/[^\d.]/g, '')) || 0 }));
       const seen = new Set(), dup = fl.find(f => seen.has(f.id) || !seen.add(f.id));
       if (dup) { toast(T('सदनिका {0} दोनदा आहे.', dup.id)); btn.disabled = false; return; }
-      const data = { name: el.querySelector('#sName').value.trim(), address: el.querySelector('#sAddr').value.trim(), regNo: el.querySelector('#sReg').value.trim(), monthly: Number(el.querySelector('#sMonthly').value) || 0, upi: el.querySelector('#sUpi').value.trim(), startMonth: el.querySelector('#sStart').value || thisMonth, flats: fl };
+      const data = { name: el.querySelector('#sName').value.trim(), address: el.querySelector('#sAddr').value.trim(), regNo: el.querySelector('#sReg').value.trim(), monthly: Number(el.querySelector('#sMonthly').value) || 0, upi: el.querySelector('#sUpi').value.trim(), nameEn: el.querySelector('#sNameEn').value.trim(), contact: el.querySelector('#sContact').value.trim(), rcptPrefix: el.querySelector('#sPrefix').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, ''), startMonth: el.querySelector('#sStart').value || thisMonth, flats: fl };
       try {
         if (isNew) { data.myFlat = (el.querySelector('#sMy').value || '').trim().toUpperCase(); const sid = await B.createSociety(S.user, data); closeSheet(); selectSociety(sid); toast(T('सोसायटी तयार झाली. आता जॉइन कोड सभासदांना पाठवा.')); }
         else { await B.updateSociety(S.sid, data); closeSheet(); toast(T('माहिती जतन झाली.')); }
@@ -644,10 +650,12 @@ function sheetPay(flatId) {
       e.preventDefault();
       const rec = { amount: Number(el.querySelector('#pAmt').value) || 0, date: el.querySelector('#pDate').value, mode: el.querySelector('#pMode').value, ref: el.querySelector('#pRef').value.trim(), at: Date.now(), by: S.user.name };
       const n = pN ? +pN.value : 1;
+      const sb = e.submitter || el.querySelector('[type=submit]'); if (sb) sb.disabled = true;
       try {
-        if (n > 1) { const ms = monthsFrom(m, n), map = allocate(flatId, ms, rec.amount, { date: rec.date, mode: rec.mode, ref: rec.ref, at: rec.at, by: rec.by }); await B.setPayments(S.sid, flatId, map); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); openReceipt(maintReceipt(flatId, ms[0], map[ms[0]])); }
+        rec.no = (n === 1 && pay && pay.no) || await newRcptNo(rec.date);
+        if (n > 1) { const ms = monthsFrom(m, n), map = allocate(flatId, ms, rec.amount, { date: rec.date, mode: rec.mode, ref: rec.ref, at: rec.at, by: rec.by, no: rec.no }); await B.setPayments(S.sid, flatId, map); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); openReceipt(maintReceipt(flatId, ms[0], map[ms[0]])); }
         else { await B.setPayment(S.sid, flatId, m, rec); toast(`${T('सदनिका')} ${flatId}: ${rs(rec.amount)} ${T('जमा नोंदवले.')}`); openReceipt(maintReceipt(flatId, m, rec)); }
-      } catch (er) { fail(er); }
+      } catch (er) { fail(er); if (sb) sb.disabled = false; }
     });
     const del = el.querySelector('#pDel');
     if (del) del.addEventListener('click', async () => { try { await B.setPayment(S.sid, flatId, m, null); closeSheet(); toast(T('नोंद काढली.')); } catch (er) { fail(er); } });
@@ -1008,7 +1016,7 @@ function sheetFundCash(f, flatId) {
     el.querySelector('#fcForm').addEventListener('submit', async e => {
       e.preventDefault(); const amt = Number(el.querySelector('#fcAmt').value) || 0; if (!amt) return;
       const rec = { amount: amt, date: today, mode: el.querySelector('#fcMode').value, at: Date.now(), by: S.user.name };
-      try { await B.setFundPaid(S.sid, f.id, flatId, rec); toast(`${flatId}: ${rs(amt)} ${T('जमा.')}`); openReceipt(fundReceipt(f, flatId, rec)); } catch (er) { fail(er); }
+      try { rec.no = await newRcptNo(today); await B.setFundPaid(S.sid, f.id, flatId, rec); toast(`${flatId}: ${rs(amt)} ${T('जमा.')}`); openReceipt(fundReceipt(f, flatId, rec)); } catch (er) { fail(er); }
     });
   });
 }
@@ -1086,17 +1094,39 @@ function sheetPoster() {
 
 /* ---------- receipts (पावती) ---------- */
 const flatOwner = id => (flats().find(f => f.id === id) || {}).owner || '';
-const rcptDate = rec => rec.at ? `${fmtTs(rec.at)} ${new Date(rec.at).toTimeString().slice(0, 5)}` : fmtDate(rec.date);
-const maintReceipt = (flatId, month, rec) => { const g = Array.isArray(rec.grp) && rec.grp.length > 1 ? rec.grp : null; return { no: `${S.society.code}-${(g ? g[0] : month).replace('-', '')}-${flatId}${g ? '-' + g.length + 'M' : ''}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), purpose: `${T('देखभाल शुल्क')} · ${rangeLabel(g || [month])}`, amount: g ? Number(rec.grpTotal) || 0 : Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '' }; };
-const fundReceipt = (f, flatId, rec) => ({ no: `${S.society.code}-V${String(f.id).slice(0, 4).toUpperCase()}-${flatId}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), purpose: `${T('वर्गणी')} · ${f.title}`, amount: Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '' });
+const rcptDate = rec => fmtDate(rec.date || (rec.at ? isoDay(rec.at) : today), 'en').replace(/^(\d+) (\w{3})\w* /, '$1 $2 ');
+const enLabel = k => (DICT[k] || [])[1] || k;
+const enMonth = k => { const [y, m] = k.split('-').map(Number); return `${MONTHS_ALL.en[m - 1].slice(0, 3)} ${y}`; };
+const periodLabel = ms => { const loc = rangeLabel(ms), e = ms.length === 1 ? enMonth(ms[0]) : `${enMonth(ms[0])} – ${enMonth(ms[ms.length - 1])}`; return LANG === 'en' ? (ms.length === 1 ? monthName(ms[0]) : `${e} (${ms.length} months)`) : `${loc}  (${e})`; };
+// Financial year (April–March) of a date, e.g. 2026-10-19 → "26-27"
+const fyOf = iso => { const d = iso ? new Date(iso) : new Date(); const y = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1; return `${String(y).slice(2)}-${String(y + 1).slice(2)}`; };
+const rcptPrefix = () => String(S.society.rcptPrefix || S.society.code || 'R').toUpperCase().replace(/[^A-Z0-9-]/g, '') || 'R';
+// Next serial receipt number for this society and year: KKR/26-27/0001. Empty if it can't be reserved (offline).
+async function newRcptNo(iso) {
+  const fy = fyOf(iso);
+  try { const n = await B.nextReceiptNo(S.sid, 'fy' + fy.replace('-', '')); return `${rcptPrefix()}/${fy}/${String(n).padStart(4, '0')}`; } catch (e) { return ''; }
+}
+const maintReceipt = (flatId, month, rec) => { const g = Array.isArray(rec.grp) && rec.grp.length > 1 ? rec.grp : null; const ms = g || [month]; return { no: rec.no || `${S.society.code}-${ms[0].replace('-', '')}-${flatId}${g ? '-' + g.length + 'M' : ''}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), kind: 'maint', period: periodLabel(ms), purpose: `${T('देखभाल शुल्क')} · ${rangeLabel(ms)}`, amount: g ? Number(rec.grpTotal) || 0 : Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '', dues: dueFor(flatId, thisMonth), asOn: fmtDate(today, 'en').replace(/^(\d+) (\w{3})\w* /, '$1 $2 ') }; };
+const fundReceipt = (f, flatId, rec) => ({ no: rec.no || `${S.society.code}-V${String(f.id).slice(0, 4).toUpperCase()}-${flatId}`, date: rcptDate(rec), flatId, name: rec.payer || flatOwner(flatId), kind: 'fund', period: f.title, purpose: `${T('वर्गणी')} · ${f.title}`, amount: Number(rec.amount) || 0, mode: T(rec.mode || ''), ref: rec.ref || '', by: rec.by || '', dues: null });
 function openReceipt(r) {
-  openSheet(`${sheetHead(T('पावती'))}<img class="docprev" id="rcImg" alt="${T('पावती')}">
-    <div class="grid2"><button class="btn primary" type="button" id="rcShare">${IC.share} ${T('WhatsApp / शेअर')}</button><button class="btn ghost" type="button" id="rcClose">${T('बंद')}</button></div>`, async el => {
+  const file = `Pavati-${r.no.replace(/[\/\\:*?"<>|\s]+/g, '-')}-${r.flatId}`;
+  openSheet(`${sheetHead(T('पावती'))}<img class="docprev rcprev" id="rcImg" alt="${T('पावती')}">
+    <div class="grid2"><button class="btn primary" type="button" id="rcPdf" disabled>${IC.doc} ${T('PDF डाउनलोड')}</button><button class="btn" type="button" id="rcShare" disabled>${IC.share} WhatsApp</button></div>
+    <button class="btn ghost block" type="button" id="rcClose">${T('बंद')}</button>`, async el => {
     el.querySelector('#rcClose').addEventListener('click', closeSheet);
-    const blob = await drawReceipt(S.society, r, k => T(k));
-    const img = el.querySelector('#rcImg'); if (img) img.src = URL.createObjectURL(blob);
-    el.querySelector('#rcShare').addEventListener('click', async () => {
-      const res = await shareImage(blob, `pavati-${r.no}.png`, `${S.society.name} · ${T('पावती')} ${r.no} · ₹${r.amount}`);
+    if (r.kind === 'maint') { await new Promise(res => setTimeout(res, 400)); r.dues = dueFor(r.flatId, thisMonth); } // after the new payment reaches the ledger
+    const canvas = await drawReceipt(S.society, r, { t: k => T(k), en: enLabel, lang: LANG });
+    const img = el.querySelector('#rcImg'); if (img) img.src = canvas.toDataURL('image/jpeg', 0.9);
+    const text = `${S.society.name} · ${T('पावती')} ${r.no} · ₹${r.amount}`;
+    const pdfBtn = el.querySelector('#rcPdf'), shBtn = el.querySelector('#rcShare'); if (!pdfBtn) return;
+    pdfBtn.disabled = shBtn.disabled = false;
+    pdfBtn.addEventListener('click', async () => {
+      pdfBtn.disabled = true;
+      const res = await shareFile(await receiptPdf(canvas), `${file}.pdf`, text); pdfBtn.disabled = false;
+      if (res === 'downloaded') toast(T('पावती PDF डाउनलोड झाली.')); if (res === 'failed') toast(T('शेअर होऊ शकले नाही.'));
+    });
+    shBtn.addEventListener('click', async () => {
+      const res = await shareImage(await receiptPng(canvas), `${file}.png`, text);
       if (res === 'downloaded') toast(T('पावती डाउनलोड झाली.')); if (res === 'failed') toast(T('शेअर होऊ शकले नाही.'));
     });
   });
@@ -1291,14 +1321,14 @@ document.addEventListener('click', async e => {
       const c = S.claims.find(x => x.id === d.claimOk); if (!c) return;
       if (c.fundId) {
         const fund = S.funds.find(x => x.id === c.fundId), prevF = fund && (fund.paid || {})[c.flatId];
-        const recF = { amount: (prevF ? Number(prevF.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '', at: Date.now(), by: S.user.name, payer: c.name || '' };
+        const recF = { amount: (prevF ? Number(prevF.amount) : 0) + Number(c.amount), date: c.date, mode: 'UPI', ref: c.ref || '', at: Date.now(), by: S.user.name, payer: c.name || '', no: await newRcptNo(c.date) };
         await B.setFundPaid(S.sid, c.fundId, c.flatId, recF);
         await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid, decidedAt: Date.now() });
         toast(`${c.flatId}: ${rs(c.amount)} ${T('वर्गणी मंजूर.')}`); if (fund) openReceipt(fundReceipt(fund, c.flatId, recF)); return;
       }
       const prev = ((S.accounts[c.flatId] || {}).payments || {})[c.month];
       const ms = Array.isArray(c.months) && c.months.length ? c.months : [c.month];
-      const map = allocate(c.flatId, ms, ms.length > 1 ? Number(c.amount) : (prev ? Number(prev.amount) : 0) + Number(c.amount) - (prev ? Number(prev.amount) : 0), { date: c.date, mode: 'UPI', ref: c.ref || '', at: Date.now(), by: S.user.name, payer: c.name || '' });
+      const map = allocate(c.flatId, ms, ms.length > 1 ? Number(c.amount) : (prev ? Number(prev.amount) : 0) + Number(c.amount) - (prev ? Number(prev.amount) : 0), { date: c.date, mode: 'UPI', ref: c.ref || '', at: Date.now(), by: S.user.name, payer: c.name || '', no: await newRcptNo(c.date) });
       const recM = map[ms[0]];
       await B.setPayments(S.sid, c.flatId, map);
       await B.updateClaim(S.sid, c.id, { status: 'approved', decidedBy: S.user.uid, decidedAt: Date.now() });
