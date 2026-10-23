@@ -20,7 +20,7 @@ import { NOTICE_TEMPLATES, MINUTES_TYPES, RESOLUTION_PHRASES } from './templates
 import { drawLetterhead } from './letterhead.js';
 import { drawReceipt, receiptPng, receiptPdf } from './receipt.js';
 import { DICT } from './dict.js';
-import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative } from './platform.js';
+import { openExternal, upiLink, waLink, shareImage, shareFile, copyText, isNative, notifyLocal, askNotifyPermission, onNotifyTap } from './platform.js';
 import { OWNER_EMAIL, SUPPORT_EMAIL, TRIAL_DAYS, SITE_URL, PLANS, priceFor } from './config.js';
 import { drawPoster, canvasToBlob, posterPdf } from './poster.js';
 import { App as CapApp } from '@capacitor/app';
@@ -84,11 +84,12 @@ const IC = {
   receipt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
   qr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h3v-3"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>',
   rupee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12M6 9h12M9 4c3 0 5 1.6 5 5s-2 5-5 5H6l8 7"/></svg>'
 };
 
 /* ---------- state ---------- */
-const S = { user: null, userDoc: null, sid: null, member: undefined, society: null, members: [], accounts: {}, myAccount: null, claims: [], notices: [], complaints: [], messages: [], funds: [], files: [], tab: 'home' };
+const S = { user: undefined, userDoc: null, sid: null, member: undefined, society: null, members: [], accounts: {}, myAccount: null, claims: [], notices: [], complaints: [], messages: [], funds: [], files: [], tab: 'home' };
 let subs = [], userSub = null, memberSub = null;
 const unsubAll = () => { subs.forEach(u => { try { u(); } catch (e) {} }); subs = []; };
 const isAdmin = () => S.member && S.member.status === 'active' && S.member.role === 'admin';
@@ -155,6 +156,9 @@ function monthSummary(m) {
 const monthsDue = due => monthly() ? Math.ceil(due / monthly()) : 0;
 // several months at once: pick the oldest months not yet fully paid, then spread the amount over them
 const PERIODS = [1, 2, 3, 6, 12];
+const MAXN = 24; // any whole number of months, 1 to 24
+const ALLN = Array.from({ length: MAXN }, (_, i) => i + 1);
+const nLabel = n => n === 12 ? T('1 वर्ष') : n === 1 ? T('1 महिना') : T('{0} महिने', n);
 const monthsFrom = (start, n) => Array.from({ length: n }, (_, i) => addMonth(start, i));
 function nextUnpaid(flatId, n, P) {
   P = P || (S.accounts[flatId] || {}).payments || {};
@@ -248,9 +252,66 @@ function wire(sid, m) {
 /* ---------- render ---------- */
 const SUBPAGES = { committee: T('समिती'), contacts: T('महत्त्वाचे संपर्क'), funds: T('वर्गणी'), complaints: T('तक्रारी'), members: T('सभासद व मंजुरी'), me: T('माझे खाते') };
 const seenKey = () => 'sachiv-seen-' + S.sid;
-const unreadCount = () => { const t = Number(LS.get(seenKey()) || 0); return S.messages.filter(m => m.createdAt > t && m.uid !== (S.user && S.user.uid)).length; };
+const unreadCount = () => { const t = Number(LS.get(seenKey()) || 0); return S.messages.filter(m => m.createdAt > t && m.uid !== (S.user && S.user.uid)).length + S.notices.filter(n => n.createdAt > t && n.uid !== (S.user && S.user.uid)).length; };
+
+/* ---------- welcome screen while the saved login and society load ---------- */
+const BOOT_MIN = Date.now() + 1100;
+let booted = false;
+// Keep the welcome screen until the society is ready (or there is nothing to load), and at least ~1 second.
+function booting() {
+  if (booted) return false;
+  const ready = S.userDoc && (!S.sid || (S.member !== undefined && (!S.member || S.member.status !== 'active' || S.society)));
+  if (ready && Date.now() >= BOOT_MIN) { booted = true; return false; }
+  if (ready) setTimeout(render, BOOT_MIN - Date.now() + 20);
+  if (!ready && Date.now() > BOOT_MIN + 7000) { booted = true; return false; } // slow network: show the app's own loading states
+  if (!ready) setTimeout(render, 600);
+  return true;
+}
+const splash = () => { const sn = LS.get('sachiv-sname'); return `<div class="splash" role="status"><div class="splash-mark" aria-hidden="true">स</div><div class="splash-name">Sachiv</div><div class="splash-wel">${T('स्वागत आहे')}${S.user && S.user.name ? `, ${esc(S.user.name.split(' ')[0])}` : ''}</div>${sn && S.user ? `<div class="splash-soc">${esc(sn)}</div>` : ''}<div class="splash-dots" aria-hidden="true"><i></i><i></i><i></i></div></div>`; };
+
+/* ---------- in-app notifications (bell) ---------- */
+const inboxKey = () => 'sachiv-inbox-' + S.sid;
+const notifKey = () => 'sachiv-notified-' + S.sid;
+const myReminder = () => { const a = S.myAccount || (S.member && S.accounts[S.member.flatId]); return a && a.reminder; };
+function feed() {
+  if (!S.society || !S.member) return [];
+  const me = S.user.uid, out = [];
+  for (const m of S.messages) if (m.uid !== me) out.push({ id: 'm' + m.id, at: m.createdAt, icon: 'mega', title: m.important ? T('महत्त्वाची घोषणा') : T('नवीन घोषणा'), body: m.text, go: 'messages' });
+  for (const n of S.notices) if (n.uid !== me) out.push({ id: 'n' + n.id, at: n.createdAt, icon: 'doc', title: T('नवीन सूचना पत्र'), body: n.heading || '', go: 'messages', seg: 'notice' });
+  if (isAdmin()) {
+    for (const c of S.claims) if (c.status === 'pending') out.push({ id: 'c' + c.id, at: c.createdAt, icon: 'rupee', title: T('नवीन भरणा नोंद'), body: `${c.flatId} · ${rs(c.amount)} · ${c.name || ''}`, go: 'home' });
+    for (const m of S.members) if (m.status === 'pending') out.push({ id: 'j' + m.id, at: m.createdAt, icon: 'user', title: T('नवीन सभासद विनंती'), body: `${m.name || ''} · ${m.flatId || ''}`, go: 'members' });
+    for (const c of S.complaints) if (c.status === 'open' && c.uid !== me) out.push({ id: 'k' + c.id, at: c.createdAt, icon: 'chat', title: T('नवीन तक्रार'), body: `${c.flatId || ''} · ${c.text || ''}`, go: 'complaints' });
+  } else {
+    const r = myReminder(), due = S.member.flatId ? dueFor(S.member.flatId, thisMonth) : 0;
+    if (r && r.at && due > 0) out.push({ id: 'r' + r.at, at: r.at, icon: 'rupee', title: T('थकबाकी आठवण'), body: T('{0} थकबाकी आहे. कृपया लवकर भरा.', rs(due)) + (r.note ? ` ${r.note}` : ''), act: 'pay' });
+    for (const c of S.claims) if (c.decidedAt && c.status !== 'pending') out.push({ id: 'd' + c.id, at: c.decidedAt, icon: 'rupee', title: c.status === 'approved' ? T('भरणा मंजूर ✓') : T('भरणा नाकारला'), body: `${rs(c.amount)} · ${c.ref || ''}`, go: 'home' });
+  }
+  return out.filter(x => x.at).sort((a, b) => b.at - a.at).slice(0, 40);
+}
+const inboxCount = () => { const t = Number(LS.get(inboxKey()) || 0); return feed().filter(x => x.at > t).length; };
+function sheetInbox() {
+  const t = Number(LS.get(inboxKey()) || 0), list = feed();
+  LS.set(inboxKey(), String(Date.now())); render();
+  openSheet(`${sheetHead(T('सर्व सूचना'))}${list.length ? `<ul class="list inbox">${list.map((x, i) => `<li class="${x.at > t ? 'new' : ''}"><button class="btnlike row g10" type="button" data-ix="${i}"><span class="mi">${IC[x.icon] || IC.mega}</span><span class="grow"><b>${esc(x.title)}</b><span class="small clamp">${esc(x.body)}</span><span class="tiny muted">${ago(x.at)}</span></span></button></li>`).join('')}</ul>` : `<div class="card empty muted small">${T('नवीन काही नाही.')}</div>`}`, el => {
+    el.querySelectorAll('[data-ix]').forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.ix]; closeSheet(); if (x.act === 'pay') setTimeout(sheetPayChoice, 250); else { if (x.seg) msgSeg = x.seg; S.tab = x.go || 'home'; render(); } }));
+  });
+}
+// Phone notification for anything new since last time (while the app is open or in the background).
+let notifyBusy = false;
+async function notifyNew() {
+  if (!isNative || notifyBusy || !S.society || !S.member || S.member.status !== 'active') return;
+  const list = feed(), last = Number(LS.get(notifKey()) || 0);
+  if (!last) { LS.set(notifKey(), String(Date.now())); return; } // first run: don't replay old items
+  const fresh = list.filter(x => x.at > last).slice(0, 3);
+  if (!fresh.length) return;
+  notifyBusy = true; LS.set(notifKey(), String(Math.max(...fresh.map(x => x.at))));
+  try { for (const x of fresh) await notifyLocal(`${x.title} · ${S.society.name}`, x.body); } finally { notifyBusy = false; }
+}
+if (isNative) { askNotifyPermission(); onNotifyTap(() => { if (S.society) sheetInbox(); }); }
 function render() {
   const head = $('#head'), v = $('#view'), tabs = $('#tabs');
+  if (S.user === undefined || (S.user && booting())) { document.body.dataset.screen = 'splash'; head.innerHTML = ''; tabs.innerHTML = ''; if (!$('.splash')) v.innerHTML = splash(); return; }
   document.body.dataset.screen = S.user ? 'app' : 'auth';
   if (!S.user) { head.innerHTML = ''; tabs.innerHTML = ''; v.innerHTML = viewAuth(); return; }
   if (!S.userDoc) { head.innerHTML = topBar(''); tabs.innerHTML = ''; v.innerHTML = loading(); return; }
@@ -261,12 +322,14 @@ function render() {
   if (!S.member) { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = viewGone(sname); return; }
   if (S.member.status !== 'active') { head.innerHTML = topBar(sname); tabs.innerHTML = ''; v.innerHTML = viewPending(sname); return; }
   head.innerHTML = topBar(S.society.name);
+  LS.set('sachiv-sname', S.society.name);
   const TABS = isAdmin()
     ? [['home', T('मुख्य'), IC.home], ['ledger', T('खाते'), IC.ledger], ['+'], ['messages', T('संदेश'), IC.mega], ['more', T('अधिक'), IC.grid]]
     : [['home', T('मुख्य'), IC.home], ['messages', T('संदेश'), IC.mega], ['+'], ['files', T('फाइल्स'), IC.folder], ['more', T('अधिक'), IC.grid]];
   if (!TABS.some(t => t[0] === S.tab) && !SUBPAGES[S.tab] && S.tab !== 'files') S.tab = 'home';
   if (S.tab === 'members' && !isAdmin()) S.tab = 'more';
   if (S.tab === 'messages') LS.set(seenKey(), String(Date.now()));
+  setTimeout(notifyNew, 0);
   const navOn = SUBPAGES[S.tab] ? 'more' : S.tab;
   const badge = k => (k === 'home' && isAdmin() && pendingCount()) || (k === 'messages' && unreadCount()) ? `<i class="dot" aria-label="${T('नवीन')}"></i>` : '';
   tabs.innerHTML = `<nav aria-label="${T('मुख्य मेनू')}" style="grid-template-columns:repeat(${TABS.length},minmax(0,1fr))">${TABS.map(([k, l, ic]) => k === '+' ? `<button class="fab" type="button" data-act="quick" aria-label="${T('झटपट कामे')}"><span class="fabi">${IC.plus}</span></button>` : `<button type="button" data-tab="${k}" ${k === navOn ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${badge(k)}</button>`).join('')}</nav>`;
@@ -277,7 +340,7 @@ function render() {
   v.innerHTML = SUBPAGES[S.tab] ? `<button class="backbtn" type="button" data-tab="more">${IC.back}<span>${T('अधिक')}</span></button>${pageTitle(SUBPAGES[S.tab])}${body}` : body;
 }
 const pendingCount = () => S.claims.filter(c => c.status === 'pending').length + S.members.filter(m => m.status === 'pending').length;
-const topBar = name => `<div class="topbar">${name ? `<button class="socbtn" type="button" data-act="switch"><span class="mark" aria-hidden="true">स</span><span class="sn">${esc(name)}</span>${IC.down}</button>` : `<span class="mark" aria-hidden="true">स</span><b class="brandname">Sachiv</b>`}${S.member && S.member.status === 'active' ? `<button class="avt" type="button" data-tab="me" aria-label="${T('माझे खाते')}">${esc(initials(S.user && S.user.name))}</button>` : ''}</div>`;
+const topBar = name => `<div class="topbar">${name ? `<button class="socbtn" type="button" data-act="switch"><span class="mark" aria-hidden="true">स</span><span class="sn">${esc(name)}</span>${IC.down}</button>` : `<span class="mark" aria-hidden="true">स</span><b class="brandname">Sachiv</b>`}${S.member && S.member.status === 'active' && S.society ? (() => { const n = inboxCount(); return `<button class="bell" type="button" data-act="inbox" aria-label="${T('सर्व सूचना')}${n ? ` (${n})` : ''}">${IC.bell}${n ? `<i class="cnt">${n > 9 ? '9+' : n}</i>` : ''}</button>`; })() : ''}${S.member && S.member.status === 'active' ? `<button class="avt" type="button" data-tab="me" aria-label="${T('माझे खाते')}">${esc(initials(S.user && S.user.name))}</button>` : ''}</div>`;
 const pageTitle = (t, kicker) => `<div class="ptitle">${kicker ? `<div class="kicker">${kicker}</div>` : ''}<h1>${t}</h1></div>`;
 const loading = () => `<div class="card empty muted">${T('माहिती आणत आहे…')}</div>`;
 const initials = n => String(n || '?').replace(/^(श्री|सौ|कु|डॉ|Mr|Mrs|Ms|Dr)\.?\s*/i, '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
@@ -451,6 +514,7 @@ function rHome() {
   const hist = Object.entries(P).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
   return `
     ${pageTitle(`${T('नमस्कार')}, ` + esc((S.user.name || '').split(' ')[0]), `${T('सदनिका')} ` + esc(f.id))}
+    ${(() => { const r = myReminder(); return r && r.at && payable > 0 && Date.now() - r.at < 45 * DAY ? `<button class="card remind row g10 btnlike" type="button" data-act="pay"><span class="mi">${IC.bell}</span><span class="grow"><b>${T('समितीकडून आठवण')}</b><span class="small">${T('{0} थकबाकी आहे. कृपया लवकर भरा.', rs(payable))}</span><span class="tiny muted">${ago(r.at)}${r.by ? ' · ' + esc(r.by) : ''}</span></span><span class="gold small b6">${T('भरा')} ›</span></button>` : ''; })()}
     <div class="card hero-card stack">
       <span class="kicker">${T('देखभाल शुल्क')}</span>
       ${due > 0 ? `<b class="num huge">${rs(due)}</b><span class="small muted">${T('थकबाकी')}${n > 1 ? ` · ${n} ${T('महिने')}` : ''} · ${rs(monthly())} ${T('दरमहा')}</span>` : `<b class="huge good">${T('सर्व भरलेले')} ✓</b><span class="small muted">${T('{0} पर्यंत कोणतीही थकबाकी नाही', MONTHS[now.getMonth()])}</span>`}
@@ -651,7 +715,7 @@ function sheetPay(flatId) {
     <form id="payForm" class="stack">
       <div class="grid2"><div class="field"><label for="pAmt">${T('रक्कम (₹)')}</label><input type="number" id="pAmt" min="0" inputmode="numeric" required value="${esc(pay ? pay.amount : (due || monthly()))}"></div>
       <div class="field"><label for="pDate">${T('दिनांक')}</label><input type="date" id="pDate" required value="${esc(pay ? pay.date : today)}"></div></div>
-      ${pay ? '' : `<div class="field"><label for="pN">${T('किती महिने')}</label><select id="pN">${PERIODS.map(n => `<option value="${n}">${n === 12 ? T('1 वर्ष') : n === 1 ? T('1 महिना') : T('{0} महिने', n)}</option>`).join('')}</select><span class="tiny muted" id="pRange">${esc(rangeLabel([m]))}</span></div>`}
+      ${pay ? '' : `<div class="field"><label for="pN">${T('किती महिने')}</label><select id="pN">${ALLN.map(n => `<option value="${n}">${nLabel(n)}</option>`).join('')}</select><span class="tiny muted" id="pRange">${esc(rangeLabel([m]))}</span></div>`}
       <div class="grid2"><div class="field"><label for="pMode">${T('कसे भरले')}</label><select id="pMode">${['UPI', 'रोख', 'चेक', 'बँक ट्रान्सफर'].map(x => `<option value="${x}" ${pay && canon(pay.mode) === x ? 'selected' : ''}>${T(x)}</option>`).join('')}</select></div>
       <div class="field"><label for="pRef">${T('संदर्भ क्र.')} <span class="hint">(${T('ऐच्छिक')})</span></label><input type="text" id="pRef" value="${esc(pay && pay.ref || '')}"></div></div>
       <button class="btn primary block" type="submit">${T('जमा नोंदवा')}</button>
@@ -677,12 +741,43 @@ function sheetPay(flatId) {
 
 function sheetReminders() {
   const rows = flats().map(f => ({ f, due: dueFor(f.id, ledgerMonth) })).filter(r => r.due > 0);
+  const picked = new Set(rows.map((r, i) => i));
+  const lastRem = id => { const r = (S.accounts[id] || {}).reminder; return r && r.at ? ago(r.at) : ''; };
   openSheet(`${sheetHead(`${T('थकबाकी आठवण')} · ${rows.length}`)}
-    <p class="small muted m0">${T('प्रत्येक सदनिकेसाठी WhatsApp उघडा. फोन क्रमांक नसल्यास WhatsApp मध्ये संपर्क निवडा.')}</p>
-    <ul class="list">${rows.map(({ f, due }, i) => `<li class="wrap"><span class="flat">${esc(f.id)}</span><span class="grow"><span>${esc(f.owner || '')}</span><span class="tiny muted num">${esc(f.phone || T('फोन नाही'))} · ${rs(due)}</span></span>
-      <span class="row g6"><button class="btn small good" type="button" data-wa="${i}">${IC.wa} WhatsApp</button><button class="btn small" type="button" data-cp="${i}" aria-label="${T('संदेश कॉपी करा')}">${IC.copy}</button></span></li>`).join('')}</ul>`, el => {
+    ${rows.length ? `<p class="small muted m0">${T('सभासद निवडा. ॲपमधील आठवण सर्वांना एकदम जाते; WhatsApp एकेक करून उघडते.')}</p>
+    <label class="row g10 selall"><input type="checkbox" id="rAll" checked> <b>${T('सर्व निवडा')}</b> <span class="muted small" id="rCnt"></span></label>
+    <ul class="list remlist">${rows.map(({ f, due }, i) => `<li><label class="row g10 grow"><input type="checkbox" data-pick="${i}" checked><span class="flat">${esc(f.id)}</span><span class="grow"><span>${esc(f.owner || '')}</span><span class="tiny muted num">${esc(f.phone || T('फोन नाही'))} · ${rs(due)}${lastRem(f.id) ? ` · ${T('आठवण')} ${lastRem(f.id)}` : ''}</span></span></label>
+      <span class="row g6"><button class="iconbtn" type="button" data-wa="${i}" aria-label="WhatsApp">${IC.wa}</button><button class="iconbtn" type="button" data-cp="${i}" aria-label="${T('संदेश कॉपी करा')}">${IC.copy}</button></span></li>`).join('')}</ul>
+    <div class="stickyacts stack"><button class="btn primary block" type="button" id="rApp">${IC.bell} <span id="rAppL"></span></button>
+    <button class="btn good block" type="button" id="rWa">${IC.wa} <span id="rWaL"></span></button></div>` : `<div class="card empty muted">${T('कोणाचीही थकबाकी नाही.')}</div>`}`, el => {
+    if (!rows.length) return;
+    let waQueue = null;
+    const sel = () => rows.filter((r, i) => picked.has(i));
+    const upd = () => {
+      const n = picked.size; el.querySelector('#rCnt').textContent = `(${n}/${rows.length})`; el.querySelector('#rAll').checked = n === rows.length;
+      el.querySelector('#rAppL').textContent = T('ॲपमध्ये आठवण पाठवा ({0})', n);
+      el.querySelector('#rWaL').textContent = waQueue && waQueue.length ? T('पुढील WhatsApp: {0} ({1} बाकी)', waQueue[0].f.id, waQueue.length) : T('WhatsApp वर एकेक पाठवा ({0})', n);
+      el.querySelector('#rApp').disabled = el.querySelector('#rWa').disabled = !n;
+    };
+    el.querySelector('#rAll').addEventListener('change', e => { picked.clear(); if (e.target.checked) rows.forEach((r, i) => picked.add(i)); el.querySelectorAll('[data-pick]').forEach(c => c.checked = e.target.checked); waQueue = null; upd(); });
+    el.querySelectorAll('[data-pick]').forEach(c => c.addEventListener('change', () => { c.checked ? picked.add(+c.dataset.pick) : picked.delete(+c.dataset.pick); waQueue = null; upd(); }));
     el.querySelectorAll('[data-wa]').forEach(b => b.addEventListener('click', () => { const r = rows[+b.dataset.wa]; openExternal(waLink(r.f.phone, reminderText(r.f, r.due))); }));
     el.querySelectorAll('[data-cp]').forEach(b => b.addEventListener('click', async () => { const r = rows[+b.dataset.cp]; toast(await copyText(reminderText(r.f, r.due)) ? T('संदेश कॉपी झाला.') : T('कॉपी होऊ शकला नाही.')); }));
+    el.querySelector('#rApp').addEventListener('click', async e => {
+      const list = sel(); if (!list.length) return; e.currentTarget.disabled = true;
+      try {
+        const at = Date.now();
+        await Promise.all(list.map(r => B.setReminder(S.sid, r.f.id, { at, amount: r.due, month: ledgerMonth, by: S.user.name })));
+        toast(T('{0} सदनिकांना ॲपमध्ये आठवण पाठवली.', list.length));
+      } catch (er) { fail(er); }
+      upd();
+    });
+    el.querySelector('#rWa').addEventListener('click', () => {
+      if (!waQueue || !waQueue.length) waQueue = sel();
+      const r = waQueue.shift(); if (r) openExternal(waLink(r.f.phone, reminderText(r.f, r.due)));
+      upd();
+    });
+    upd();
   });
 }
 
@@ -694,15 +789,26 @@ function sheetPayChoice() {
   const payable = Math.max(0, due - pendSum);
   if (payable > 0) { const ms = nextUnpaid(flatId, Math.max(1, monthsDue(payable)), P).filter(m => m <= thisMonth); opts.push({ key: 'due', label: T('संपूर्ण थकबाकी'), months: ms.length ? ms : [thisMonth], amount: payable }); }
   for (const n of PERIODS) { const ms = nextUnpaid(flatId, n, P); opts.push({ key: String(n), label: n === 12 ? T('1 वर्ष') : n === 1 ? T('1 महिना') : T('{0} महिने', n), months: ms, amount: n * monthly() }); }
+  let cn = 4;
+  const custom = { key: 'custom', label: T('इतर महिने'), months: nextUnpaid(flatId, cn, P), amount: cn * monthly() };
+  opts.push(custom);
   let sel = opts[0];
+  const ci = opts.length - 1;
   openSheet(`${sheetHead(T('किती महिन्यांचे भरायचे?'))}
-    <div class="periods">${opts.map((o, i) => `<button type="button" class="period" data-opt="${i}" aria-pressed="${i === 0}"><span class="grow"><b>${o.label}</b><span class="tiny muted">${esc(rangeLabel(o.months))}</span></span><b class="num">${rs(o.amount)}</b></button>`).join('')}</div>
+    <div class="periods">${opts.map((o, i) => i === ci ? `<div class="period custom" data-opt="${i}" role="button" tabindex="0" aria-pressed="false"><span class="grow"><b>${o.label}</b><span class="tiny muted" id="cmR">${esc(rangeLabel(o.months))}</span></span>
+      <span class="stepper"><button type="button" class="stp" data-cm="-1" aria-label="${T('कमी')}">−</button><b class="num" id="cmN">${cn}</b><button type="button" class="stp" data-cm="1" aria-label="${T('जास्त')}">+</button></span><b class="num" id="cmA">${rs(o.amount)}</b></div>`
+      : `<button type="button" class="period" data-opt="${i}" aria-pressed="${i === 0}"><span class="grow"><b>${o.label}</b><span class="tiny muted">${esc(rangeLabel(o.months))}</span></span><b class="num">${rs(o.amount)}</b></button>`).join('')}</div>
     <button class="btn primary block" type="button" id="pcPay"></button>
     <button class="link" type="button" id="pcDone">${T('आधीच भरले? नोंद करा')}</button>`, el => {
     const btn = el.querySelector('#pcPay');
     const upd = () => { btn.textContent = T('{0} UPI ने भरा', rs(sel.amount)); };
     upd();
     el.querySelectorAll('[data-opt]').forEach(b => b.addEventListener('click', () => { sel = opts[+b.dataset.opt]; el.querySelectorAll('[data-opt]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); upd(); }));
+    el.querySelectorAll('[data-cm]').forEach(b => b.addEventListener('click', () => {
+      cn = Math.min(MAXN, Math.max(1, cn + +b.dataset.cm));
+      custom.months = nextUnpaid(flatId, cn, P); custom.amount = cn * monthly();
+      el.querySelector('#cmN').textContent = cn; el.querySelector('#cmA').textContent = rs(custom.amount); el.querySelector('#cmR').textContent = rangeLabel(custom.months);
+    }));
     btn.addEventListener('click', async () => {
       const ok = await openExternal(upiLink({ upi: S.society.upi, name: S.society.name, amount: sel.amount, note: `Maint ${flatId} ${sel.months[0] || thisMonth}${sel.months.length > 1 ? ' +' + (sel.months.length - 1) : ''}` }));
       if (!ok) toast(`${T('UPI ॲप उघडले नाही. UPI आयडी')}: ` + S.society.upi);
@@ -717,7 +823,7 @@ function sheetIPaid(defaultAmt, fund, months) {
     <p class="small muted m0">${T('UPI ॲपमध्ये भरल्यानंतर इथे नोंद करा. समिती तपासून मंजूर करेल.')}</p>
     <form id="ipForm" class="stack">
       <div class="grid2"><div class="field"><label for="iAmt">${T('रक्कम (₹)')}</label><input type="number" id="iAmt" min="1" inputmode="numeric" required value="${esc(defaultAmt || monthly())}"></div>
-      ${fund ? `<div class="field"><label>${T('वर्गणी')}</label><input value="${esc(fund.title)}" disabled></div>` : `<div class="field"><label for="iN">${T('किती महिने')}</label><select id="iN">${PERIODS.map(n => `<option value="${n}" ${months && months.length === n ? 'selected' : ''}>${n === 12 ? T('1 वर्ष') : n === 1 ? T('1 महिना') : T('{0} महिने', n)}</option>`).join('')}${months && !PERIODS.includes(months.length) ? `<option value="${months.length}" selected>${T('{0} महिने', months.length)}</option>` : ''}</select></div>`}</div>
+      ${fund ? `<div class="field"><label>${T('वर्गणी')}</label><input value="${esc(fund.title)}" disabled></div>` : `<div class="field"><label for="iN">${T('किती महिने')}</label><select id="iN">${ALLN.map(n => `<option value="${n}" ${months && months.length === n ? 'selected' : ''}>${nLabel(n)}</option>`).join('')}</select></div>`}</div>
       ${fund ? '' : `<div class="field"><label for="iMonth">${T('पासून')}</label><input type="month" id="iMonth" required value="${(months && months[0]) || nextUnpaid(S.member.flatId, 1)[0] || thisMonth}"><span class="tiny muted" id="iRange"></span></div>`}
       <div class="field"><label for="iRef">${T('UPI संदर्भ क्र. (UTR)')} <span class="hint">(${T('UPI ॲपमधील १२ अंकी क्रमांक')})</span></label><input type="text" id="iRef" inputmode="numeric" maxlength="22"></div>
       <button class="btn primary block" type="submit">${T('नोंद पाठवा')}</button></form>`, el => {
@@ -796,7 +902,7 @@ function sheetNotice() {
     g('#nBuild').addEventListener('click', build);
     g('#nPub').addEventListener('click', async () => {
       if (!g('#nBody').value.trim()) build();
-      const n = { kind: 'notice', lang, heading: g('#nHead').value.trim() || DOC_WORDS[lang].notice, dateLine: DOC_WORDS[lang].date + fmtDate(today, lang), presentLine: '', body: g('#nBody').value.trim(), createdAt: Date.now(), by: S.user.name };
+      const n = { kind: 'notice', lang, heading: g('#nHead').value.trim() || DOC_WORDS[lang].notice, dateLine: DOC_WORDS[lang].date + fmtDate(today, lang), presentLine: '', body: g('#nBody').value.trim(), createdAt: Date.now(), by: S.user.name, uid: S.user.uid };
       await publishAndShare(n);
     });
   });
@@ -822,7 +928,7 @@ function sheetMinutes() {
     g('#mPub').addEventListener('click', async () => {
       const body = g('#mBody').value.trim(); if (!body) { toast(T('किमान एक ठराव लिहा.')); return; }
       const pr = g('#mPresent').value;
-      const n = { kind: 'minutes', lang, heading: g('#mType').value, dateLine: DOC_WORDS[lang].date + fmtDate(g('#mDate').value, lang), presentLine: pr ? DOC_WORDS[lang].present + pr : '', body, createdAt: Date.now(), by: S.user.name };
+      const n = { kind: 'minutes', lang, heading: g('#mType').value, dateLine: DOC_WORDS[lang].date + fmtDate(g('#mDate').value, lang), presentLine: pr ? DOC_WORDS[lang].present + pr : '', body, createdAt: Date.now(), by: S.user.name, uid: S.user.uid };
       await publishAndShare(n);
     });
   });
@@ -1307,6 +1413,7 @@ document.addEventListener('click', async e => {
     else if (d.act === 'quick') sheetQuick();
     else if (d.act === 'poster') sheetPoster();
     else if (d.act === 'pricing') sheetPricing();
+    else if (d.act === 'inbox') sheetInbox();
     else if (d.act === 'editcommittee') sheetCommittee();
     else if (d.act === 'editcontacts') sheetContacts();
     else if (d.act === 'dashcfg') sheetDashboard();

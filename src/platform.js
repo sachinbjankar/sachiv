@@ -65,3 +65,17 @@ export async function copyText(text) {
     document.body.append(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (er) {} ta.remove(); return ok;
   }
 }
+
+// Phone notifications (Android). Shown while the app is open or in the background.
+let LN = null;
+const ln = async () => { if (!isNative) return null; if (!LN) LN = (await import('@capacitor/local-notifications')).LocalNotifications; return LN; };
+let nid = Math.floor(Date.now() / 1000) % 100000;
+export async function askNotifyPermission() {
+  try { const L = await ln(); if (!L) return; const p = await L.checkPermissions(); if (p.display !== 'granted') await L.requestPermissions(); } catch (e) {}
+}
+export async function notifyLocal(title, body) {
+  try { const L = await ln(); if (!L) return; await L.schedule({ notifications: [{ id: ++nid, title, body: String(body || '').slice(0, 240), smallIcon: 'ic_stat_sachiv', iconColor: '#0B5D4B' }] }); } catch (e) {}
+}
+export async function onNotifyTap(cb) {
+  try { const L = await ln(); if (L) L.addListener('localNotificationActionPerformed', () => cb()); } catch (e) {}
+}

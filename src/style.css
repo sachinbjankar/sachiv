@@ -249,3 +249,43 @@ nav .dot { position: absolute; top: 5px; left: calc(50% + 7px); width: 8px; heig
 .rcinfo summary::-webkit-details-marker { display: none; }
 .rcinfo summary::after { content: '›'; margin-left: auto; font-size: 22px; color: var(--muted); transition: transform .2s; }
 .rcinfo[open] summary::after { transform: rotate(90deg); }
+/* welcome screen */
+body[data-screen="splash"] #head, body[data-screen="splash"] #tabs { display: none; }
+.splash { min-height: 92vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; animation: spIn .45s ease both; }
+.splash-mark { width: 88px; height: 88px; border-radius: 26px; background: var(--green, #0B5D4B); color: #FFD27A; font: 800 54px/88px Mukta, sans-serif; box-shadow: 0 16px 40px rgba(11, 93, 75, .28); margin-bottom: 10px; }
+.splash-name { font-size: 30px; font-weight: 800; letter-spacing: -.5px; color: var(--ink, #0F172A); }
+.splash-wel { font-size: 18px; color: var(--muted, #64748B); }
+.splash-soc { margin-top: 8px; font-weight: 700; color: var(--green, #0B5D4B); max-width: 300px; }
+.splash-dots { display: flex; gap: 7px; margin-top: 22px; }
+.splash-dots i { width: 8px; height: 8px; border-radius: 50%; background: #D99A1E; animation: spDot 1s infinite ease-in-out; }
+.splash-dots i:nth-child(2) { animation-delay: .15s; } .splash-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes spIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes spDot { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
+/* bell + inbox */
+.bell { position: relative; margin-left: auto; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--edge2, #E2E8F0); background: #fff; color: var(--ink, #0F172A); display: grid; place-items: center; flex: none; }
+.bell svg { width: 22px; height: 22px; }
+.bell + .avt { margin-left: 0; }
+.bell .cnt { position: absolute; top: -3px; right: -3px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: var(--bad, #DC2626); color: #fff; font: 700 11.5px/19px Mukta, sans-serif; font-style: normal; box-shadow: 0 0 0 2px #fff; }
+.inbox li { padding: 0; }
+.inbox li > button { width: 100%; text-align: left; padding: 12px 4px; align-items: flex-start; }
+.inbox li.new > button { background: #F1FAF6; border-radius: 12px; padding-left: 10px; }
+.inbox li.new b::after { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bad, #DC2626); margin-left: 6px; vertical-align: middle; }
+.inbox .mi, .remind .mi { width: 38px; height: 38px; border-radius: 12px; background: #E8F5EF; color: var(--green, #0B5D4B); display: grid; place-items: center; flex: none; }
+.inbox .mi svg, .remind .mi svg { width: 20px; height: 20px; }
+.inbox .grow, .remind .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.remind { border: 1.5px solid #F8D9A0; background: #FFF8E8; text-align: left; align-items: center; width: 100%; }
+/* reminder picker */
+.selall { padding: 6px 2px; }
+.remlist li { gap: 8px; }
+.remlist input[type=checkbox], .selall input { width: 20px; height: 20px; accent-color: var(--green, #0B5D4B); flex: none; }
+.stickyacts { position: sticky; bottom: 0; background: #fff; padding-top: 10px; }
+/* custom months stepper */
+.period.custom { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stp { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--edge2, #E2E8F0); background: #fff; font: 700 20px/1 Mukta, sans-serif; color: var(--green, #0B5D4B); }
+.stepper b { min-width: 22px; text-align: center; }
+.remlist li { display: flex; flex-direction: row; align-items: center; }
+.remlist label { display: flex; flex-direction: row; align-items: center; gap: 10px; flex: 1; min-width: 0; margin: 0; font-weight: 400; cursor: pointer; }
+.remlist label .grow { display: flex; flex-direction: column; min-width: 0; }
+.selall { display: flex; flex-direction: row; align-items: center; gap: 10px; margin: 0; cursor: pointer; }
+.inbox li > button { border: 0; background: none; box-shadow: none; display: flex; flex-direction: row; gap: 10px; color: inherit; font: inherit; cursor: pointer; }

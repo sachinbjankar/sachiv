@@ -149,6 +149,7 @@ export const backend = {
     t.update(ref, { [`rcptSeq.${key}`]: n });
     return n;
   }),
+  setReminder: (sid, flatId, rec) => setDoc(doc(db, 'societies', sid, 'accounts', flatId), { reminder: rec }, { merge: true }),
   setPayments: (sid, flatId, map) => setDoc(doc(db, 'societies', sid, 'accounts', flatId), { payments: map }, { merge: true }),
   async setPayment(sid, flatId, month, rec) {
     await setDoc(doc(db, 'societies', sid, 'accounts', flatId), { payments: { [month]: rec ? rec : deleteField() } }, { merge: true });
