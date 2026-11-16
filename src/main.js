@@ -111,6 +111,9 @@ function planState(s) {
 const locked = () => isAdmin() && S.society && planState(S.society).expired;
 const isOwnerUser = () => !!(S.user && S.user.email && S.user.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
 const LOCK_MSG = T('सदस्यत्व संपले आहे. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.');
+// Google Play: the Android app must not show subscription prices or ask for payment outside Google Play.
+// Prices stay on the website; inside the app only the owner sees them.
+const showPrice = () => !isNative || isOwnerUser();
 const socPrice = s => priceFor(((s && s.flats) || []).length);
 const inr = n => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 const planTiers = () => PLANS.map((p, i) => `<li><span class="grow">${i === 0 ? T('{0} पर्यंत सदनिका', p.maxFlats) : p.maxFlats === Infinity ? T('{0} पेक्षा जास्त सदनिका', PLANS[i - 1].maxFlats) : T('{0}–{1} सदनिका', PLANS[i - 1].maxFlats + 1, p.maxFlats)}</span><b class="num">${inr(p.price)}</b></li>`).join('');
@@ -127,10 +130,12 @@ function planBanner(always) {
   const p = planState(S.society);
   if (p.expired) return `<div class="card lock stack"><b>${T('सदस्यत्व संपले')} (${fmtTs(p.end)})</b>
     <span class="small">${T('भरणा नोंदी, सूचना आणि आठवणी सध्या बंद आहेत. सभासदांना त्यांची थकबाकी आणि जुन्या सूचना दिसत राहतील. सुरू ठेवण्यासाठी Sachiv शी संपर्क करा.')}</span>
-    <span class="small">${priceLine(S.society)}</span>
+    ${showPrice() ? `<span class="small">${priceLine(S.society)}</span>` : ''}
     <button class="btn" type="button" data-act="support">${T('संपर्क')}: ${esc(SUPPORT_EMAIL)}</button></div>`;
+  if (p.trial && !showPrice()) return `<div class="card tint small row between wrap"><span>${T('मोफत कालावधी')}: <b class="num">${p.left} ${T('दिवस')}</b> ${T('बाकी')}</span><span class="tiny muted">${T('{0} पर्यंत', fmtTs(p.end))}</span></div>`;
   if (p.trial) return `<button class="card tint small row between wrap btnlike" type="button" data-act="pricing"><span>${T('मोफत कालावधी')}: <b class="num">${p.left} ${T('दिवस')}</b> ${T('बाकी')}</span><span class="tiny muted">${T('नंतर {0} / महिना', inr(socPrice(S.society)))} ›</span></button>`;
   if (p.left <= 7) return `<div class="card tint small row between wrap"><span>${T('सदस्यत्व {0} ला संपेल', fmtTs(p.end))}</span><b class="bad num">${p.left} ${T('दिवस बाकी')}</b></div>`;
+  if (always && !showPrice()) return `<div class="card small row between wrap"><span>${T('सदस्यत्व')}</span><span class="muted">${T('{0} पर्यंत', fmtTs(p.end))}</span></div>`;
   return always ? `<button class="card small row between wrap btnlike" type="button" data-act="pricing"><span>${T('सदस्यत्व')} · <b class="num">${inr(socPrice(S.society))}</b>${T('/ महिना')}</span><span class="muted">${T('{0} पर्यंत', fmtTs(p.end))} ›</span></button>` : '';
 }
 
@@ -1452,7 +1457,7 @@ document.addEventListener('click', async e => {
     else if (d.act === 'newmsg') sheetMessage();
     else if (d.act === 'quick') sheetQuick();
     else if (d.act === 'poster') sheetPoster();
-    else if (d.act === 'pricing') sheetPricing();
+    else if (d.act === 'pricing' && showPrice()) sheetPricing();
     else if (d.act === 'inbox') sheetInbox();
     else if (d.act === 'editcommittee') sheetCommittee();
     else if (d.act === 'editcontacts') sheetContacts();
